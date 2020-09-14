@@ -35,3 +35,6 @@ HELP.md
 *.log
 *.log*gz
 *.log*.tmp
+
+### maven ###
+pom.xml.versionsBackup
