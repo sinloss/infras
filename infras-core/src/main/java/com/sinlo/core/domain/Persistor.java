@@ -110,12 +110,13 @@ public class Persistor<T extends Entity> {
      *
      * @param repos repositories
      */
+    @SuppressWarnings("unchecked")
     @SafeVarargs
-    public final void commit(Repo<T>... repos) {
-        final Map<String, Repo<T>> mapping = Arrays.stream(repos)
+    public final void commit(Repo<? extends T>... repos) {
+        final Map<String, Repo<? extends T>> mapping = Arrays.stream(repos)
                 .collect(Collectors.toMap(Repo::support, r -> r));
         this.commit((chan, entity) -> {
-            Repo<T> repo = mapping.get(entity.getClass().getName());
+            Repo<T> repo = (Repo<T>) mapping.get(entity.getClass().getName());
             switch (chan) {
                 case INSERT:
                     repo.save(entity);
@@ -143,7 +144,7 @@ public class Persistor<T extends Entity> {
      * proc is null
      */
     @SafeVarargs
-    public final Stub enclose(Consumer<Stub> proc, Repo<T>... repos) {
+    public final Stub enclose(Consumer<Stub> proc, Repo<? extends T>... repos) {
         Stub stub = new Stub(repos);
         if (proc != null) {
             proc.accept(stub);
@@ -173,10 +174,10 @@ public class Persistor<T extends Entity> {
     }
 
     public class Stub implements AutoCloseable {
-        private Repo<T>[] using = null;
+        private Repo<? extends T>[] using = null;
 
         @SafeVarargs
-        private Stub(Repo<T>... repos) {
+        private Stub(Repo<? extends T>... repos) {
             this.using = repos;
         }
 
