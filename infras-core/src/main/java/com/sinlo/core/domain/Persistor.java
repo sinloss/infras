@@ -1,9 +1,8 @@
 package com.sinlo.core.domain;
 
 import com.sinlo.core.common.Eventer;
-import com.sinlo.core.domain.spec.Entity;
+import com.sinlo.core.domain.spec.*;
 import com.sinlo.core.common.wraparound.SureThreadLocal;
-import com.sinlo.core.domain.spec.Repo;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -53,13 +52,13 @@ public class Persistor<T extends Entity> {
     @SuppressWarnings("UnusedReturnValue")
     public Persistor<T> tag(Channel channel, T entity, boolean exclusive) {
         if (entity == null)
-            throw new RuntimeException("The [ entity ] should not be null");
+            throw new IllegalArgumentException("The [ entity ] should not be null");
 
         String key = entity.key();
         if (!entities.get().containsKey(key)) {
             tagged.get().add(key);
         } else if (exclusive) {
-            throw new RuntimeException("The exclusive tagging operation encountered an existing entity");
+            throw new ChannelConflictingException(key, stat(entity));
         }
         entities.get().put(key, new Tag<>(channel, entity));
         return this;
@@ -118,7 +117,7 @@ public class Persistor<T extends Entity> {
         this.commit((chan, entity) -> {
             Repo<T> repo = (Repo<T>) mapping.get(entity.getClass().getName());
             switch (chan) {
-                case INSERT:
+                case CREATE:
                     repo.save(entity);
                     break;
                 case UPDATE:
@@ -204,20 +203,4 @@ public class Persistor<T extends Entity> {
         }
     }
 
-    public static class Tag<T> {
-        public final Channel chan;
-        public final T entity;
-
-        public Tag(Channel chan, T entity) {
-            this.chan = chan;
-            this.entity = entity;
-        }
-    }
-
-    /**
-     * Tagging channel
-     */
-    public enum Channel {
-        INSERT, UPDATE, DELETE
-    }
 }
