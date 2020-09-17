@@ -42,7 +42,7 @@ public interface Entity {
      * tag as update
      */
     default void update() {
-        if (persistor().stat(this) != Channel.CREATE) {
+        if (persistor().stat(this) == Channel.CREATE) {
             // as long as this is tagged as create, it infers that there's no existing entity
             // in the repository, thus here it should be tagged as create as well
             create();

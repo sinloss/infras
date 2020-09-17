@@ -1,4 +1,4 @@
-package com.sinlo.core.service;
+package com.sinlo.core.service.spec;
 
 public class Err {
 

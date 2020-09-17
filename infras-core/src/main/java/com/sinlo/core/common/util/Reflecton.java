@@ -17,8 +17,6 @@ public class Reflecton {
     private Reflecton() {
     }
 
-    /* ========================= 实例处理 ========================== */
-
     public static Object getFieldValue(Object tar, String name) {
         return getFieldValue(tar, name, null, true);
     }
@@ -37,9 +35,10 @@ public class Reflecton {
 
     /**
      * 取得目标对象指定字段名的字段的值
+     * Get the [ value ] of the field of [ tar ]
      *
-     * @param tar  目标对象
-     * @param name 字段名
+     * @param name      字段名，可以为空<br/> file name, could be null
+     * @param useGetter 是否使用getter<br/> use getter or not
      */
     public static Object getFieldValue(Object tar, String name, Field field, boolean useGetter) {
         if (tar != null) {
@@ -62,12 +61,10 @@ public class Reflecton {
 
     /**
      * 设置目标对象指定字段名的字段的值
+     * Set the [ value ] of the field of [ tar ]
      *
-     * @param tar   目标对象
-     * @param name  指定属性名
-     * @param value 属性值
-     * @return <b>true</b>: 设置成功
-     * <b>false</b>: 设置失败，对象及其继承链中不存在指定的属性
+     * @param name      字段名，可以为空<br/> file name, could be null
+     * @param useSetter 是否使用setter<br/> use setter or not
      */
     public static boolean setFieldValue(Object tar, String name, Object value, Field field, boolean useSetter) {
         if (tar != null && value != null) {
@@ -90,28 +87,28 @@ public class Reflecton {
         return false;
     }
 
-    /* ========================== 命名处理 ===========================*/
-
     /**
-     * 关键字连接处大写
+     * 连接两个字符串，连接处大写
+     * Concatenate two given string, and uppercase the joint character
      *
-     * @param prefix 前缀关键字
-     * @param suffix 后缀关键字
+     * @param prefix 前缀字符串
+     * @param suffix 后缀字符串
      */
     public static String humping(String prefix, String suffix) {
         if (prefix == null) prefix = "";
         if (suffix == null || suffix.isEmpty()) return prefix;
-        String joint = suffix.substring(0, 1).toUpperCase();//连接处首字母大写
+        String joint = suffix.substring(0, 1).toUpperCase(); //连接处首字母大写
         return prefix + joint + suffix.substring(1);
     }
 
     /**
      * 驼峰转下划线
+     * CamelCase to underscore_case
      *
-     * @param name 符合驼峰命名规则的源名称
-     * @return 符合下划线命名规则的名称
+     * @param name 符合驼峰命名规则的源名称 <br/> a camel cased name
+     * @return 符合下划线命名规则的名称 <br/> a underscore cased name
      */
-    public static String underlining(String name) {
+    public static String underscore(String name) {
         if (name != null && !name.isEmpty()) {
             StringBuilder builder = new StringBuilder().append(name.charAt(0));
             for (int i = 1; i < name.length(); i++) {
@@ -128,18 +125,18 @@ public class Reflecton {
 
     /**
      * 下划线转驼峰
+     * underscore_case to CamelCase
      *
-     * @param name 符合下划线命名规则的名称
-     * @param lite 是否小驼峰
-     * @return 符合驼峰命名规则的名称
+     * @param name   符合下划线命名规则的名称 <br/> a underscore cased name
+     * @param pascal 是否帕斯卡命名法 <br/> pascal case styled camel case
+     * @return 符合驼峰命名规则的源名称 <br/> a camel cased name
      */
-    public static String cameling(String name, boolean lite) {
+    public static String cameling(String name, boolean pascal) {
         if (name != null && !name.isEmpty()) {
             StringBuilder builder = new StringBuilder()
-                    .append(lite ? Character.toLowerCase(name.charAt(0)) : Character.toUpperCase(name.charAt(0)));
+                    .append(pascal ? Character.toLowerCase(name.charAt(0)) : Character.toUpperCase(name.charAt(0)));
             for (int i = 1; i < name.length(); i++) {
                 if (name.charAt(i) == '_') {
-                    //如果是下划线，跳至下个字符，且将其大写加入builder
                     builder.append(Character.toUpperCase(name.charAt(++i)));
                 } else {
                     builder.append(name.charAt(i));
@@ -151,6 +148,7 @@ public class Reflecton {
 
     /**
      * 首字母小写
+     * Initial character to lowercase
      */
     public static String lowerInitial(String str) {
         return castInitial(str, false);
@@ -158,6 +156,7 @@ public class Reflecton {
 
     /**
      * 首字母大写
+     * Initial character to uppercase
      */
     public static String upperInitial(String str) {
         return castInitial(str, true);
@@ -165,10 +164,7 @@ public class Reflecton {
 
     /**
      * 首字母大小写转换
-     *
-     * @param str     需处理的字符串
-     * @param capital 大小写标识，true为大写，false为小写
-     * @return 转换后的字符串
+     * Initial character to lower or upper case
      */
     public static String castInitial(String str, boolean capital) {
         if (str == null || str.isEmpty()) return str;
@@ -177,14 +173,9 @@ public class Reflecton {
                 + str.substring(1);
     }
 
-    /* ====================== 元信息获取 ======================= */
-
     /**
      * 取得目标类中指定字段的getter
-     *
-     * @param tar       目标类
-     * @param fieldName 字段名
-     * @return getter
+     * Get getter
      */
     public static Method getter(Class<?> tar, String fieldName) {
         try {
@@ -196,11 +187,7 @@ public class Reflecton {
 
     /**
      * 取得目标类中指定字段的setter
-     *
-     * @param tar        目标类
-     * @param fieldName  字段名
-     * @param fieldClass 字段类型
-     * @return setter
+     * Get setter
      */
     public static Method setter(Class<?> tar, String fieldName, Class<?> fieldClass) {
         try {
@@ -212,10 +199,7 @@ public class Reflecton {
 
     /**
      * 取得目标对象指定字段名的字段
-     *
-     * @param tar  目标对象
-     * @param name 字段名
-     * @return 找到的field
+     * Get field
      */
     public static Field getField(Class<?> tar, String name) {
         if (tar != null) {
@@ -232,11 +216,7 @@ public class Reflecton {
 
     /**
      * 找到第一个匹配的注解
-     *
-     * @param tar             目标类Class
-     * @param annotationClass 注解类Class
-     * @param <T>             注解类的范型
-     * @return 找到则返回相应的注解，否则返回null
+     * Find first matching annotation
      */
     public static <T extends Annotation> T findFirstAnnotation(Class<?> tar, Class<T> annotationClass) {
         if (tar != null) {
@@ -252,7 +232,6 @@ public class Reflecton {
 
     /**
      * Backport of java.lang.reflect.Method#isDefault()
-     * public的，非abstract的，非static的，定义在interface里面，实现在类里面的方法
      */
     public static boolean isDefaultMethod(Method method) {
         return ((method.getModifiers()
@@ -260,17 +239,13 @@ public class Reflecton {
                 && method.getDeclaringClass().isInterface();
     }
 
-    /* ===================== 对象重构 ======================= */
-
     @SuppressWarnings("unchecked")
     public static <T> T deepClone(T t) {
-        //将对象写到流里
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ObjectOutputStream oos;
         try {
             oos = new ObjectOutputStream(bos);
             oos.writeObject(t);
-            //从流里读回来
             ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
             ObjectInputStream ois = new ObjectInputStream(bis);
             return (T) ois.readObject();

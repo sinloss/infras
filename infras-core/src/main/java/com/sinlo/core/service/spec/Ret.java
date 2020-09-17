@@ -1,4 +1,4 @@
-package com.sinlo.core.service;
+package com.sinlo.core.service.spec;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
