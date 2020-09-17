@@ -2,6 +2,8 @@ package com.sinlo.core.domain.spec;
 
 /**
  * Tag the tagged tag
+ *
+ * @author sinlo
  */
 public class Tag<T extends Entity> {
     public final Channel chan;

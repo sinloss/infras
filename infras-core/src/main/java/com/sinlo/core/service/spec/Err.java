@@ -1,5 +1,10 @@
 package com.sinlo.core.service.spec;
 
+/**
+ * Common err entity
+ *
+ * @author sinlo
+ */
 public class Err {
 
     public final int status;

@@ -3,6 +3,13 @@ package com.sinlo.core.service.spec;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+/**
+ * Common ret entity
+ * @param <V>
+ *     value type
+ * @param <E>
+ *     error type
+ */
 public final class Ret<V, E> {
 
     private final V val;

@@ -1,5 +1,8 @@
 package com.sinlo.core.domain.spec;
 
+/**
+ * @author sinlo
+ */
 public class ChannelConflictingException extends IllegalStateException {
 
     public ChannelConflictingException(String key, Channel channel) {

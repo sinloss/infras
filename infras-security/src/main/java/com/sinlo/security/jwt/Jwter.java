@@ -45,6 +45,8 @@ import java.util.function.Function;
  * <b>openssl</b> rsa <i>-in</i> <u>pk.pem</u> <i>-pubout</i> <i>-outform</i> DER <i>-out</i> <u>key.pub</u>
  * </pre>
  * <p/>
+ *
+ * @author sinlo
  */
 public class Jwter {
 

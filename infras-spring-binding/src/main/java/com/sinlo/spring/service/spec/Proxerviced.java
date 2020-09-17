@@ -7,6 +7,8 @@ import java.lang.annotation.*;
 
 /**
  * The annotated class is going to be proxerviced
+ *
+ * @author sinlo
  */
 @Documented
 @Target(ElementType.TYPE)

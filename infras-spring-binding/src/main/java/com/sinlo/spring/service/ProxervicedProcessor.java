@@ -15,6 +15,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+/**
+ * This processor is intended to replace the {@link Proxerviced} annotated beans with
+ * {@link Proxervice} created proxies. And also record all the {@link Repo} beans to
+ * supply repos for the proxerice
+ *
+ * @author sinlo
+ */
 @SuppressWarnings("rawtypes")
 public class ProxervicedProcessor implements BeanPostProcessor {
 

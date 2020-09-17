@@ -17,6 +17,8 @@ import java.util.function.Supplier;
  * <p/>
  * All the methods of the original service would be wrapped in a {@link Persistor#enclose(Consumer, Repo[])}
  * process except for the methods annotated by the {@link ProxerviceIgnore}
+ *
+ * @author sinlo
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class Proxervice {
