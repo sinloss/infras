@@ -124,9 +124,14 @@ public class Proxervice {
 
     private Object invoke(Object impl, Method method, Object[] args, Supplier<Repo[]> repos) throws Exception {
         if (should(impl.getClass(), method)) {
-            try (Persistor<?>.Stub ignored =
+            try (Persistor<?>.Stub stub =
                          persistor.enclose(null, repos.get())) {
-                return method.invoke(impl, args);
+                try {
+                    return method.invoke(impl, args);
+                } catch (RuntimeException e) {
+                    e.printStackTrace();
+                    stub.cancel();
+                }
             }
         }
         return method.invoke(impl, args);
