@@ -12,7 +12,7 @@ import java.util.Map;
  */
 public interface Repo<T extends Entity> {
 
-    void save(T t);
+    void create(T t);
 
     void update(T t);
 

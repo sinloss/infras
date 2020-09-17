@@ -118,7 +118,7 @@ public class Persistor<T extends Entity> {
             Repo<T> repo = (Repo<T>) mapping.get(entity.getClass().getName());
             switch (chan) {
                 case CREATE:
-                    repo.save(entity);
+                    repo.create(entity);
                     break;
                 case UPDATE:
                     repo.update(entity);
