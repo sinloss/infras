@@ -4,6 +4,8 @@ import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -22,6 +24,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
@@ -92,6 +95,26 @@ public class Jwter {
             e.printStackTrace();
         }
         return jwt;
+    }
+
+    /**
+     * Set validators for the {@link NimbusJwtDecoder}
+     */
+    public Jwter ensure(OAuth2TokenValidator<Jwt>... validators) {
+        if (validators != null) {
+            NimbusJwtDecoder nimbus = (NimbusJwtDecoder) dec;
+            switch (validators.length) {
+                case 0:
+                    break;
+                case 1:
+                    nimbus.setJwtValidator(validators[0]);
+                    break;
+                default:
+                    nimbus.setJwtValidator(new DelegatingOAuth2TokenValidator<>(Arrays.asList(validators)));
+                    break;
+            }
+        }
+        return this;
     }
 
     /**
