@@ -10,6 +10,7 @@
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>infras-core</module>
+        <module>infras-security</module>
         <module>infras-spring-binding</module>
     </modules>
 
