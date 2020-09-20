@@ -12,7 +12,13 @@ import java.lang.annotation.*;
 @Documented
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@Import(ProxervicedProcessor.class)
+@Import({ProxervicedProcessor.class})
 public @interface EnableProxervice {
 
+    /**
+     * The spring managed repos will be used as a fallback selector
+     * if the assigned selector could not provide a proper repo when
+     * this is set to true
+     */
+    boolean fallback() default false;
 }
