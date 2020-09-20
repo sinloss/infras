@@ -77,7 +77,6 @@ public class Jwter {
      * @param leeway    the leeway for the nbf field
      * @param <T>       the type of subject
      */
-    @SuppressWarnings("unchecked")
     public <T> Issuer<T> issuer(String iss, Function<T, String> converter, Integer leeway) {
         return leeway == null
                 ? this.new Issuer<>(iss, converter)
@@ -102,7 +101,8 @@ public class Jwter {
     /**
      * Set validators for the {@link NimbusJwtDecoder}
      */
-    public Jwter ensure(OAuth2TokenValidator<Jwt>... validators) {
+    @SafeVarargs
+    public final Jwter ensure(OAuth2TokenValidator<Jwt>... validators) {
         if (validators != null) {
             NimbusJwtDecoder nimbus = (NimbusJwtDecoder) dec;
             switch (validators.length) {
