@@ -35,19 +35,19 @@ public interface Entity {
      * tag as create
      */
     default void create() {
-        persistor().tag(Channel.CREATE, this);
+        persistor().tag(Tag.Channel.CREATE, this);
     }
 
     /**
      * tag as update
      */
     default void update() {
-        if (persistor().stat(this) == Channel.CREATE) {
+        if (persistor().stat(this) == Tag.Channel.CREATE) {
             // as long as this is tagged as create, it infers that there's no existing entity
             // in the repository, thus here it should be tagged as create as well
             create();
         } else {
-            persistor().tag(Channel.UPDATE, this);
+            persistor().tag(Tag.Channel.UPDATE, this);
         }
     }
 
@@ -55,6 +55,6 @@ public interface Entity {
      * tag as delete
      */
     default void delete() {
-        persistor().tag(Channel.DELETE, this);
+        persistor().tag(Tag.Channel.DELETE, this);
     }
 }

@@ -1,7 +1,10 @@
 package com.sinlo.core.service;
 
 import com.sinlo.core.domain.Persistor;
+import com.sinlo.core.domain.spec.Entity;
 import com.sinlo.core.domain.spec.Repo;
+import com.sinlo.core.domain.RepositoriesSelector;
+import com.sinlo.core.domain.spec.Selector;
 import com.sinlo.core.service.spec.ProxerviceIgnore;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
@@ -10,95 +13,112 @@ import java.lang.reflect.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * The proxyed service creator
  * <p/>
- * All the methods of the original service would be wrapped in a {@link Persistor#enclose(Consumer, Repo[])}
+ * All the methods of the original service would be wrapped in a {@link Persistor#enclose(Consumer,
+ * Selector)}
  * process except for the methods annotated by the {@link ProxerviceIgnore}
  *
  * @author sinlo
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
-public class Proxervice {
-
-    public static final Repo[] ZERO_REPOS = new Repo[0];
-    /**
-     * The dummy supplier just represent the logic concept of derive declared repos of impl
-     */
-    public static final Supplier<Repo[]> DERIVE_IMPL_DECLARED = () -> ZERO_REPOS;
-
-    public final Persistor<?> persistor;
-    public final Supplier<Repo[]> supplier;
+public class Proxervice<T extends Entity> {
 
     /**
-     * @see Proxervice#Proxervice(Persistor, Supplier)
+     * The dummy selector just represent the logic concept of derive declared repos of impl
      */
-    public Proxervice(Persistor<?> persistor) {
+    public static final Selector DERIVE_IMPL_DECLARED = (entity) -> null;
+
+    public final Persistor<T> persistor;
+    public final Selector<T> selector;
+
+    /**
+     * @see Proxervice#Proxervice(Persistor, Selector)
+     */
+    public Proxervice(Persistor<T> persistor) {
         this(persistor, null);
     }
 
     /**
      * @param persistor {@link Persistor}
-     * @param supplier  the default repos' supplier
+     * @param selector  the default repos' selector
      */
-    public Proxervice(Persistor<?> persistor, Supplier<Repo[]> supplier) {
+    public Proxervice(Persistor<T> persistor, Selector<T> selector) {
         if (persistor == null) {
             throw new IllegalArgumentException(
                     "The given persistor should not be null");
         }
         this.persistor = persistor;
-        this.supplier = supplier;
+        this.selector = selector;
     }
 
     /**
-     * @see #xervice(Object, Supplier)
+     * @see #xervice(Object, Selector)
      */
-    public final <T> T xervice(T impl) {
-        return xervice(impl, DERIVE_IMPL_DECLARED);
+    public final <O> O xervice(O impl) {
+        return xervice(impl, (Selector<T>) DERIVE_IMPL_DECLARED);
+    }
+
+    /**
+     * @see #xervice(Object, Selector, boolean)
+     */
+    public final <O> O xervice(O impl, Selector<T> selector) {
+        return xervice(impl, selector, false);
     }
 
     /**
      * Create a proxyed service using {@link Enhancer#create()} via cglib
      *
      * @param impl     the instance of a concrete class
-     * @param supplier the designated repos' supplier used by the {@link Proxervice#persistor}
-     * @param <T>      the type of the [ impl ] instance
+     * @param selector the designated repos' selector used by the {@link
+     *                 Proxervice#persistor}
+     * @param <O>      the type of the [ impl ] instance
+     * @param fallback use the {@link Proxervice#selector} as a fallback if true
      */
-    public final <T> T xervice(T impl, Supplier<Repo[]> supplier) {
+    public final <O> O xervice(O impl, Selector<T> selector, boolean fallback) {
         if (impl == null) {
             throw new IllegalArgumentException("The given impl should not be null");
         }
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(impl.getClass());
 
-        final Supplier<Repo[]> r = pick(impl, supplier);
+        final Selector r = pick(impl, selector, fallback);
 
         enhancer.setCallbacks(new MethodInterceptor[]{
                 (o, method, args, methodProxy) -> invoke(impl, method, args, r)
         });
 
-        return (T) enhancer.create();
+        return (O) enhancer.create();
     }
 
     /**
-     * @see #xervice(Class, Object, Supplier)
+     * @see #xervice(Class, Object, Selector)
      */
     public final <I, O extends I> I xervice(Class<I> spec, O impl) {
-        return xervice(spec, impl, DERIVE_IMPL_DECLARED);
+        return xervice(spec, impl, (Selector<T>) DERIVE_IMPL_DECLARED);
     }
 
     /**
-     * Create a proxyed service using {@link Proxy#newProxyInstance(ClassLoader, Class[], InvocationHandler)}
+     * @see #xervice(Class, Object, Selector, boolean)
+     */
+    public final <I, O extends I> I xervice(Class<I> spec, O impl, Selector<T> selector) {
+        return xervice(spec, impl, selector, false);
+    }
+
+    /**
+     * Create a proxyed service using {@link Proxy#newProxyInstance(ClassLoader, Class[],
+     * InvocationHandler)}
      *
      * @param spec     the specific interface which the [ impl ] should implement
      * @param impl     the instance of a concrete class implemented the given [ spec ]
-     * @param supplier the designated repos' supplier used by the {@link Proxervice#persistor}
+     * @param selector the designated repos' selector used by the {@link Proxervice#persistor}
      * @param <I>      the type of the [ spec ] interface
      * @param <O>      the type of the [ impl ] instance
      */
-    public final <I, O extends I> I xervice(Class<I> spec, O impl, Supplier<Repo[]> supplier) {
+    public final <I, O extends I> I xervice(Class<I> spec, O impl, Selector<T> selector,
+                                            boolean fallback) {
         if (spec == null || !spec.isInterface()) {
             throw new IllegalArgumentException("The given spec [ "
                     .concat(String.valueOf(spec))
@@ -115,17 +135,18 @@ public class Proxervice {
                             .concat(String.valueOf(spec)).concat(" ]"));
         }
 
-        final Supplier<Repo[]> r = pick(impl, supplier);
+        final Selector<T> r = pick(impl, selector, fallback);
 
         return (I) Proxy.newProxyInstance(impl.getClass().getClassLoader(),
                 new Class[]{spec},
                 (proxy, method, args) -> invoke(impl, method, args, r));
     }
 
-    private Object invoke(Object impl, Method method, Object[] args, Supplier<Repo[]> repos) throws Exception {
+    private Object invoke(Object impl, Method method, Object[] args, Selector<T> selector)
+            throws Exception {
         if (should(impl.getClass(), method)) {
-            try (Persistor<?>.Stub stub =
-                         persistor.enclose(null, repos.get())) {
+            try (Persistor<T>.Stub stub =
+                         persistor.enclose(null, selector)) {
                 try {
                     return method.invoke(impl, args);
                 } catch (RuntimeException e) {
@@ -149,29 +170,39 @@ public class Proxervice {
         return false;
     }
 
-    private Supplier<Repo[]> pick(Object impl, Supplier<Repo[]> supplier) {
-        if (supplier == null) {
-            if (this.supplier == null) {
-                return deriver(impl);
+    private Selector pick(Object impl, Selector selector, boolean fallback) {
+        if (selector == null) {
+            if (this.selector == null) {
+                return tryWrap(derive(impl), fallback);
             }
-            return this.supplier;
-        } else if (DERIVE_IMPL_DECLARED == supplier) {
-            return deriver(impl);
+            return this.selector;
+        } else if (DERIVE_IMPL_DECLARED == selector) {
+            return tryWrap(derive(impl), fallback);
         }
-        return supplier;
+        return tryWrap(selector, fallback);
     }
 
-    private Supplier<Repo[]> deriver(Object impl) {
+    private Selector tryWrap(Selector selector, boolean fallback) {
+        return fallback
+                ? new FallbackableSelector(selector, this.selector)
+                : selector;
+    }
+
+    /**
+     * Derive a selector consisted of all the declared repos in the given
+     * impl object
+     */
+    public static Selector derive(Object impl) {
         try {
             Class<?> xclz = impl.getClass();
             List<Repo> li = new LinkedList<>();
             for (Field field : xclz.getDeclaredFields()) {
                 if (Repo.class.isAssignableFrom(field.getType())) {
+                    field.setAccessible(true);
                     li.add((Repo) field.get(impl));
                 }
             }
-            Repo[] r = li.toArray(ZERO_REPOS);
-            return () -> r;
+            return new RepositoriesSelector(li);
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         }

@@ -7,7 +7,6 @@ import com.sinlo.core.common.wraparound.SureThreadLocal;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * Persistor the persistor who persists tagged entitys, this is specifically designed to
@@ -22,7 +21,9 @@ public class Persistor<T extends Entity> {
     private final SureThreadLocal<List<String>> tagged = SureThreadLocal.of(LinkedList::new);
     private final SureThreadLocal<Map<String, Tag<T>>> entities = SureThreadLocal.of(HashMap::new);
 
-    private final Eventer<Channel, T> eventer = new Eventer<>();
+    private final Eventer<State, Tag<T>> fine = new Eventer<>();
+    private final Eventer<State, Void> rough = new Eventer<>();
+    private final Eventer<Persistor<T>, Tag<T>.Ex> except = new Eventer<>();
 
     private Persistor() {
     }
@@ -37,7 +38,7 @@ public class Persistor<T extends Entity> {
     /**
      * Tag the given entity to the specific channel leniently
      */
-    public Persistor<T> tag(Channel channel, T entity) {
+    public Persistor<T> tag(Tag.Channel channel, T entity) {
         this.tag(channel, entity, false);
         return this;
     }
@@ -47,10 +48,11 @@ public class Persistor<T extends Entity> {
      *
      * @param channel   the specific channel
      * @param entity    the given entity
-     * @param exclusive would not allow any other entity with the same key when [ exclusive ] is true
+     * @param exclusive would not allow any other entity with the same key when
+     *                  [ exclusive ] is true
      */
     @SuppressWarnings("UnusedReturnValue")
-    public Persistor<T> tag(Channel channel, T entity, boolean exclusive) {
+    public Persistor<T> tag(Tag.Channel channel, T entity, boolean exclusive) {
         if (entity == null)
             throw new IllegalArgumentException("The [ entity ] should not be null");
 
@@ -58,7 +60,7 @@ public class Persistor<T extends Entity> {
         if (!entities.get().containsKey(key)) {
             tagged.get().add(key);
         } else if (exclusive) {
-            throw new ChannelConflictingException(key, stat(entity));
+            throw new Tag.ChannelConflictingException(key, stat(entity));
         }
         entities.get().put(key, new Tag<>(channel, entity));
         return this;
@@ -67,7 +69,7 @@ public class Persistor<T extends Entity> {
     /**
      * get the status of the given entity
      */
-    public Channel stat(T entity) {
+    public Tag.Channel stat(T entity) {
         if (entity == null) return null;
         Tag<T> tag = entities.get().get(entity.key());
         if (tag != null)
@@ -93,29 +95,43 @@ public class Persistor<T extends Entity> {
      *
      * @param consumer the consumer who commits entities
      */
-    public void commit(BiConsumer<Channel, T> consumer) {
+    public void commit(BiConsumer<Tag.Channel, T> consumer) {
         if (consumer == null)
-            throw new RuntimeException("Expecting a valid consumer yet got null");
-        tagged.get().forEach(k -> {
-            Tag<T> tag = entities.get().get(k);
-            eventer.fire(tag.chan, tag.entity);
-            consumer.accept(tag.chan, tag.entity);
-        });
-        this.clear();
+            throw new RuntimeException(
+                    "Expecting a valid consumer yet got null");
+        // before the entire committing process
+        rough.fire(State.FORE, null);
+        try {
+            tagged.get().forEach(k -> {
+                Tag<T> tag = entities.get().get(k);
+                try {
+                    // before this tag's committing
+                    fine.fire(State.FORE, tag);
+                    consumer.accept(tag.chan, tag.entity);
+                    // after this tag's committing
+                    fine.fire(State.AFT, tag);
+                } catch (RuntimeException e) {
+                    // caught an exception
+                    except.fire(this, tag.new Ex(e));
+                    throw e;
+                }
+            });
+            // after the entire committing process
+            rough.fire(State.AFT, null);
+        } finally {
+            this.clear();
+        }
     }
 
     /**
-     * commit all tagged entities by using all the given repositories
-     *
-     * @param repos repositories
+     * commit all tagged entities by using a specific selector
      */
     @SuppressWarnings("unchecked")
-    @SafeVarargs
-    public final void commit(Repo<? extends T>... repos) {
-        final Map<String, Repo<? extends T>> mapping = Arrays.stream(repos)
-                .collect(Collectors.toMap(Repo::support, r -> r));
+    public final void commit(Selector<T> selector) {
+        Selector<T> sel = selector == null ? Selector.ZERO_VALUE : selector;
         this.commit((chan, entity) -> {
-            Repo<T> repo = (Repo<T>) mapping.get(entity.getClass().getName());
+            Repo<T> repo = sel.select(entity);
+            if (repo == null) return;
             switch (chan) {
                 case CREATE:
                     repo.create(entity);
@@ -132,6 +148,16 @@ public class Persistor<T extends Entity> {
         });
     }
 
+    /**
+     * commit all tagged entities by using all the given repositories
+     *
+     * @param repos repositories
+     */
+    @SafeVarargs
+    public final void commit(Repo<? extends T>... repos) {
+        this.commit(new RepositoriesSelector<>(repos));
+    }
+
     public void clear() {
         tagged.get().clear();
         entities.get().clear();
@@ -142,9 +168,8 @@ public class Persistor<T extends Entity> {
      * committed after the procedure is called, or depend on the Canceller if the given
      * proc is null
      */
-    @SafeVarargs
-    public final Stub enclose(Consumer<Stub> proc, Repo<? extends T>... repos) {
-        Stub stub = new Stub(repos);
+    public final Stub enclose(Consumer<Stub> proc, Selector<T> selector) {
+        Stub stub = new Stub(selector);
         if (proc != null) {
             proc.accept(stub);
             try {
@@ -156,28 +181,37 @@ public class Persistor<T extends Entity> {
         return stub;
     }
 
+
     /**
-     * @see Eventer#once(Object, Consumer)
+     * Call the consumer on the specific state of every tag being
+     * processed
      */
-    public Persistor<T> once(Channel chan, Consumer<T> consumer) {
-        eventer.once(chan, consumer);
+    public Persistor<T> on(State state, Consumer<Tag<T>> then) {
+        fine.on(state, then);
         return this;
     }
 
     /**
-     * @see Eventer#on(Object, Consumer)
+     * Call the consumer on the specific state of a commit process
      */
-    public Persistor<T> on(Channel chan, Consumer<T> consumer) {
-        eventer.on(chan, consumer);
+    public Persistor<T> on(State state, Runnable then) {
+        rough.on(state, t -> then.run());
+        return this;
+    }
+
+    /**
+     * Call the consumer when an exception is caught
+     */
+    public Persistor<T> except(Consumer<Tag<T>.Ex> then) {
+        except.on(this, then);
         return this;
     }
 
     public class Stub implements AutoCloseable {
-        private Repo<? extends T>[] using = null;
+        private Selector<T> using;
 
-        @SafeVarargs
-        private Stub(Repo<? extends T>... repos) {
-            this.using = repos;
+        private Stub(Selector<T> selector) {
+            this.using = selector;
         }
 
         @Override
@@ -203,4 +237,8 @@ public class Persistor<T extends Entity> {
         }
     }
 
+    public enum State {
+
+        FORE, AFT
+    }
 }
