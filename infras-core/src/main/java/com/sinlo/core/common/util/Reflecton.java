@@ -2,10 +2,7 @@ package com.sinlo.core.common.util;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
+import java.lang.reflect.*;
 
 /**
  * Reflecton the reflection util
@@ -216,7 +213,7 @@ public class Reflecton {
 
     /**
      * 找到第一个匹配的注解
-     * Find first matching annotation
+     * Find first matching annotation among all declared fields of [ tar ]
      */
     public static <T extends Annotation> T findFirstAnnotation(Class<?> tar, Class<T> annotationClass) {
         if (tar != null) {
@@ -228,6 +225,17 @@ public class Reflecton {
             }
         }
         return null;
+    }
+
+    /**
+     * Get all generic superclass and interfaces together
+     */
+    public static Type[] getGenericSupers(Class<?> clz) {
+        final Type superclass = clz.getGenericSuperclass();
+        if (superclass != null && !Object.class.equals(superclass)) {
+            return Arria.append(clz.getGenericInterfaces(), superclass);
+        }
+        return clz.getGenericInterfaces();
     }
 
     /**

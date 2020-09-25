@@ -14,7 +14,7 @@ public class Arria {
     }
 
     /**
-     * concat several arrays together
+     * Concat several arrays together
      */
     @SafeVarargs
     public static <T> T[] concat(T[] first, T[]... rest) {
@@ -31,7 +31,18 @@ public class Arria {
     }
 
     /**
-     * get the total length of all given arrays
+     * Append all given elements to a given array by creating a new array
+     * containing all elements
+     *
+     * @return the newly created array containing all elements
+     */
+    @SafeVarargs
+    public static <T> T[] append(T[] origin, T... elements) {
+        return concat(origin, elements);
+    }
+
+    /**
+     * Get the total length of all given arrays
      */
     @SafeVarargs
     public static <T> int len(T[]... arrays) {
@@ -43,7 +54,7 @@ public class Arria {
     }
 
     /**
-     * restore an array object to a typed array
+     * Restore an array object to a typed array
      *
      * @param arr arr object
      * @param clz restored typed array
@@ -65,7 +76,7 @@ public class Arria {
     }
 
     /**
-     * join elements in an array into a string with the specified delimitor
+     * Join elements in an array into a string with the specified delimitor
      *
      * @param arr       array
      * @param delimiter the delimiter

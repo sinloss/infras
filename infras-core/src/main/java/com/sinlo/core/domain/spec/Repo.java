@@ -1,7 +1,7 @@
 package com.sinlo.core.domain.spec;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import com.sinlo.core.common.util.Genericia;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,15 +32,10 @@ public interface Repo<T extends Entity> {
         String support = EntityName.mapping.get(clz.getName());
         if (support != null) return support;
 
-        Type[] interfaces = clz.getGenericInterfaces();
-        if (interfaces.length == 0) return EntityName.NA;
-
-        for (Type type : interfaces) {
-            if (type.getTypeName().startsWith(Repo.class.getName())) {
-                support = ((ParameterizedType) type).getActualTypeArguments()[0].getTypeName();
-                EntityName.mapping.put(clz.getName(), support);
-                return support;
-            }
+        Genericia.TypeNode tn = Genericia.chainMap(clz).get(Repo.class, 0);
+        if (tn != null && tn.type instanceof Class) {
+            EntityName.mapping.put(clz.getName(), support = tn.type.getTypeName());
+            return support;
         }
         return EntityName.NA;
     }

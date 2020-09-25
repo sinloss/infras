@@ -152,6 +152,7 @@ public class Proxervice<T extends Entity> {
                 } catch (RuntimeException e) {
                     e.printStackTrace();
                     stub.cancel();
+                    return null;
                 }
             }
         }

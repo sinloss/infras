@@ -1,11 +1,10 @@
 package com.sinlo.test.infrastructure;
 
-import com.sinlo.core.domain.spec.Repo;
 import com.sinlo.test.domain.BarEntity;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class FooRepo implements Repo<BarEntity> {
+public class FooRepo extends BasicRepo<BarEntity, String> {
 
     private BarEntity store = null;
 
