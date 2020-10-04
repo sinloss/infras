@@ -3,7 +3,7 @@
 type mvn || { echo "Could not find the mvn script in PATH"; exit 1; }
 
 if [[ -z "$1" ]]; then
-  mvn versions:set
+  mvn versions:set versions:update-child-modules -DgenerateBackupPoms=false 
 else
-  mvn versions:set versions:update-child-modules -DnewVersion=$1
+  mvn versions:set versions:update-child-modules -DgenerateBackupPoms=false -DnewVersion=$1
 fi

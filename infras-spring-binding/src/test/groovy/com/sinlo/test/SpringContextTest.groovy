@@ -1,6 +1,9 @@
 package com.sinlo.test
 
 
+import com.sinlo.core.jdbc.Jadebee
+import com.sinlo.core.jdbc.util.Shapeherder
+import com.sinlo.core.service.Pond
 import com.sinlo.test.configuration.GeneralConfiguration
 import com.sinlo.test.service.FooService
 import org.springframework.beans.factory.annotation.Autowired
@@ -17,8 +20,9 @@ class SpringContextTest extends Specification {
     @Autowired
     private FooService fooService
 
-    def "should proxvericed method commit"() {
+    def "should proxy method commit"() {
         when:
+        new Jadebee(null)
         fooService.foo()
         def e = fooService.get()
 

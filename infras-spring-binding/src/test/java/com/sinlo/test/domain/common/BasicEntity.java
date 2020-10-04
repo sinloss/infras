@@ -1,7 +1,7 @@
 package com.sinlo.test.domain.common;
 
-import com.sinlo.core.domain.Persistor;
-import com.sinlo.core.domain.spec.Entity;
+import com.sinlo.core.domain.persistor.Persistor;
+import com.sinlo.core.domain.persistor.spec.Entity;
 
 public class BasicEntity implements Entity {
 

@@ -1,7 +1,10 @@
 package com.sinlo.core.common.wraparound;
 
+import com.sinlo.core.common.util.Loki;
+
 /**
- * Node the linkable node
+ * Node the linkable node, it is not thread safe by default. If you want a thread safe
+ * version, please consider {@link Atomic}
  *
  * @param <T> subclass type
  */
@@ -20,20 +23,31 @@ public class Node<T extends Node<T>> {
         return next;
     }
 
+    private static <T extends Node<T>> Node<T> attach(Node<T> one, Node<T> another) {
+        if (one != null) one.next = (T) another;
+        if (another != null) another.prev = (T) one;
+        return one;
+    }
+
     /**
      * Join a given node
+     *
+     * @throws NotDetachedException when the given node still has links to other nodes
      */
-    public T join(T node) {
-        if (next != null) next.prev = node;
-        node.next = next;
-        (node.prev = (T) this).next = node;
+    public T join(T node) throws NotDetachedException {
+        if (node.prev != null || node.next != null) {
+            throw new NotDetachedException();
+        }
+        attach(this, attach(node, next));
         return (T) this;
     }
 
     /**
      * After a given node
+     *
+     * @see #join(Node)
      */
-    public T after(T node) {
+    public T after(T node) throws NotDetachedException {
         node.join((T) this);
         return (T) this;
     }
@@ -42,8 +56,7 @@ public class Node<T extends Node<T>> {
      * Eject this node off the chain
      */
     public T eject() {
-        if (prev != null) prev.next = next;
-        if (next != null) next.prev = prev;
+        attach(prev, next);
         prev = next = null;
         return (T) this;
     }
@@ -53,13 +66,31 @@ public class Node<T extends Node<T>> {
      * place of this node, and vice versa
      */
     public T swap(T node) {
-        T p = prev;
-        T n = next;
-        prev = node.prev;
-        next = node.next;
-        node.prev = p;
-        node.next = n;
+        Node<T> p = node.prev;
+        Node<T> n = node.next;
+        attach(prev, attach(node, next));
+        attach(p, attach(this, n));
         return (T) this;
+    }
+
+    /**
+     * Get a downward {@link Iterational}. The {@link Iterational#iterator()} of this is not
+     * thread safe, so please use this single threaded
+     */
+    public Iterational<T> downward() {
+        return Iterational.of((T) this,
+                (t, i) -> t != null && t != this,
+                (t, i) -> t.next);
+    }
+
+    /**
+     * Get a upward {@link Iterational}. The {@link Iterational#iterator()} of this is not
+     * thread safe, so please use this single threaded
+     */
+    public Iterational<T> upward() {
+        return Iterational.of((T) this,
+                (t, i) -> t != null && t != this,
+                (t, i) -> t.prev);
     }
 
     /**
@@ -88,4 +119,151 @@ public class Node<T extends Node<T>> {
         }
     }
 
+    /**
+     * A thread safe subclass of {@link Node}. This approach tries to reduce the possibility
+     * of lock contention throughout the entire node chain, and utilize the optimization of
+     * {@code synchronized} keyword
+     */
+    public static class Atomic extends Node<Atomic> {
+
+        /**
+         * Left side direction lock, the {@link Atomic} object itself is used as
+         * the right side direction lock
+         */
+        private final Object l = new Object();
+
+        @Override
+        public Atomic prev() {
+            synchronized (l) {
+                return super.prev();
+            }
+        }
+
+        @Override
+        public synchronized Atomic next() {
+            return super.next();
+        }
+
+        /**
+         * {@inheritDoc} atomically by locking the following node directions
+         * <ul>
+         *     <li>
+         *         {@code this -->}
+         *     </li>
+         *     <li>
+         *         {@code <-- node -->}
+         *     </li>
+         *     <li>
+         *         {@code <-- this.next}
+         *     </li>
+         * </ul>
+         */
+        @Override
+        public Atomic join(Atomic node) {
+            return Loki.sequentially(() -> super.join(node),
+                    this, next == null ? null : next.l, node, node.l);
+        }
+
+        /**
+         * {@inheritDoc} atomically by locking the following node directions
+         * <ul>
+         *     <li>
+         *         {@code this.prev -->}
+         *     </li>
+         *     <li>
+         *         {@code <-- this -->}
+         *     </li>
+         *     <li>
+         *         {@code <-- this.next}
+         *     </li>
+         * </ul>
+         */
+        @Override
+        public Atomic eject() {
+            return Loki.sequentially(super::eject,
+                    prev, this, l, next == null ? null : next.l);
+        }
+
+        /**
+         * Eject the given node then join it atomically by locking the following node directions
+         * <ul>
+         *     <li>
+         *         {@code this -->}
+         *     </li>
+         *     <li>
+         *         {@code <-- this.next}
+         *     </li>
+         *     <li>
+         *         {@code node.prev -->}
+         *     </li>
+         *     <li>
+         *         {@code <-- node -->}
+         *     </li>
+         *     <li>
+         *         {@code <-- node.next}
+         *     </li>
+         * </ul>
+         */
+        public Atomic snatch(Atomic node) {
+            return Loki.sequentially(() -> super.join(node.rawEject()),
+                    this, next == null ? null : next.l,
+                    node.prev, node, node.l, node.next == null ? null : node.next.l);
+        }
+
+        private Atomic rawEject() {
+            return super.eject();
+        }
+
+        /**
+         * {@inheritDoc} atomically by locking the following node directions
+         * <ul>
+         *     <li>
+         *         {@code this.prev -->}
+         *     </li>
+         *     <li>
+         *         {@code <-- node -->}
+         *     </li>
+         *     <li>
+         *         {@code <-- this.next}
+         *     </li>
+         *     <li>
+         *         {@code node.prev -->}
+         *     </li>
+         *     <li>
+         *         {@code <-- this -->}
+         *     </li>
+         *     <li>
+         *         {@code <-- node.next}
+         *     </li>
+         * </ul>
+         */
+        @Override
+        public Atomic swap(Atomic node) {
+            return Loki.sequentially(() -> super.swap(node),
+                    prev, this, next == null ? null : next.l,
+                    node.prev, node, node.l, node.next == null ? null : node.next.l);
+        }
+
+        /**
+         * A subclass of {@link Atomic} with payload
+         */
+        public static class Payloaded<T> extends Atomic {
+
+            public final T payload;
+
+            public Payloaded(T payload) {
+                this.payload = payload;
+            }
+        }
+    }
+
+    /**
+     * @see Node#join(Node)
+     */
+    public static class NotDetachedException extends Exception {
+
+        public NotDetachedException() {
+            super("The given node is not a detached node, consider ejecting it first");
+        }
+    }
 }

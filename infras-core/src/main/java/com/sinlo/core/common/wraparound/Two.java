@@ -7,6 +7,7 @@ import java.util.function.Function;
  *
  * @param <O> type of one option
  * @param <A> type of another option
+ * @author sinlo
  */
 public class Two<O, A> {
 

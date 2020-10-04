@@ -1,6 +1,8 @@
 package com.sinlo.core.common.util;
 
 import com.sinlo.core.common.wraparound.Node;
+import com.sinlo.sponte.util.Pool;
+import com.sinlo.sponte.util.Typer;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -19,6 +21,17 @@ public class Genericia {
     }
 
     /**
+     * Get all generic superclass and interfaces together
+     */
+    public static Type[] getGenericSupers(Class<?> clz) {
+        final Type superclass = clz.getGenericSuperclass();
+        if (superclass != null && !Object.class.equals(superclass)) {
+            return Arria.append(clz.getGenericInterfaces(), superclass);
+        }
+        return clz.getGenericInterfaces();
+    }
+
+    /**
      * Get a {@link ChainMap generic chain map} of the given prototype
      */
     public static ChainMap chainMap(Class<?> prototype) {
@@ -26,7 +39,7 @@ public class Genericia {
     }
 
     private static Chains chains(Class<?> prototype, Chains chains) {
-        Type[] supers = Reflecton.getGenericSupers(prototype);
+        Type[] supers = getGenericSupers(prototype);
         if (supers != null) {
             for (Type type : supers) {
                 if (type instanceof ParameterizedType) {
@@ -123,7 +136,13 @@ public class Genericia {
      */
     public static class TypeNode extends Node<TypeNode> {
 
+        /**
+         * The concrete class where the {@link #type} resides
+         */
         public final Class<?> clz;
+        /**
+         * The type parameter type
+         */
         public final Type type;
 
         public TypeNode(Class<?> clz, Type type) {
@@ -139,17 +158,21 @@ public class Genericia {
         private final List<TypeNode> roots = new ArrayList<>();
 
         private Chains link(TypeNode aim, TypeNode next) {
-            if (aim == null) return this;
-            for (TypeNode root : roots) {
-                TypeNode last = root.prev();
-                if (last == null) continue;
-                if (aim.type.equals(last.type)) {
-                    last.join(next);
+            try {
+                if (aim == null) return this;
+                for (TypeNode root : roots) {
+                    TypeNode last = root.prev();
+                    if (last == null) continue;
+                    if (aim.type.equals(last.type)) {
+                        last.join(next);
+                    }
                 }
-            }
-            if (next.prev() == null) {
-                // not linked then add root
-                roots.add(Node.rooted(aim).join(next));
+                if (next.prev() == null) {
+                    // not linked then add root
+                    roots.add(Node.rooted(aim).join(next));
+                }
+            } catch (Node.NotDetachedException e) {
+                e.printStackTrace();
             }
             return this;
         }
@@ -162,4 +185,82 @@ public class Genericia {
         }
     }
 
+    private static class Privat {
+        private final Pool.Simple<String> pool = new Pool.Simple<>();
+        private final Class<?> anchor;
+
+        private Privat(Class<?> anchor) {
+            this.anchor = anchor;
+        }
+
+        private String get(Class<?> prototype) {
+            return pool.get(prototype.getName(),
+                    () -> Typer.descriptor(chainMap(prototype)
+                            .get(anchor, 0).type.getTypeName()));
+        }
+    }
+
+    /**
+     * The self awareness of the generic type parameter's real identity, any generic
+     * class can achieve this awareness by simply extends or implements this interface
+     * and assign the type parameter you want to be aware of
+     */
+    @SuppressWarnings("unused")
+    public interface Aware<T> {
+
+        Privat p = new Privat(Aware.class);
+
+        default String aw() {
+            return p.get(this.getClass());
+        }
+    }
+
+    /**
+     * To provide another awareness in combination with {@link Aware}
+     */
+    @SuppressWarnings("unused")
+    public interface Bware<T> {
+        Privat p = new Privat(Bware.class);
+
+        default String bw() {
+            return p.get(this.getClass());
+        }
+    }
+
+    /**
+     * Same as {@link Bware}, yet another
+     */
+    @SuppressWarnings("unused")
+    public interface Cware<T> {
+        Privat p = new Privat(Cware.class);
+
+        default String cw() {
+            return p.get(this.getClass());
+        }
+    }
+
+    /**
+     * Same as {@link Cware}, yet another
+     */
+    @SuppressWarnings("unused")
+    public interface Dware<T> {
+        Privat p = new Privat(Dware.class);
+
+        default String dw() {
+            return p.get(this.getClass());
+        }
+    }
+
+    /**
+     * Same as {@link Dware}, yet another, and I think {@code A, B, C, D, E}, five of
+     * them is enough
+     */
+    @SuppressWarnings("unused")
+    public interface Eware<T> {
+        Privat p = new Privat(Eware.class);
+
+        default String ew() {
+            return p.get(this.getClass());
+        }
+    }
 }

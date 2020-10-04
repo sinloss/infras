@@ -2,6 +2,9 @@ package com.sinlo.core.common.util;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * Arria the array util
@@ -76,23 +79,47 @@ public class Arria {
     }
 
     /**
-     * Join elements in an array into a string with the specified delimitor
-     *
-     * @param arr       array
-     * @param delimiter the delimiter
-     * @return joined string
+     * An overload of {@link #join(String, Function, Object[])}
      */
-    public static String join(Object[] arr, String delimiter) {
-        if (delimiter == null) delimiter = "";
+    @SafeVarargs
+    public static <T> String join(String delimiter, T... array) {
+        return join(delimiter, Object::toString, array);
+    }
+
+    /**
+     * Join elements in an array into a string with the specified delimiter using the
+     * given converter
+     */
+    @SafeVarargs
+    public static <T> String join(String delimiter, Function<T, String> converter, T... array) {
+        return join(Arrays.asList(array), delimiter, converter);
+    }
+
+    /**
+     * An overload of {@link #join(Iterable, String, Function)}
+     */
+    public static <T> String join(Iterable<T> iterable, String delimiter) {
+        return join(iterable, delimiter, Objects::toString);
+    }
+
+    /**
+     * Join elements in an {@link Iterable} into a string with the specified {@code delimiter}
+     * using the given converter
+     */
+    public static <T> String join(Iterable<T> iterable, String delimiter,
+                                  Function<T, String> converter) {
+        if (iterable == null) return "";
+        Function<T, String> conv =
+                converter == null ? Objects::toString : converter;
+
         StringBuilder builder = new StringBuilder();
-        if (arr != null) {
-            for (Object o : arr) {
-                builder.append(delimiter).append(o);
-            }
+        for (Iterator<T> it = iterable.iterator(); ; ) {
+            builder.append(delimiter)
+                    .append(conv.apply(it.next()));
+
+            if (!it.hasNext()) break;
+            builder.append(delimiter);
         }
-        if (builder.length() >= 1) {
-            return builder.substring(delimiter.length());
-        }
-        return "";
+        return builder.toString();
     }
 }

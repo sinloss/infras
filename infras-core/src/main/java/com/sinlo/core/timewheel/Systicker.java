@@ -1,6 +1,6 @@
 package com.sinlo.core.timewheel;
 
-import com.sinlo.core.timewheel.spec.Ticker;
+import com.sinlo.core.timewheel.core.Ticker;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
