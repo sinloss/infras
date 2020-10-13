@@ -1,5 +1,7 @@
 package com.sinlo.sponte.spec;
 
+import com.sinlo.sponte.util.Typer;
+
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
@@ -19,7 +21,7 @@ public enum Perch {
     CONSTRUCTOR(":", e -> "", ElementKind.CONSTRUCTOR),
     METHOD("#", ElementKind.METHOD),
     FIELD("@", ElementKind.FIELD),
-    TYPE("", e -> ((TypeElement) e).getQualifiedName().toString(),
+    TYPE("", e -> Typer.descriptor((TypeElement) e),
             ElementKind.CLASS, ElementKind.ENUM,
             ElementKind.INTERFACE, ElementKind.ANNOTATION_TYPE);
 

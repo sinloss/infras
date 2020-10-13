@@ -10,9 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+import java.util.function.Supplier;
 
 /**
  * Sponte files management
@@ -24,101 +22,85 @@ public class SponteFiler {
     private SponteFiler() {
     }
 
-    private static Path root;
-
     /**
-     * Get the path of {@link Sponte#SPONTE_ROOT sponte root}
+     * Ensure the directory of the given name
      */
-    public static Path root() throws URISyntaxException, IOException {
-        if (root != null) return root;
-        root = Paths.get(Sponte.class.getResource("/").toURI())
-                .resolve(Sponte.SPONTE_ROOT);
-        if (!Files.exists(root)) {
-            Files.createDirectories(root);
+    public static Path ensure(String dir) {
+        try {
+            Path f = Paths.get(Sponte.class.getResource("/").toURI())
+                    .resolve(dir);
+            if (!Files.exists(f)) {
+                Files.createDirectories(f);
+            }
+            return f;
+        } catch (URISyntaxException | IOException e) {
+            throw new RuntimeException(e);
         }
-        return root;
     }
 
     /**
-     * Lock by creating a {@link Sponte#LOCK .lock} file, or unlock by deleting an
-     * existing {@link Sponte#LOCK .lock} file
+     * Create an ephemeral file that disappears the next time this function is applied onto
+     * it
      */
-    public static boolean lock() throws IOException, URISyntaxException {
-        Path lock = root().resolve(Sponte.LOCK);
-        if (!Files.deleteIfExists(lock)) {
-            Files.createFile(lock);
-            return true;
+    public static boolean ephemeral(Path f) {
+        try {
+            if (!Files.deleteIfExists(f)) {
+                Files.createFile(f);
+                return true;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
         return false;
     }
 
     /**
-     * Query if should lock or not
+     * Get all qualified names defined in all files around the classpath of the given name
      */
-    public static boolean locked() throws IOException, URISyntaxException {
-        return Files.exists(root().resolve(Sponte.LOCK));
+    public static Set<String> names(String fn) {
+        return asSet(fn, line -> line);
     }
 
     /**
-     * Get the {@link PrintWriter writer} of {@link Sponte#SPONTED .sponted} file.
+     * Get a list of all the items mapped from all lines of the resources of the
+     * given filename
      */
-    public static PrintWriter writerSponted() throws IOException, URISyntaxException {
-        return writer(root().resolve(Sponte.SPONTED), true);
-    }
-
-    /**
-     * Get all qualified names defined in all {@link Sponte#SPONTED sponted} files
-     * around the classpath
-     */
-    public static Set<String> spontedNames() {
-        return asSet(Sponte.SPONTED, line -> line);
-    }
-
-    /**
-     * Get a stream of all the lines of the resources of the given name
-     */
-    public static Stream<String> lines(String name) {
+    public static <C extends Collection<T>, T> C lines(String fn, Supplier<C> supplier,
+                                                       Function<String, T> mapper) {
+        final C collection = supplier.get();
         try {
-            final Enumeration<URL> resources = Sponte.class.getClassLoader()
-                    .getResources(Sponte.SPONTE_ROOT
-                            .concat("/").concat(name));
+            final Enumeration<URL> resources =
+                    Sponte.class.getClassLoader().getResources(fn);
+            while (resources.hasMoreElements()) {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                        resources.nextElement().openStream()))) {
 
-            return StreamSupport.stream(Spliterators.spliteratorUnknownSize(
-                    new Iterator<URL>() {
-                        @Override
-                        public boolean hasNext() {
-                            return resources.hasMoreElements();
-                        }
-
-                        @Override
-                        public URL next() {
-                            return resources.nextElement();
-                        }
-                    }, Spliterator.ORDERED), false)
-                    .flatMap(url -> {
-                        try (BufferedReader reader = new BufferedReader(
-                                new InputStreamReader(url.openStream()))) {
-                            return reader.lines()
-                                    .collect(Collectors.toList())
-                                    .stream();
-                        } catch (IOException ignored) {
-                            return null;
-                        }
-                    });
+                    reader.lines().map(mapper)
+                            .forEach(collection::add);
+                } catch (IOException ignored) {
+                }
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return Stream.empty();
+        return collection;
     }
 
     /**
      * Map every line of the resources who have the given name
      */
     public static <T> Set<T> asSet(String name, Function<String, T> mapper) {
-        return lines(name).map(mapper).collect(Collectors.toSet());
+        return lines(name, HashSet::new, mapper);
     }
 
-    public static PrintWriter writer(Path path, boolean append) throws FileNotFoundException {
-        return new PrintWriter(new FileOutputStream(path.toFile(), append));
+    /**
+     * Get the corresponding {@link PrintWriter}
+     */
+    public static PrintWriter writer(Path path, boolean append) {
+        try {
+            return new PrintWriter(new FileOutputStream(path.toFile(), append));
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

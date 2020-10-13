@@ -1,5 +1,6 @@
 package com.sinlo.test.service;
 
+import com.sinlo.core.service.Proxistor;
 import com.sinlo.spring.service.SpringProxistor;
 import com.sinlo.test.domain.BarEntity;
 import com.sinlo.test.domain.common.BasicEntity;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 //@SpringProxistor(BasicEntity.class)
 @Service
+@Proxistor.Default
 public class FooServiceImpl implements FooService {
 
     @Autowired
@@ -35,8 +37,11 @@ public class FooServiceImpl implements FooService {
     }
 
     //@Proxistor.Ignore
-    @Override
     public void feintBar() {
         fooRepo.get().bar();
+    }
+
+    public void testt(Object a, String b, int c) {
+
     }
 }

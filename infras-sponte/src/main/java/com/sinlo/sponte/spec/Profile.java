@@ -8,6 +8,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * The profile of the annotation
@@ -28,6 +29,7 @@ public class Profile {
     public final Sponte sponte;
     public final Perch perch;
     public final Annotation subject;
+    public final Subjectifier<? extends Annotation> subjectifier;
     public final Class<?> type;
     public final Field field;
     public final Method method;
@@ -47,10 +49,16 @@ public class Profile {
     /**
      * Create a {@link Profile} by creating and populate a {@link Builder} based on
      * the given {@code expr}
+     *
+     * @param c          the class of the subject annotation
+     * @param inheritors the class of the annotation that are inherit {@code c}
      */
-    public static Profile of(String expr, Class<? extends Annotation> c) {
+    @SafeVarargs
+    public static Profile of(String expr,
+                             Class<? extends Annotation> c,
+                             Class<? extends Annotation>... inheritors) {
         return pool.get(expr, () -> populate(null, new Builder(), expr, null))
-                .subject(c).build();
+                .subject(c, inheritors).build();
     }
 
     /**
@@ -100,11 +108,13 @@ public class Profile {
         return builder;
     }
 
-    private Profile(Sponte sponte, Perch perch, Annotation subject, Class<?> type, Field field, Method method,
-                    Constructor<?> constructor, Arg arg) {
+    private Profile(Sponte sponte, Perch perch, Annotation subject,
+                    Subjectifier<? extends Annotation> subjectifier, Class<?> type,
+                    Field field, Method method, Constructor<?> constructor, Arg arg) {
         this.sponte = sponte;
         this.perch = perch;
         this.subject = subject;
+        this.subjectifier = subjectifier;
         this.type = type;
         this.field = field;
         this.method = method;
@@ -129,6 +139,7 @@ public class Profile {
         private Sponte sponte;
         private Perch perch;
         private Annotation subject;
+        private Subjectifier<? extends Annotation> subjectifier;
         private Class<?> type;
         private Field field;
         private Class<?>[] argv = EMPTY_ARGV;
@@ -149,7 +160,9 @@ public class Profile {
          * Set the {@link #subject}, it depends on all the necessary fields which
          * should be populated beforehand
          */
-        public Builder subject(Class<? extends Annotation> c) {
+        @SafeVarargs
+        public final Builder subject(Class<? extends Annotation> c,
+                                     Class<? extends Annotation>... inheritors) {
             if (c == null) return this;
 
             AnnotatedElement element = null;
@@ -170,9 +183,11 @@ public class Profile {
                     element = type;
                     break;
             }
-            if (element == null) return this;
 
-            subject = element.getAnnotation(c);
+            subjectifier = new Subjectifier<Annotation>(e -> e.getAnnotation(c), inheritors);
+
+            if (element == null) return this;
+            subject = subjectifier.apply(element);
             if (subject instanceof Sponte) {
                 this.sponte = (Sponte) subject;
             } else {
@@ -273,8 +288,37 @@ public class Profile {
          * Finally build the entity
          */
         public Profile build() {
-            return new Profile(sponte, perch, subject, type, field, method, constructor,
-                    new Arg(parameter, index, name));
+            return new Profile(sponte, perch, subject, subjectifier, type, field, method,
+                    constructor, new Arg(parameter, index, name));
+        }
+    }
+
+    public static class Subjectifier<T extends Annotation> implements Function<AnnotatedElement, T> {
+
+        public final Class<? extends Annotation>[] inheritors;
+        private final Function<AnnotatedElement, T> fallback;
+
+        @SafeVarargs
+        public Subjectifier(Function<AnnotatedElement, T> fallback,
+                            Class<? extends Annotation>... inheritors) {
+            this.fallback = fallback;
+            this.inheritors = inheritors;
+        }
+
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public T apply(AnnotatedElement e) {
+            for (Class<? extends Annotation> inheritor : inheritors) {
+                Annotation s = e.getAnnotation(inheritor);
+                if (s != null) {
+                    try {
+                        return (T) Ext.create(inheritor, s);
+                    } catch (ClassNotFoundException ignored) {
+                    }
+                }
+            }
+            return fallback == null ? null : fallback.apply(e);
         }
     }
 }

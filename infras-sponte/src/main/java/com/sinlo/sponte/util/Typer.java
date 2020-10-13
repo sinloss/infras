@@ -1,13 +1,13 @@
 package com.sinlo.sponte.util;
 
-import javax.lang.model.element.Element;
-import javax.lang.model.element.PackageElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeMirror;
+import javax.lang.model.element.*;
+import javax.lang.model.type.*;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The type uitl
@@ -26,6 +26,7 @@ public class Typer {
         PRIMITIVE_ARRAY.put("float[]", "[F");
         PRIMITIVE_ARRAY.put("double[]", "[D");
         PRIMITIVE_ARRAY.put("boolean[]", "[Z");
+        PRIMITIVE_ARRAY.put("char[]", "[C");
     }
 
     private static final Map<String, Class<?>> PRIMITIVE_TYPE = new HashMap<>();
@@ -38,6 +39,20 @@ public class Typer {
         PRIMITIVE_TYPE.put("float", float.class);
         PRIMITIVE_TYPE.put("double", double.class);
         PRIMITIVE_TYPE.put("boolean", boolean.class);
+        PRIMITIVE_TYPE.put("char", char.class);
+    }
+
+    private static final Map<String, String> PRIMITIVE_ZERO_VALUE = new HashMap<>();
+
+    static {
+        PRIMITIVE_ZERO_VALUE.put("byte", "0");
+        PRIMITIVE_ZERO_VALUE.put("short", "0");
+        PRIMITIVE_ZERO_VALUE.put("int", "0");
+        PRIMITIVE_ZERO_VALUE.put("long", "0L");
+        PRIMITIVE_ZERO_VALUE.put("float", "0.0");
+        PRIMITIVE_ZERO_VALUE.put("double", "0.0");
+        PRIMITIVE_ZERO_VALUE.put("boolean", "false");
+        PRIMITIVE_ZERO_VALUE.put("char", "0");
     }
 
     /**
@@ -71,10 +86,50 @@ public class Typer {
     }
 
     /**
+     * Get the zero value of the given type name
+     */
+    public static String zeroValue(String name) {
+        return PRIMITIVE_ZERO_VALUE.getOrDefault(name, "null");
+    }
+
+    /**
      * Get the type descriptor of the given {@link TypeMirror}
      */
     public static String descriptor(TypeMirror typeMirror) {
         return descriptor(typeMirror.toString());
+    }
+
+    /**
+     * Get the descriptor of the given type
+     */
+    public static String descriptor(TypeElement te) {
+        return descriptor(te, te.getSimpleName().toString());
+    }
+
+    public static String descriptor(TypeElement te, String name) {
+        Element enc = te.getEnclosingElement();
+        // the enclosing element is a package
+        if (enc instanceof PackageElement) {
+            PackageElement p = (PackageElement) enc;
+            return p.isUnnamed() ? name : (p.getQualifiedName() + "." + name);
+        }
+        // means that the enclosed element is an inner class
+        return descriptor((TypeElement) enc, enc.getSimpleName() + "$" + name);
+    }
+
+    /**
+     * Create a new instance of the given name using the default constructor
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T create(String name) {
+        try {
+            return (T) forName(name).getDeclaredConstructor().newInstance();
+        } catch (InstantiationException | IllegalAccessException
+                | InvocationTargetException | NoSuchMethodException
+                | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**
@@ -83,6 +138,23 @@ public class Typer {
      */
     public static <T> T create(Class<T> c) {
         try {
+            return c.getDeclaredConstructor().newInstance();
+        } catch (InstantiationException | IllegalAccessException |
+                InvocationTargetException | NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * Create a new instance of the given {@link Class type} using the constructor
+     * with the given argument types, and arguments
+     */
+    public static <T> T create(Class<T> c, Class<?>[] argt, Object... args) {
+        try {
+            if (argt != null && argt.length >= 1) {
+                return c.getDeclaredConstructor(argt).newInstance(args);
+            }
             return c.getDeclaredConstructor().newInstance();
         } catch (InstantiationException | IllegalAccessException |
                 InvocationTargetException | NoSuchMethodException e) {
@@ -115,5 +187,114 @@ public class Typer {
         TypeElement type = trace(enc, supervisor);
         supervisor.apply(e);
         return type;
+    }
+
+    /**
+     * Get the package where the given element resides
+     */
+    public static PackageElement where(Element te) {
+        if (te instanceof PackageElement) {
+            return (PackageElement) te;
+        }
+        return where(te.getEnclosingElement());
+    }
+
+    /**
+     * Get assigned values inside of the requested {@link AnnotationMirror} which itself is in
+     * a list of {@link AnnotationMirror}s of the given {@link Element}
+     */
+    public static Map<String, String> values(Element e, String requested) {
+        List<? extends AnnotationMirror> ams = e.getAnnotationMirrors();
+        for (AnnotationMirror am : ams) {
+            if (am.getAnnotationType().toString().equals(requested)) {
+                final Map<String, String> values = new HashMap<>();
+                am.getElementValues().forEach((k, v) ->
+                        values.put(k.getSimpleName().toString(), v.toString()));
+                return values;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get all elements defined in the given enclosing element
+     */
+    public static Set<String> values(TypeElement enc) {
+        return enc.getEnclosedElements().stream()
+                .map(Element::getSimpleName)
+                .map(Object::toString)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Check if the given {@link Element} is abstract, which means it contains an
+     * {@link java.lang.reflect.Modifier#ABSTRACT abstract} modifier
+     */
+    public static boolean isAbstract(Element te) {
+        return te.getModifiers().contains(Modifier.ABSTRACT);
+    }
+
+    /**
+     * Get the super element of the given {@link TypeElement}
+     *
+     * @return the super {@link TypeElement} or null if the super type is {@link NoType}
+     * @see TypeElement#getSuperclass()
+     */
+    public static TypeElement superElement(TypeElement te) {
+        TypeMirror t = te.getSuperclass();
+        if (t instanceof NoType) {
+            return null;
+        }
+        return (TypeElement) ((DeclaredType) t).asElement();
+    }
+
+    /**
+     * Get all methods of the given implicit {@link TypeElement}
+     */
+    public static Stream<ExecutableElement> methods(Element te) {
+        if (!(te instanceof TypeElement)) return Stream.empty();
+        return te.getEnclosedElements().stream()
+                .filter(e -> ElementKind.METHOD.equals(e.getKind()))
+                .map(e -> (ExecutableElement) e);
+    }
+
+    /**
+     * Get the underlying {@link TypeElement}from a destined {@link MirroredTypeException} triggered
+     * by the given supplier
+     *
+     * @see #mirrorType(Supplier)
+     */
+    public static TypeElement mirror(Supplier<Class<?>> s) {
+        return (TypeElement) mirrorType(s).asElement();
+    }
+
+    /**
+     * Get the underlying {@link TypeMirror} from a destined {@link MirroredTypeException} triggered
+     * by the given supplier
+     */
+    public static DeclaredType mirrorType(Supplier<Class<?>> s) {
+        try {
+            s.get();
+            throw new RuntimeException(
+                    "The given supplier did not throw a MirroredTypeException, which it should");
+        } catch (MirroredTypeException e) {
+            return (DeclaredType) e.getTypeMirror();
+        }
+    }
+
+    /**
+     * Get the underlying {@link TypeMirror}s from a destined {@link MirroredTypesException} triggered
+     * by the given supplier
+     */
+    public static DeclaredType[] mirrorTypes(Supplier<Class<?>[]> s) {
+        try {
+            s.get();
+            throw new RuntimeException(
+                    "The given supplier did not throw a MirroredTypesException, which it should");
+        } catch (MirroredTypesException e) {
+            return e.getTypeMirrors().stream()
+                    .map(t -> (DeclaredType) t)
+                    .toArray(DeclaredType[]::new);
+        }
     }
 }

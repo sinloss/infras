@@ -57,9 +57,22 @@ public class Eveny<K, V> {
         return put(k, hash, wrapped);
     }
 
+    /**
+     * Fire the event without any {@code executor}
+     */
     public void fire(K k, V v) {
+        fire(k, v, null);
+    }
+
+    /**
+     * Fire the event using the given {@code executor}, it is very useful when asynchronous
+     * event handling is demanded
+     */
+    public void fire(K k, V v, Consumer<Runnable> executor) {
         pool.on(Pool.Key.present(k), (key, value) -> {
-            value.values().forEach(c -> c.accept(v));
+            value.values().forEach(executor == null
+                    ? c -> c.accept(v)
+                    : c -> executor.accept(() -> c.accept(v)));
         });
     }
 

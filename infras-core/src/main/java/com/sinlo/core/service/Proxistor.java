@@ -5,13 +5,15 @@ import com.sinlo.core.domain.persistor.spec.Entity;
 import com.sinlo.core.domain.persistor.spec.Repo;
 import com.sinlo.core.domain.persistor.spec.Selector;
 import com.sinlo.core.domain.persistor.util.ReposSelector;
-import com.sinlo.core.service.util.Xervice;
+import com.sinlo.core.prototype.Prototype;
 import com.sinlo.sponte.Sponte;
 import com.sinlo.sponte.SponteInitializer;
+import com.sinlo.sponte.spec.Agent;
 import com.sinlo.sponte.util.Pool;
 import com.sinlo.sponte.util.Typer;
 
 import java.lang.annotation.*;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.Callable;
 
@@ -21,10 +23,13 @@ import java.util.concurrent.Callable;
  *
  * @author sinlo
  */
-@Target({ElementType.TYPE, ElementType.METHOD})
+@Target({ElementType.TYPE, ElementType.METHOD, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)
+@Inherited
 @Documented
-@Sponte(value = Proxistor.Keeper.class)
+@Sponte(value = Proxistor.Keeper.class,
+        agent = @Agent(Proxistor.Delegate.class))
+@Ponded
 public @interface Proxistor {
 
     /**
@@ -49,16 +54,15 @@ public @interface Proxistor {
     }
 
     @SuppressWarnings("rawtypes")
-    class Keeper extends Pond.Delegation<Proxistor, Map.Entry<Selector, Persistor>> {
-
-        private static Pool.Simple<Selector> selectors = new Pool.Simple<>();
-
+    class Delegate implements Pond.Delegate<Map.Entry<Selector, Persistor>> {
         @SuppressWarnings("unchecked")
         @Override
-        protected Object handle(Map.Entry<Selector, Persistor> payload, Callable<Object> invocation) {
-            try (Persistor.Stub stub = payload.getValue().enclose(null, payload.getKey())) {
+        public <R> R handle(Agent.Context context, Callable<R> mission,
+                            Map.Entry<Selector, Persistor> payload) {
+            try (Persistor.Stub stub = payload.getValue()
+                    .enclose(null, payload.getKey())) {
                 try {
-                    return invocation.call();
+                    return mission.call();
                 } catch (RuntimeException e) {
                     e.printStackTrace();
                     stub.cancel();
@@ -67,22 +71,36 @@ public @interface Proxistor {
                 return null;
             }
         }
+    }
+
+    @SuppressWarnings("rawtypes")
+    class Keeper implements Pond.Keeper<Proxistor, Map.Entry<Selector, Persistor>> {
+
+        private static final Pool.Simple<Selector> selectors = new Pool.Simple<>();
 
         @Override
-        protected Map.Entry<Selector, Persistor> payload(Proxistor proxistor, Object service) {
+        public Map.Entry<Selector, Persistor> payload(Proxistor proxistor, Object service, Method method) {
             return new AbstractMap.SimpleImmutableEntry<>(
                     sel(proxistor.selector(), service), Persistor.of(proxistor.value()));
         }
 
         @Override
-        protected Class<? extends Annotation> excluded() {
-            return Ignore.class;
+        public boolean should(Proxistor proxistor, Method method, boolean lazy) {
+            return !method.isAnnotationPresent(Ignore.class);
         }
 
         @SuppressWarnings("unchecked")
         private static Selector sel(Class<? extends Selector> assigned, Object service) {
             if (assigned.isInterface()) {
-                List<Repo> repos = Xervice.derive(service, Repo.class);
+                final List<Repo> repos = new LinkedList<>();
+                // derive from fields of the given service
+                Prototype.of((Class<Object>) service.getClass()).every(property -> {
+                    if (property.is(Repo.class)) {
+                        Repo repo = (Repo) property.get(service);
+                        if (repo != null) repos.add(repo);
+                    }
+                });
+
                 return repos.isEmpty()
                         ? Selector.ZERO_VALUE : new ReposSelector(repos);
             }
@@ -91,11 +109,28 @@ public @interface Proxistor {
 
         @Override
         public void finale(int fin) {
-            super.finale(fin);
-            if (fin == SponteInitializer.DECLINING) {
+            if (SponteInitializer.DECLINING == fin) {
                 selectors.purge();
-                selectors = null;
             }
         }
     }
+
+    /**
+     * A default {@link Proxistor} which uses the {@link Entity} as the {@link Proxistor#value()}
+     */
+    @Target({ElementType.TYPE, ElementType.METHOD})
+    @Retention(RetentionPolicy.RUNTIME)
+    @Inherited
+    @Documented
+    @Proxistor(value = Entity.class)
+    @interface Default {
+
+        Class<? extends Selector> selector() default Selector.class;
+
+        /**
+         * The default {@link Persistor}
+         */
+        Persistor<Entity> persistor = Persistor.of(Entity.class);
+    }
+
 }

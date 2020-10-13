@@ -2,7 +2,6 @@ package com.sinlo.test
 
 
 import com.sinlo.core.jdbc.Jadebee
-import com.sinlo.core.jdbc.util.Shapeherder
 import com.sinlo.core.service.Pond
 import com.sinlo.test.configuration.GeneralConfiguration
 import com.sinlo.test.service.FooService
@@ -23,6 +22,7 @@ class SpringContextTest extends Specification {
     def "should proxy method commit"() {
         when:
         new Jadebee(null)
+        def pond = Pond.of()
         fooService.foo()
         def e = fooService.get()
 

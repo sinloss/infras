@@ -22,8 +22,6 @@ public @interface Must {
 
     String NAME = "com.sinlo.sponte.Must";
 
-    Class<?> UNASSIGNED = byte.class;
-
     /**
      * Where the constrained annotation should perch on
      */
@@ -70,14 +68,15 @@ public @interface Must {
 
         /**
          * Get the underlying {@link TypeMirror} from a destined {@link MirroredTypeException} triggered
-         * by the defined function, or null if the {@link TypeMirror} is {@link #UNASSIGNED}
+         * by the defined function, or null if the {@link TypeMirror} is a primitive class which is not
+         * an available value
          */
         public TypeMirror get(Must must) {
             try {
                 f.apply(must);
             } catch (MirroredTypeException e) {
                 TypeMirror t = e.getTypeMirror();
-                return UNASSIGNED.toString().equals(t.toString()) ? null : t;
+                return t.getKind().isPrimitive() ? null : t;
             }
             return null;
         }

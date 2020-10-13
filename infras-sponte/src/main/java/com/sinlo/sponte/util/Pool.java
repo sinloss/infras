@@ -46,8 +46,10 @@ public class Pool<K, T> {
      * On the given {@link Key key} and its corresponding value, atomically compute a new value.
      * If the computed value is null, the corresponding key will be removed
      *
+     * @return the new value associated with the specified key, or null if none
      * @see ConcurrentHashMap#computeIfPresent(Object, BiFunction)
      * @see ConcurrentHashMap#computeIfAbsent(Object, Function)
+     * @see ConcurrentHashMap#compute(Object, BiFunction)
      */
     public T on(Key<K> key, BiFunction<K, T, T> compute) {
         switch (key.existence) {

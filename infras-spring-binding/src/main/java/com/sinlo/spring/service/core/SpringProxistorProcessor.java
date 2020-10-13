@@ -1,10 +1,7 @@
 package com.sinlo.spring.service.core;
 
-import com.sinlo.core.common.util.Funny;
 import com.sinlo.core.domain.persistor.spec.Repo;
 import com.sinlo.core.prototype.Prototype;
-import com.sinlo.core.service.Proxistor;
-import com.sinlo.sponte.SponteInitializer;
 import com.sinlo.spring.service.SpringProxistor;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -21,10 +18,7 @@ import org.springframework.core.type.AnnotationMetadata;
  * @author sinlo
  */
 @SuppressWarnings("rawtypes")
-public class SpringProxistorProcessor implements BeanPostProcessor, ImportAware,
-        PriorityOrdered, ApplicationListener<ContextRefreshedEvent> {
-
-    private final Proxistor.Keeper keeper = new Proxistor.Keeper();
+public class SpringProxistorProcessor implements BeanPostProcessor, ImportAware, PriorityOrdered, ApplicationListener<ContextRefreshedEvent> {
 
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
@@ -35,14 +29,11 @@ public class SpringProxistorProcessor implements BeanPostProcessor, ImportAware,
         }
 
         SpringProxistor proxistor = c.getAnnotation(SpringProxistor.class);
-        if (proxistor == null &&
-                Prototype.methods(c).noneMatch(
-                        m -> m.isAnnotationPresent(SpringProxistor.class))) {
-            return bean;
+        if (proxistor == null) {
+            Prototype.methods(c).noneMatch(
+                    m -> m.isAnnotationPresent(SpringProxistor.class));
         }
-
-        return keeper.maintain(bean, e ->
-                Funny.maybe(e.getAnnotation(SpringProxistor.class), ProxistorAdapter::new));
+        return bean;
     }
 
     @Override
@@ -59,11 +50,8 @@ public class SpringProxistorProcessor implements BeanPostProcessor, ImportAware,
         return PriorityOrdered.HIGHEST_PRECEDENCE;
     }
 
-    /**
-     * Cleanup
-     */
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
-        keeper.finale(SponteInitializer.DECLINING);
+
     }
 }

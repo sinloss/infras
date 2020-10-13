@@ -10,7 +10,7 @@ import java.lang.annotation.*;
  * Mould a specific class by caching its {@link com.sinlo.core.prototype.Prototype}
  *
  * @author sinlo
- * @see Sculptor#onExplore(Profile)
+ * @see Sculptor#onExplore(Profile, Object)
  */
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)

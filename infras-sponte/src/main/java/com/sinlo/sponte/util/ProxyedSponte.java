@@ -1,6 +1,7 @@
 package com.sinlo.sponte.util;
 
 import com.sinlo.sponte.Sponte;
+import com.sinlo.sponte.spec.Agent;
 import com.sinlo.sponte.spec.CompileAware;
 import com.sinlo.sponte.spec.SponteAware;
 
@@ -46,6 +47,16 @@ public class ProxyedSponte implements Sponte {
         } catch (NullPointerException ignored) {
             return CompileAware.class;
         }
+    }
+
+    @Override
+    public boolean inheritable() {
+        return sponte.inheritable();
+    }
+
+    @Override
+    public Agent agent() {
+        return sponte.agent();
     }
 
     public static Class<?> type(Supplier<Class<?>> supplier) {

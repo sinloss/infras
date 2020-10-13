@@ -5,10 +5,8 @@ import com.sinlo.core.jdbc.spec.Shaper;
 import com.sinlo.sponte.Sponte;
 import com.sinlo.sponte.spec.Profile;
 import com.sinlo.sponte.spec.SponteAware;
+import com.sinlo.sponte.util.Pool;
 import com.sinlo.sponte.util.Typer;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The {@link Shaper} registry
@@ -21,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Shapeherder implements SponteAware {
 
     @SuppressWarnings("rawtypes")
-    private final Map<String, Shaper> shapers = new ConcurrentHashMap<>();
+    private final Pool.Simple<Shaper> shapers = new Pool.Simple<>();
 
     /**
      * Get the instance created in the initialization process of {@link com.sinlo.sponte.SponteInitializer}
@@ -48,22 +46,20 @@ public class Shapeherder implements SponteAware {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
-    public void onExplore(Profile profile) {
+    public void onExplore(Profile profile, Object payload) {
         Shaper instance = (Shaper) Typer.create(profile.type);
         if (instance == null) return;
 
         Shape shape = (Shape) profile.subject;
         String targeting = instance.aw();
-        if (shapers.computeIfPresent(targeting, (k, v) -> {
-            if (v instanceof Shaper.Ranked
-                    && ((Shaper.Ranked<?, ?>) v).priority < shape.priority()) {
+
+        shapers.on(Pool.Key.catstate(targeting), (k, v) -> {
+            if (v == null || (v instanceof Shaper.Ranked
+                    && ((Shaper.Ranked<?, ?>) v).priority < shape.priority())) {
                 return new Shaper.Ranked(shape.priority(), instance);
             }
             return v;
-        }) == null) {
-            shapers.putIfAbsent(targeting,
-                    new Shaper.Ranked(shape.priority(), instance));
-        }
+        });
     }
 
 }

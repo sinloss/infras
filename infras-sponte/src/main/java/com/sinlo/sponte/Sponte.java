@@ -1,12 +1,24 @@
 package com.sinlo.sponte;
 
 import com.sinlo.sponte.core.Spontaneously;
+import com.sinlo.sponte.spec.Agent;
 import com.sinlo.sponte.spec.CompileAware;
 import com.sinlo.sponte.spec.SponteAware;
+import com.sinlo.sponte.util.SponteFiler;
+import com.sinlo.sponte.util.Typer;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.annotation.*;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileAttribute;
+import java.util.*;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * The main annotation who introduces the processing from {@link Spontaneously}
@@ -15,16 +27,11 @@ import java.lang.annotation.*;
  */
 @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)
+@Inherited
 @Documented
 public @interface Sponte {
 
     String NAME = "com.sinlo.sponte.Sponte";
-
-    String SPONTE_ROOT = "META-INF/spontaneously";
-
-    String SPONTED = ".sponted";
-
-    String LOCK = ".lock";
 
     /**
      * The {@link SponteAware}
@@ -48,7 +55,15 @@ public @interface Sponte {
      */
     Class<? extends CompileAware> compiling() default CompileAware.class;
 
-    boolean spread() default false;
+    /**
+     * On {@link ElementType#ANNOTATION_TYPE} it represents if the annotation annotated by the
+     * sponted annotation (which is annotated by this) could inherit the properties from the
+     * sponted annotation. On {@link ElementType#TYPE} it represents if the {@link Sponte}
+     * annotation should work on subclasses of the annotated class
+     */
+    boolean inheritable() default true;
+
+    Agent agent() default @Agent(Agent.Bond.class);
 
     class Keys {
 
@@ -63,6 +78,147 @@ public @interface Sponte {
                     return keys[0];
                 default:
                     return keys[SponteAware.class.isAssignableFrom(which) ? 0 : 1];
+            }
+        }
+    }
+
+    /**
+     * The file objects
+     */
+    enum Fo {
+        SPONTED(".sponted"),
+        INHERITANCE(".inheritance");
+
+        public final String fn;
+
+        Fo(String fn) {
+            this.fn = fn;
+        }
+
+        private static final String rootspec = "META-INF/spontaneously";
+        private static final Path root = SponteFiler.ensure(rootspec);
+
+        private PrintWriter pw;
+
+        /**
+         * Get the path of the given filename in {@link #root}
+         */
+        public static Path of(String fn) {
+            return root.resolve(fn);
+        }
+
+        /**
+         * Same as {@link #lines(String, Function)}, but accept a {@link Class} and use its name
+         * as the {@code name}
+         */
+        public static <T> Set<T> lines(Class<?> c, Function<String, T> mapper) {
+            return lines(c.getName(), mapper);
+        }
+
+        /**
+         * Get a list of all the items mapped from all lines of the resources of the
+         * given filename which resides in the {@link #rootspec}
+         *
+         * @see SponteFiler#lines(String, Supplier, Function)
+         */
+        public static <T> Set<T> lines(String name, Function<String, T> mapper) {
+            return SponteFiler.asSet(rootspec.concat("/").concat(name), mapper);
+        }
+
+        /**
+         * @see SponteFiler#names(String)
+         */
+        public static Set<String> names(String fn) {
+            return SponteFiler.names(rootspec.concat("/").concat(fn));
+        }
+
+        /**
+         * Get all inheritors of the given {@link Class}
+         */
+        @SuppressWarnings("unchecked")
+        public static Class<? extends Annotation>[] inheritors(Class<?> c) {
+            return lines(
+                    c.getCanonicalName().concat(Sponte.Fo.INHERITANCE.fn),
+                    line -> {
+                        try {
+                            return Typer.forName(line);
+                        } catch (ClassNotFoundException e) {
+                            return null;
+                        }
+                    }).stream()
+                    .filter(Objects::nonNull)
+                    .toArray(Class[]::new);
+        }
+
+        /**
+         * Close all file objects
+         */
+        public static void closeAll() {
+            for (Fo fo : values()) {
+                fo.close();
+            }
+        }
+
+        /**
+         * @see Files#deleteIfExists(Path)
+         */
+        public static void delete(String fn) throws IOException {
+            Files.deleteIfExists(of(fn));
+        }
+
+        /**
+         * @see Files#createFile(Path, FileAttribute[])
+         */
+        public static void create(String fn) throws IOException {
+            Files.createFile(of(fn));
+        }
+
+        /**
+         * @see Files#exists(Path, LinkOption...)
+         */
+        public static boolean exists(String fn) {
+            return Files.exists(of(fn));
+        }
+
+        /**
+         * @see #exists(String)
+         */
+        public boolean exists() {
+            return exists(fn);
+        }
+
+        /**
+         * @see #create(String)
+         */
+        public void create() throws IOException {
+            create(fn);
+        }
+
+        /**
+         * @see #names(String)
+         */
+        public Set<String> names() {
+            return names(fn);
+        }
+
+        /**
+         * Println the given text to the underlying file object
+         *
+         * @see PrintWriter#println(String)
+         */
+        public void println(String text) {
+            if (pw == null) pw = SponteFiler.writer(root.resolve(fn), true);
+            pw.println(text);
+            pw.flush();
+        }
+
+        /**
+         * Close the underlying {@link PrintWriter} and make it null
+         */
+        public void close() {
+            if (pw != null) {
+                pw.close();
+                pw = null;
             }
         }
     }

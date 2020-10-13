@@ -1,2 +1,4 @@
 com.sinlo.sponte.core.Spontaneously
-com.sinlo.sponte.core.SpontaneouslyAnotherRound
+com.sinlo.sponte.core.Spontaneously$AnotherStage
+com.sinlo.sponte.core.Spontaneously$YetAnotherStage
+com.sinlo.sponte.core.Spontaneously$FinStage

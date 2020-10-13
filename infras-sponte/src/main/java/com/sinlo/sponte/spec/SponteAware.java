@@ -28,5 +28,5 @@ public interface SponteAware {
         return !(profile.subject instanceof Sponte);
     }
 
-    void onExplore(Profile profile);
+    <A> void onExplore(Profile profile, A payload);
 }

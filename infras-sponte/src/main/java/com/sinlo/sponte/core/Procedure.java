@@ -1,0 +1,323 @@
+package com.sinlo.sponte.core;
+
+import com.sinlo.sponte.Must;
+import com.sinlo.sponte.Sponte;
+import com.sinlo.sponte.spec.Agent;
+import com.sinlo.sponte.spec.CompileAware;
+import com.sinlo.sponte.spec.Perch;
+import com.sinlo.sponte.spec.Ext;
+import com.sinlo.sponte.util.Chainer;
+import com.sinlo.sponte.util.Profiler;
+import com.sinlo.sponte.util.Signature;
+import com.sinlo.sponte.util.Typer;
+
+import javax.lang.model.element.*;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
+import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Repeatable;
+import java.lang.annotation.Target;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+/**
+ * The stage processing procedure definition and procedures
+ *
+ * @author sinlo
+ */
+@FunctionalInterface
+public interface Procedure {
+
+    void perform(Context.Subject cs) throws InterruptedException;
+
+    /**
+     * Interrupt if the current element is of class type, and not inheritable
+     * while having no @Sponte directly presented on it
+     */
+    static void killUsurpers(Context.Subject cs) throws InterruptedException {
+        if (cs.kind.isClass() && !cs.sponte.inheritable()
+                && cs.current.getAnnotationMirrors().stream()
+                .map(AnnotationMirror::getAnnotationType)
+                .map(Objects::toString)
+                .noneMatch(Sponte.class.getName()::equals)) {
+
+            throw new InterruptedException();
+        }
+    }
+
+    /**
+     * Trace the type element and print the profiler profiled string
+     */
+    static void trace(Context.Subject cs) {
+        trace(cs, cs::manifest);
+    }
+
+    /**
+     * Trace the type element and consume the profiled string
+     */
+    static void trace(Context.Subject cs, Consumer<String> consumer) {
+        Profiler profiler = new Profiler();
+
+        if ((cs.enclosing = profiler.trace(cs.current)) != null) {
+            consumer.accept(profiler.toString());
+            cs.descriptor = Typer.descriptor(cs.enclosing);
+            cs.qname = cs.enclosing.getQualifiedName().toString();
+        }
+    }
+
+    /**
+     * Validate context and subject
+     */
+    static void validate(Context.Subject cs) {
+        if (ElementKind.ANNOTATION_TYPE.equals(cs.kind)
+                && cs.idle()) {
+            // check repeatable
+            if (cs.current.getAnnotation(Repeatable.class) != null) {
+                cs.error("Sponte/Must does not support repeatable annotations");
+            }
+
+            // check element type
+            Target target = cs.current.getAnnotation(Target.class);
+            if (target != null) {
+                for (ElementType type : target.value()) {
+                    if (Perch.support(type)) continue;
+                    cs.error(String.format(
+                            "Sponte does not support ElementType %s",
+                            type.toString()));
+                }
+            }
+        }
+    }
+
+    /**
+     * Test the {@link Must} conditions
+     */
+    static void must(Context.Subject cs) {
+        cs.musts = cs.ctx.annotation.getAnnotationsByType(Must.class);
+        if (cs.musts == null || cs.musts.length == 0) return;
+
+        Perch perch = Perch.regard(cs.kind);
+        for (Must must : cs.musts) {
+            if (!must.value().equals(perch)) continue;
+
+            Must.Mirror.EXTEND.check(must, cs.current.asType(), cs.ctx.types, parent ->
+                    cs.error(String.format(
+                            "The %s annotated element must extend the type %s",
+                            cs.ctx.qname, parent.toString())));
+
+            Must.Mirror.IN.check(must, cs.enclosing.asType(), cs.ctx.types, parent ->
+                    cs.error(String.format(
+                            "The type where %s annotated element reside must extend the type %s",
+                            cs.ctx.qname, parent.toString())));
+
+        }
+    }
+
+    /**
+     * Do the {@link CompileAware} for the specified {@link Sponte#compiling()}
+     */
+    static void compiling(Context.Subject cs) {
+        try {
+            Class<? extends CompileAware> type = cs.sponte.compiling();
+            if (type.isInterface()) return;
+
+            CompileAware aware = CompileAware.Pri.get(type,
+                    Sponte.Keys.get(cs.sponte, type),
+                    () -> Typer.create(type));
+            if (aware != null) {
+                aware.onCompile(cs.ctx.env, Class.forName(cs.qname), cs.current);
+            }
+        } catch (ClassNotFoundException ignored) {
+        } catch (IllegalStateException ise) {
+            Throwable cause = ise.getCause();
+            if (cause instanceof ClassNotFoundException) {
+                cs.error("The given compile aware class must exist before compiling");
+            }
+        }
+    }
+
+    /**
+     * Generate an adapter for the current annotation type element, this does not check the
+     * {@link Sponte#inheritable()} attribute
+     */
+    static void adapter(Context.Subject cs) {
+        if (!ElementKind.ANNOTATION_TYPE.equals(cs.kind)) return;
+
+        try {
+            String sc = cs.ctx.annotation.getSimpleName().toString();
+            Ext ext = cs.ext()
+                    .importing(cs.qname, cs.ctx.qname, Annotation.class.getName())
+                    .implementing(sc)
+                    .method("public",
+                            "Class<? extends Annotation>",
+                            "annotationType", (Ext.Argument[]) null)
+                    .lines(String.format("return %s.class", sc));
+
+            // the builder that throws FilerException if the source file is already
+            // created
+            Ext.Builder builder = ext.create(cs.ctx.env.getFiler());
+
+            // values implemented by the current type
+            Set<String> implementedValues = Typer.values(cs.enclosing);
+            // values assigned on the meta annotation
+            Map<String, String> assignedValues = Typer.values(cs.enclosing, cs.ctx.qname);
+
+            // methods which is values in terms of annotation
+            Typer.methods(cs.ctx.annotation).forEach(method -> {
+                String name = method.getSimpleName().toString();
+                String value = null;
+                if (implementedValues.contains(name)) {
+                    value = "t.".concat(name).concat("()");
+                } else if (assignedValues != null && assignedValues.containsKey(name)) {
+                    value = String.valueOf(assignedValues.get(name));
+                } else {
+                    AnnotationValue val = method.getDefaultValue();
+                    if (val != null) {
+                        value = val.toString();
+                    }
+                }
+
+                Ext.Method m = ext.method("public",
+                        method.getReturnType().toString(), name, (Ext.Argument[]) null);
+                if (value != null) {
+                    m.lines(String.format("return %s", value));
+                }
+            });
+
+            builder.build();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Generate the agent for the current enclosing class or interface
+     */
+    @SuppressWarnings("unchecked")
+    static void agent(Context.Subject cs) {
+        ElementKind kind = cs.enclosing.getKind();
+        // skip annotation type
+        if (ElementKind.ANNOTATION_TYPE.equals(kind)) return;
+
+        // get and check @Agent
+        Agent def = cs.sponte.agent();
+        TypeElement agent = Typer.mirror(def::value);
+        if (agent.getKind().isInterface()) return;
+
+        // forbid abstract class
+        if (ElementKind.CLASS.equals(kind)
+                && Typer.isAbstract(cs.enclosing)) {
+            cs.error("Abstract class is not supported by @Agent");
+            return;
+        }
+
+        // enlist the agent
+        cs.agent(Typer.descriptor(agent));
+
+        // if the enclosing type is an interface or not
+        boolean isInterface = kind.isInterface();
+
+        // forwarded annotation types
+        DeclaredType[] forwarded = Typer.mirrorTypes(def::forward);
+
+        // create an ext
+        Ext ext = cs.ext(isInterface)
+                .importing(cs.qname,
+                        Agent.class.getCanonicalName(),
+                        Agent.Context.class.getCanonicalName());
+        try {
+            // the builder that throws FilerException if the source file is already
+            // created
+            Ext.Builder builder = ext.create(cs.ctx.env.getFiler());
+
+            // extends or implements
+            String extending = cs.enclosing.getSimpleName().toString().concat(def.generify());
+            if (isInterface) {
+                ext.implementing(extending);
+            } else {
+                ext.extending(extending);
+            }
+
+            // try to annotate and forward type annotations
+            Agent.M.annotate(ext, cs.enclosing, forwarded);
+
+            // get all methods
+            (isInterface ?
+                    // itself
+                    Chainer.of(cs.enclosing.asType())
+                            // and all super interfaces
+                            .and((List<TypeMirror>) cs.enclosing.getInterfaces())
+                            .stream()
+                            // as element
+                            .map(cs.ctx.types::asElement)
+                            // all their methods
+                            .flatMap(Typer::methods)
+                    :
+                    // all declared methods in class
+                    Typer.methods(cs.enclosing)
+            ).forEach(method -> {
+                // method name
+                String name = method.getSimpleName().toString();
+                // method structure
+                Ext.Method m = ext.method(
+                        // modifiers without abstract
+                        method.getModifiers().stream()
+                                .filter(mod -> !Modifier.ABSTRACT.equals(mod))
+                                .map(Modifier::toString)
+                                .collect(Collectors.joining(" ")),
+                        // return type
+                        method.getReturnType().toString(),
+                        // method name
+                        name,
+                        // parameters
+                        method.getParameters().stream()
+                                .map(p -> {
+                                    Ext.Argument arg = Ext.Argument.of(p.asType().toString(), p.toString());
+                                    // try to annotate and forward parameter annotations
+                                    Agent.M.annotate(arg, p, forwarded);
+                                    return arg;
+                                })
+                                .toArray(Ext.Argument[]::new));
+                // try to annotate and forward method annotations
+                Agent.M.annotate(m, method, forwarded);
+                // method handling
+                if (method.getAnnotation(Agent.Ignore.class) != null) {
+                    m.raw();
+                } else {
+                    // actual parameters that we are passing
+                    String actual = m.passing();
+                    // if the return type is void or not
+                    boolean voided = TypeKind.VOID.equals(method.getReturnType().getKind());
+                    // formatted method body
+                    m.lines(String.format(
+                            "%sAgent.MI6.get(\"%s\").act(new Context(this," +
+                                    "\"%s\",\"%s\",%s.class,new String[]{%s}%s),%s)",
+                            voided ? "" : "return ",
+                            cs.qname,
+                            name,
+                            Signature.of(method).toString(),
+                            cs.ctx.annotation.getQualifiedName(),
+                            method.getAnnotationMirrors().stream()
+                                    .map(AnnotationMirror::getAnnotationType)
+                                    .map(Object::toString)
+                                    .map(s -> "\"".concat(s).concat("\""))
+                                    .collect(Collectors.joining(",")),
+                            actual.isEmpty() ? "" : ",".concat(actual),
+                            isInterface ? "null" : String.format("()->{%st.%s(%s);%s}",
+                                    voided ? "" : "return ",
+                                    name,
+                                    actual,
+                                    voided ? "return null;" : "")));
+                }
+            });
+
+            builder.build();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}

@@ -15,7 +15,7 @@ import com.sinlo.sponte.spec.SponteAware;
 public class Sculptor implements SponteAware {
 
     @Override
-    public void onExplore(Profile profile) {
+    public void onExplore(Profile profile, Object payload) {
         // Prototype itself has an object pool
         Prototype.of(profile.type);
     }
