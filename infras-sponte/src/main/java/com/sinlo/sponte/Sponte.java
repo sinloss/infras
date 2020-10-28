@@ -1,5 +1,6 @@
 package com.sinlo.sponte;
 
+import com.sinlo.sponte.core.Context;
 import com.sinlo.sponte.core.Spontaneously;
 import com.sinlo.sponte.spec.Agent;
 import com.sinlo.sponte.spec.CompileAware;
@@ -7,8 +8,6 @@ import com.sinlo.sponte.spec.SponteAware;
 import com.sinlo.sponte.util.SponteFiler;
 import com.sinlo.sponte.util.Typer;
 
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.Element;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.annotation.*;
@@ -49,9 +48,9 @@ public @interface Sponte {
     String[] key() default Keys.DEFAULT;
 
     /**
-     * Call the {@link CompileAware#onCompile(ProcessingEnvironment, Class, Element)} method on
-     * compile. Note that the given {@link CompileAware compiling} itself should be already
-     * compiled before the compiling of which on it the {@link Sponte} is annotated
+     * Call the {@link CompileAware#onCompile(Context.Subject)} method when compiling. Note
+     * that the given {@link CompileAware compiling} itself should be already compiled before
+     * the compiling of which on it the {@link Sponte} is annotated
      */
     Class<? extends CompileAware> compiling() default CompileAware.class;
 
@@ -89,10 +88,10 @@ public @interface Sponte {
         SPONTED(".sponted"),
         INHERITANCE(".inheritance");
 
-        public final String fn;
+        public final String name;
 
-        Fo(String fn) {
-            this.fn = fn;
+        Fo(String name) {
+            this.name = name;
         }
 
         private static final String rootspec = "META-INF/spontaneously";
@@ -103,8 +102,8 @@ public @interface Sponte {
         /**
          * Get the path of the given filename in {@link #root}
          */
-        public static Path of(String fn) {
-            return root.resolve(fn);
+        public static Path of(String name) {
+            return root.resolve(name);
         }
 
         /**
@@ -128,8 +127,8 @@ public @interface Sponte {
         /**
          * @see SponteFiler#names(String)
          */
-        public static Set<String> names(String fn) {
-            return SponteFiler.names(rootspec.concat("/").concat(fn));
+        public static Set<String> names(String name) {
+            return SponteFiler.names(rootspec.concat("/").concat(name));
         }
 
         /**
@@ -138,7 +137,7 @@ public @interface Sponte {
         @SuppressWarnings("unchecked")
         public static Class<? extends Annotation>[] inheritors(Class<?> c) {
             return lines(
-                    c.getCanonicalName().concat(Sponte.Fo.INHERITANCE.fn),
+                    c.getCanonicalName().concat(Sponte.Fo.INHERITANCE.name),
                     line -> {
                         try {
                             return Typer.forName(line);
@@ -162,43 +161,43 @@ public @interface Sponte {
         /**
          * @see Files#deleteIfExists(Path)
          */
-        public static void delete(String fn) throws IOException {
-            Files.deleteIfExists(of(fn));
+        public static void delete(String name) throws IOException {
+            Files.deleteIfExists(of(name));
         }
 
         /**
          * @see Files#createFile(Path, FileAttribute[])
          */
-        public static void create(String fn) throws IOException {
-            Files.createFile(of(fn));
+        public static void create(String name) throws IOException {
+            Files.createFile(of(name));
         }
 
         /**
          * @see Files#exists(Path, LinkOption...)
          */
-        public static boolean exists(String fn) {
-            return Files.exists(of(fn));
+        public static boolean exists(String name) {
+            return Files.exists(of(name));
         }
 
         /**
          * @see #exists(String)
          */
         public boolean exists() {
-            return exists(fn);
+            return exists(name);
         }
 
         /**
          * @see #create(String)
          */
         public void create() throws IOException {
-            create(fn);
+            create(name);
         }
 
         /**
          * @see #names(String)
          */
         public Set<String> names() {
-            return names(fn);
+            return names(name);
         }
 
         /**
@@ -207,7 +206,7 @@ public @interface Sponte {
          * @see PrintWriter#println(String)
          */
         public void println(String text) {
-            if (pw == null) pw = SponteFiler.writer(root.resolve(fn), true);
+            if (pw == null) pw = SponteFiler.writer(root.resolve(name), true);
             pw.println(text);
             pw.flush();
         }

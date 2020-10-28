@@ -6,10 +6,7 @@ import com.sinlo.sponte.spec.Agent;
 import com.sinlo.sponte.spec.CompileAware;
 import com.sinlo.sponte.spec.Perch;
 import com.sinlo.sponte.spec.Ext;
-import com.sinlo.sponte.util.Chainer;
-import com.sinlo.sponte.util.Profiler;
-import com.sinlo.sponte.util.Signature;
-import com.sinlo.sponte.util.Typer;
+import com.sinlo.sponte.util.*;
 
 import javax.lang.model.element.*;
 import javax.lang.model.type.DeclaredType;
@@ -128,13 +125,12 @@ public interface Procedure {
             CompileAware aware = CompileAware.Pri.get(type,
                     Sponte.Keys.get(cs.sponte, type),
                     () -> Typer.create(type));
-            if (aware != null) {
-                aware.onCompile(cs.ctx.env, Class.forName(cs.qname), cs.current);
-            }
-        } catch (ClassNotFoundException ignored) {
+            if (aware != null) aware.onCompile(cs);
         } catch (IllegalStateException ise) {
             Throwable cause = ise.getCause();
             if (cause instanceof ClassNotFoundException) {
+                // neglect the compiling
+                if (cs.current.getAnnotation(CompileAware.Neglect.class) != null) return;
                 cs.error("The given compile aware class must exist before compiling");
             }
         }
@@ -205,6 +201,7 @@ public interface Procedure {
 
         // get and check @Agent
         Agent def = cs.sponte.agent();
+        if (def == ProxyedSponte.agent) return;
         TypeElement agent = Typer.mirror(def::value);
         if (agent.getKind().isInterface()) return;
 

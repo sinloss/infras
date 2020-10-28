@@ -1,9 +1,10 @@
 package com.sinlo.sponte.spec;
 
+import com.sinlo.sponte.Sponte;
+import com.sinlo.sponte.core.Context;
 import com.sinlo.sponte.core.Pri;
 
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.Element;
+import java.lang.annotation.*;
 
 /**
  * Prepare things at compile time
@@ -13,7 +14,19 @@ import javax.lang.model.element.Element;
 @FunctionalInterface
 public interface CompileAware {
 
-    com.sinlo.sponte.core.Pri<CompileAware> Pri = new Pri<>();
+    Pri<CompileAware> Pri = new Pri<>();
 
-    void onCompile(ProcessingEnvironment env, Class<?> c, Element element);
+    void onCompile(Context.Subject cs);
+
+    /**
+     * Skip the {@link Sponte#compiling()} on and only on the target annotated by this
+     * annotation. It is very useful when the assigned {@link CompileAware} class is in the
+     * same code base with the {@link Sponte} annotated target as the {@link CompileAware} is
+     * not really compiled in the annotation processing process
+     */
+    @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @Documented
+    @interface Neglect {
+    }
 }

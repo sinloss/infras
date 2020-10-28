@@ -16,10 +16,12 @@ import java.lang.annotation.*;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 
 /**
  * The classes that are annotated by this annotation will be processed and wrapped into a proxy
- * consisting of specific logic, and registered into the {@link Pond}
+ * which delegates methods with {@link Persistor#enclose(Consumer, Selector)}, and registered
+ * the delegated object into the {@link Pond}
  *
  * @author sinlo
  */

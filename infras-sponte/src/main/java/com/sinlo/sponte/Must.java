@@ -33,7 +33,7 @@ public @interface Must {
     Class<?> extend() default byte.class;
 
     /**
-     * The class which the constrained annotation annotated element should be in
+     * The class in which the constrained annotation annotated element should be
      */
     Class<?> in() default byte.class;
 

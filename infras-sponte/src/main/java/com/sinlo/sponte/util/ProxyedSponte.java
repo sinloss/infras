@@ -37,7 +37,11 @@ public class ProxyedSponte implements Sponte {
 
     @Override
     public String[] key() {
-        return sponte.key();
+        try {
+            return sponte.key();
+        } catch (NullPointerException ignored) {
+            return new String[0];
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -51,12 +55,20 @@ public class ProxyedSponte implements Sponte {
 
     @Override
     public boolean inheritable() {
-        return sponte.inheritable();
+        try {
+            return sponte.inheritable();
+        } catch (NullPointerException ignored) {
+            return true;
+        }
     }
 
     @Override
     public Agent agent() {
-        return sponte.agent();
+        try {
+            return sponte.agent();
+        } catch (NullPointerException ignored) {
+            return agent;
+        }
     }
 
     public static Class<?> type(Supplier<Class<?>> supplier) {
@@ -74,5 +86,14 @@ public class ProxyedSponte implements Sponte {
     @Override
     public Class<? extends Annotation> annotationType() {
         return Sponte.class;
+    }
+
+    /**
+     * Default agent value
+     */
+    public static final Agent agent = ___.class.getAnnotation(Agent.class);
+
+    @Agent(Agent.Bond.class)
+    private static class ___ {
     }
 }

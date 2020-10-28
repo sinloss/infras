@@ -22,9 +22,29 @@ import java.util.Set;
  *
  * @author sinlo
  */
-class Context {
+public class Context {
 
-    private final Messager messager;
+    /**
+     * The processing environment
+     */
+    public final ProcessingEnvironment env;
+    /**
+     * The type utils from {@link ProcessingEnvironment#getTypeUtils()}
+     */
+    public final Types types;
+    /**
+     * The messager from {@link ProcessingEnvironment#getMessager()}
+     */
+    public final Messager messager;
+    /**
+     * The annotation type element
+     */
+    public final TypeElement annotation;
+    /**
+     * The qualified name of the {@link #annotation}
+     */
+    public final String qname;
+
     /**
      * The {@link PrintWriter} of manifest files
      */
@@ -33,15 +53,13 @@ class Context {
      * The {@link PrintWriter} of inheritance manifest files
      */
     private PrintWriter wim;
-
-    final ProcessingEnvironment env;
-    final Types types;
-    final TypeElement annotation;
-    final String qname;
     /**
      * All existed type names listed in sponted files
      */
     final Set<String> existed;
+    /**
+     * The manifested names of the current {@link #annotation}
+     */
     final Set<String> manifested;
     /**
      * Current subject
@@ -74,28 +92,45 @@ class Context {
     /**
      * The current processing subject
      */
-    class Subject {
+    public class Subject {
 
-        final Context ctx;
-        final Element current;
-        final ElementKind kind;
-
-        TypeElement enclosing;
+        /**
+         * The {@link Context}
+         */
+        public final Context ctx;
+        /**
+         * The current element
+         */
+        public final Element current;
+        /**
+         * The current element kind
+         */
+        public final ElementKind kind;
+        /**
+         * The enclosing type element
+         */
+        public TypeElement enclosing;
         /**
          * The descriptor name of the type
          */
-        String descriptor;
+        public String descriptor;
         /**
          * The qualified name of the type
          */
-        String qname;
+        public String qname;
+        /**
+         * Musts
+         */
+        public Must[] musts;
+        /**
+         * Sponte
+         */
+        public Sponte sponte;
+
         /**
          * The {@link PrintWriter} of agent manifest files
          */
         private PrintWriter wam;
-
-        Must[] musts;
-        Sponte sponte;
 
         Subject(Element current) {
             this.ctx = Context.this;
@@ -125,7 +160,7 @@ class Context {
                 Sponte.Fo.INHERITANCE.println(qname);
                 if (wim == null) {
                     wim = SponteFiler.writer(Sponte.Fo.of(
-                            ctx.qname.concat(Sponte.Fo.INHERITANCE.fn)), true);
+                            ctx.qname.concat(Sponte.Fo.INHERITANCE.name)), true);
                 }
                 wim.println(descriptor);
                 wim.flush();
@@ -161,7 +196,7 @@ class Context {
         void manifest(String entry) {
             if (ctx.manifested.contains(entry)) {
                 error(String.format(
-                        "Could only annotate one of [ %s ] or its inheritors on the same element",
+                        "Could only annotate [ %s ] or anyone of its inheritors on the same element",
                         ctx.annotation));
             } else {
                 ctx.wm.println(entry);
@@ -175,7 +210,7 @@ class Context {
          *
          * @see #ext(boolean)
          */
-        Ext ext() {
+        public Ext ext() {
             return ext(false);
         }
 
@@ -184,14 +219,14 @@ class Context {
          *
          * @see Ext#of(TypeElement, boolean)
          */
-        Ext ext(boolean justImplement) {
+        public Ext ext(boolean justImplement) {
             return Ext.of(enclosing, justImplement);
         }
 
         /**
          * Error output
          */
-        void error(String message) {
+        public void error(String message) {
             ctx.messager.printMessage(Diagnostic.Kind.ERROR, message, this.current);
         }
 

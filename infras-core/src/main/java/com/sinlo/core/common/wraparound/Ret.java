@@ -10,7 +10,7 @@ import java.util.function.Function;
  * @param <E> error type
  * @author sinlo
  */
-public final class Ret<V, E> {
+public class Ret<V, E> {
 
     private final V val;
     private final E err;

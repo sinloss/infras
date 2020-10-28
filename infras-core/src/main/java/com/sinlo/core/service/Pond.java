@@ -3,9 +3,11 @@ package com.sinlo.core.service;
 import com.sinlo.core.common.util.Funny;
 import com.sinlo.core.prototype.Prototype;
 import com.sinlo.core.service.spec.Pump;
+import com.sinlo.core.service.spec.TooMany;
 import com.sinlo.sponte.Sponte;
 import com.sinlo.sponte.SponteInitializer;
 import com.sinlo.sponte.spec.Agent;
+import com.sinlo.sponte.spec.Ext;
 import com.sinlo.sponte.spec.Profile;
 import com.sinlo.sponte.spec.SponteAware;
 import com.sinlo.sponte.util.Pool;
@@ -14,6 +16,7 @@ import com.sinlo.sponte.util.Typer;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -70,9 +73,32 @@ public class Pond {
     /**
      * Get the corresponding object in the pond
      */
-    @SuppressWarnings("unchecked")
-    public <T> T get(Class<T> c) {
-        return Funny.maybe(c, (clz) -> (T) p.get(clz.getName()));
+    public <T> T get(Class<T> c) throws TooMany {
+        if (c == null) return null;
+        return TooMany.shouldNot(p.get(c.getName()), c);
+    }
+
+    /**
+     * Same as {@link #get(Class)}, but handles the {@link TooMany} by wrapping it
+     * inside a {@link RuntimeException}
+     */
+    public <T> T single(Class<T> c) {
+        try {
+            return get(c);
+        } catch (TooMany tooMany) {
+            throw new RuntimeException(tooMany);
+        }
+    }
+
+    /**
+     * Same as {@link #get(Class)}, but returns null when {@link TooMany}
+     */
+    public <T> T just(Class<T> c) {
+        try {
+            return get(c);
+        } catch (TooMany tooMany) {
+            return null;
+        }
     }
 
     /**
@@ -80,14 +106,23 @@ public class Pond {
      *
      * @return the new object in the pond
      */
-    @SuppressWarnings("unchecked")
     public <T> T modify(Class<T> c, Pump pump) {
+        return edit(c, pump);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T edit(Class<T> c, Pump pump) {
         return (T) Funny.maybe(c, (clz) -> p.on(Pool.Key.catstate(clz.getName()), (k, t) -> {
-            if (t == null) {
-                // new agent
-                t = Agent.M.create(clz, pump.sink(clz));
-            }
-            return pump.sink(t);
+            final Object v = pump.sink(t == null
+                    ? Agent.M.create(clz, pump.sink(clz)) : t);
+            // maintain keys of interfaces
+            Arrays.stream(c.getInterfaces())
+                    .map(Class::getName)
+                    // make the many the MANY, and filter them out
+                    .filter(n -> Pond.p.on(Pool.Key.present(n),
+                            TooMany::really) != TooMany.MANY)
+                    .forEach(n -> Pond.p.place(n, v));
+            return v;
         }));
     }
 
@@ -185,6 +220,8 @@ public class Pond {
             // the target object
             final Object service = Pond.p.get(pk, pump != null
                     ? () -> pump.sink(profile.type) : () -> Pump.create(profile.type));
+            // already delegated, skip the following process
+            if (service instanceof Ext.I) return;
             final Class<? extends Annotation> subject = profile.subject.annotationType();
 
             // the pivot annotation on the enclosing type
@@ -218,8 +255,18 @@ public class Pond {
                     });
 
             // maintain the readied service object
-            Object readied = Agent.M.create(profile.type, service);
-            Pond.p.place(pk, pump == null ? readied : pump.sink(readied));
+            edit(profile.type, new Pump() {
+                @Override
+                public <A> A sink(Class<A> type) {
+                    return (A) service;
+                }
+
+                @Override
+                public <A> A sink(A a) {
+                    A readied = (A) Agent.M.create(profile.type, a);
+                    return pump == null ? readied : pump.sink(readied);
+                }
+            });
         }
 
         @Override
