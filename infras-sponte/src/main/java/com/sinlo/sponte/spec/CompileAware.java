@@ -24,7 +24,6 @@ public interface CompileAware {
      * same code base with the {@link Sponte} annotated target as the {@link CompileAware} is
      * not really compiled in the annotation processing process
      */
-    @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
     @Documented
     @interface Neglect {
