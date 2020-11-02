@@ -113,8 +113,7 @@ public class Pond {
     @SuppressWarnings("unchecked")
     private static <T> T edit(Class<T> c, Pump pump) {
         return (T) Funny.maybe(c, (clz) -> p.on(Pool.Key.catstate(clz.getName()), (k, t) -> {
-            final Object v = pump.sink(t == null
-                    ? Agent.M.create(clz, pump.sink(clz)) : t);
+            final Object v = pump.sink(t == null ? pump.sink(clz) : t);
             // maintain keys of interfaces
             Arrays.stream(c.getInterfaces())
                     .map(Class::getName)

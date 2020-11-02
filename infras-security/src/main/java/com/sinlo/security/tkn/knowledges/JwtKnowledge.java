@@ -16,7 +16,7 @@ import java.util.function.Function;
  */
 public class JwtKnowledge<A> implements Knowledge<String, A> {
 
-    public static Jwter jwter = new Jwter();
+    public static final Jwter jwter = new Jwter();
     private final Jwter.Issuer<A> issuer;
     private final Function<String, A> des;
 

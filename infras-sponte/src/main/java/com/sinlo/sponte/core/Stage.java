@@ -16,6 +16,7 @@ public enum Stage {
      * The initial stage which is not consumable
      */
     INITIAL,
+
     /**
      * Stage 1: process {@link com.sinlo.sponte.Sponte} annotated classes
      * including annotation types
