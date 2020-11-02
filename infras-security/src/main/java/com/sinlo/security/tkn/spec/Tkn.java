@@ -35,7 +35,7 @@ public class Tkn<T> {
      * @param <U> the other type
      */
     public <U> Tkn<U> map(Function<T, U> mapper) {
-        return Tkn.of(mapper.apply(ephemeral),
-                mapper.apply(longevous));
+        return Tkn.of(ephemeral == null ? null : mapper.apply(ephemeral),
+                longevous == null ? null : mapper.apply(longevous));
     }
 }

@@ -9,6 +9,11 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.function.Function;
 
+/**
+ * A jwt implementation of {@link Knowledge}
+ *
+ * @author sinlo
+ */
 public class JwtKnowledge<A> implements Knowledge<String, A> {
 
     public static Jwter jwter = new Jwter();

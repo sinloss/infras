@@ -46,10 +46,19 @@ public class TknKeeper<T, A> {
     }
 
     /**
+     * Get state information of the given {@link Tkn}
+     */
+    public Tkn<State<T, A>> stat(Tkn<T> tkn) {
+        if (tkn == null) throw new TknException.Null();
+        return tkn.map(knowledge::stat);
+    }
+
+    /**
      * Renew the given tkn
      */
     public Tkn<T> renew(Tkn<T> tkn) {
-        if (tkn == null) throw new TknException.Null();
+        if (tkn == null || tkn.longevous == null)
+            throw new TknException.Null();
 
         State<T, A> state = knowledge.stat(tkn.longevous);
         if (state == null) throw new TknException.NoState();
