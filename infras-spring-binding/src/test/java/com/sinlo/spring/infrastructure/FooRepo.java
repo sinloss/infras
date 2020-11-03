@@ -1,6 +1,6 @@
-package com.sinlo.test.infrastructure;
+package com.sinlo.spring.infrastructure;
 
-import com.sinlo.test.domain.BarEntity;
+import com.sinlo.spring.domain.BarEntity;
 import org.springframework.stereotype.Repository;
 
 @Repository

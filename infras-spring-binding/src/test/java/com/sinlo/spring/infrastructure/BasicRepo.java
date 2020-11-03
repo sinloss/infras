@@ -1,4 +1,4 @@
-package com.sinlo.test.infrastructure;
+package com.sinlo.spring.infrastructure;
 
 import com.sinlo.core.domain.persistor.spec.Entity;
 import com.sinlo.core.domain.persistor.spec.Repo;

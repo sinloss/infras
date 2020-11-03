@@ -12,13 +12,14 @@ import com.sinlo.sponte.spec.Profile;
 import com.sinlo.sponte.spec.SponteAware;
 import com.sinlo.sponte.util.Pool;
 import com.sinlo.sponte.util.Signature;
-import com.sinlo.sponte.util.Typer;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 /**
  * The pond of {@link Keeper} maintained services
@@ -27,14 +28,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class Pond {
 
-    @SuppressWarnings("unchecked")
-    private static final Class<? extends Annotation>[] subjects = Sponte.Fo.lines(Ponded.class, line -> {
-        try {
-            return Typer.forName(line);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-    }).toArray(new Class[0]);
+    private static final Class<? extends Annotation>[] subjects = Ponded.Manifest.get();
 
     private static final AtomicReference<Pond> instance = new AtomicReference<>();
     private static final Pool.Simple<Object> p = new Pool.Simple<>();
@@ -206,26 +200,31 @@ public class Pond {
             return IDENTIFIER.concat(pivot.getName()).concat("~").concat(signature);
         }
 
+        /**
+         * The keeper maintains the delegation of a given type here
+         *
+         * @param type   the type of the delegated object
+         * @param target optional, an instance of the delegated object
+         * @param noter  the noter that fetches the pivot annotation from an {@link AnnotatedElement}
+         * @param pump   a {@link Pump}
+         */
         @SuppressWarnings("unchecked")
-        @Override
-        default void onExplore(Profile profile, Object payload) {
+        default Object maintain(final Class<?> type, final Object target,
+                                final Function<AnnotatedElement, T> noter, final Pump pump) {
             // the pond key
-            final String pk = profile.type.getName();
-            // the noter
-            final Profile.Subjectifier<T> noter =
-                    (Profile.Subjectifier<T>) profile.subjectifier;
-            // the pump
-            final Pump pump = payload instanceof Pump ? (Pump) payload : null;
+            final String pk = type.getName();
+
             // the target object
-            final Object service = Pond.p.get(pk, pump != null
-                    ? () -> pump.sink(profile.type) : () -> Pump.create(profile.type));
+            final Object service = target == null ? (
+                    Pond.p.get(pk, pump != null
+                            ? () -> pump.sink(type) : () -> Pump.create(type)))
+                    : target;
             // already delegated, skip the following process
-            if (service instanceof Ext.I) return;
-            final Class<? extends Annotation> subject = profile.subject.annotationType();
+            if (service instanceof Ext.I) return service;
 
             // the pivot annotation on the enclosing type
-            T noted = noter.apply(profile.type);
-            final T enc = pump == null ? noted : pump.note(noted, profile.type);
+            T noted = noter.apply(type);
+            final T enc = pump == null ? noted : pump.note(noted, type);
             // lazy delegation when the pivot annotation is not annotated on the enclosing
             // type, which means only the methods annotated with the pivot annotation will
             // be delegated
@@ -238,7 +237,7 @@ public class Pond {
                     : payload(enc, service, null);
 
             // find and keep all the method specific payloads
-            Prototype.methods(profile.type)
+            Prototype.methods(type)
                     .forEach(m -> {
                         T pivot = noter.apply(m);
                         if (pump != null) pivot = pump.note(pivot, m);
@@ -246,15 +245,15 @@ public class Pond {
                         if (!should(pivot == null ? enc : pivot, m, lazy)) return;
                         // maintain payloads
                         if (pivot != null) {
-                            Pond.p.place(key(subject, m), payload(pivot, service, m));
+                            Pond.p.place(key(pivot.annotationType(), m), payload(pivot, service, m));
                         } else if (!lazy) {
-                            Pond.p.place(key(subject, m), generalPayload);
+                            Pond.p.place(key(enc.annotationType(), m), generalPayload);
                         }
                         // lazy and not annotated with the pivot annotation, keep it null
                     });
 
             // maintain the readied service object
-            edit(profile.type, new Pump() {
+            return edit(type, new Pump() {
                 @Override
                 public <A> A sink(Class<A> type) {
                     return (A) service;
@@ -262,10 +261,21 @@ public class Pond {
 
                 @Override
                 public <A> A sink(A a) {
-                    A readied = (A) Agent.M.create(profile.type, a);
+                    A readied = (A) Agent.M.create(type, a);
                     return pump == null ? readied : pump.sink(readied);
                 }
             });
+        }
+
+        /**
+         * Process the given {@link Profile}
+         */
+        @SuppressWarnings("unchecked")
+        @Override
+        default void onExplore(Profile profile, Object payload) {
+            maintain(profile.type, null,
+                    (Profile.Subjectifier<T>) profile.subjectifier,
+                    payload instanceof Pump ? (Pump) payload : null);
         }
 
         @Override

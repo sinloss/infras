@@ -4,8 +4,8 @@ import com.sinlo.core.jdbc.util.Shapeherder;
 import com.sinlo.core.jdbc.spec.Shaper;
 import com.sinlo.sponte.Must;
 import com.sinlo.sponte.Sponte;
-import com.sinlo.sponte.spec.Perch;
 
+import javax.lang.model.element.ElementKind;
 import java.lang.annotation.*;
 
 /**
@@ -18,7 +18,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Sponte(value = Shapeherder.class)
-@Must(value = Perch.TYPE, extend = Shaper.class)
+@Must(value = ElementKind.CLASS, extend = Shaper.class)
 public @interface Shape {
 
     /**

@@ -1,47 +1,40 @@
-package com.sinlo.test.service;
+package com.sinlo.spring.service;
 
 import com.sinlo.core.service.Proxistor;
-import com.sinlo.spring.service.SpringProxistor;
-import com.sinlo.test.domain.BarEntity;
-import com.sinlo.test.domain.common.BasicEntity;
-import com.sinlo.test.infrastructure.FooRepo;
+import com.sinlo.spring.BasicProxistor;
+import com.sinlo.spring.infrastructure.FooRepo;
+import com.sinlo.spring.domain.BarEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-//@SpringProxistor(BasicEntity.class)
 @Service
-@Proxistor.Default
 public class FooServiceImpl implements FooService {
 
     @Autowired
     private FooRepo fooRepo;
 
-    //@Proxistor.Ignore
+    @Proxistor.Ignore
     @Override
     public BarEntity get() {
         return fooRepo.get();
     }
 
     @Override
-    @SpringProxistor(BasicEntity.class)
+    @BasicProxistor
     public void foo() {
         BarEntity bar = BarEntity.freshNew();
         bar.foo();
     }
 
     @Override
-    @SpringProxistor(BasicEntity.class)
+    @BasicProxistor
     public void bar() {
         BarEntity bar = fooRepo.get();
         bar.bar();
     }
 
-    //@Proxistor.Ignore
+    @Proxistor.Ignore
     public void feintBar() {
         fooRepo.get().bar();
-    }
-
-    public void testt(Object a, String b, int c) {
-
     }
 }

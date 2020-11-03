@@ -54,6 +54,20 @@ public enum Perch {
     }
 
     /**
+     * Get the type name of a given expression
+     */
+    public static String typeName(String expr) {
+        if (expr == null) return "";
+        for (Perch perch : values()) {
+            int idx;
+            if (perch.sign != null && !perch.sign.isEmpty()
+                    && (idx = expr.indexOf(perch.sign)) != -1)
+                return expr.substring(0, idx);
+        }
+        return expr;
+    }
+
+    /**
      * Identify the perch type of the given expression
      */
     public static Perch identify(String expr) {

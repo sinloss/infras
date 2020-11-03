@@ -1,6 +1,6 @@
-package com.sinlo.test.domain;
+package com.sinlo.spring.domain;
 
-import com.sinlo.test.domain.common.BasicEntity;
+import com.sinlo.spring.domain.common.BasicEntity;
 
 public class BarEntity extends BasicEntity {
 

@@ -3,7 +3,6 @@ package com.sinlo.sponte.core;
 import com.sinlo.sponte.Sponte;
 import com.sinlo.sponte.spec.Profile;
 import com.sinlo.sponte.spec.SponteAware;
-import com.sinlo.sponte.util.Typer;
 
 import java.lang.annotation.Annotation;
 import java.util.Objects;
@@ -55,9 +54,7 @@ public class SponteExplorer {
                             Class<? extends SponteAware> type = sponte.value();
                             // ignore uninstantiable value
                             if (type.isInterface()) return null;
-                            SponteAware aware = SponteAware.pri.get(type,
-                                    Sponte.Keys.get(sponte, type),
-                                    () -> Typer.create(type));
+                            SponteAware aware = SponteAware.pri.get(sponte, type);
                             if (aware != null && aware.filter(profile)) {
                                 aware.onExplore(profile, payload);
                             }

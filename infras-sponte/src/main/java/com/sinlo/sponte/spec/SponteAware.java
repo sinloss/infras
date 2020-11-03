@@ -2,6 +2,7 @@ package com.sinlo.sponte.spec;
 
 import com.sinlo.sponte.Sponte;
 import com.sinlo.sponte.core.Pri;
+import com.sinlo.sponte.util.Typer;
 
 /**
  * Handle the sponted annotations at runtime
@@ -12,6 +13,13 @@ import com.sinlo.sponte.core.Pri;
 public interface SponteAware {
 
     Pri<SponteAware> pri = new Pri<>();
+
+    static SponteAware get(Sponte sponte) {
+        Class<? extends SponteAware> type = sponte.value();
+        return pri.get(type,
+                Sponte.Keys.get(sponte, type),
+                () -> Typer.create(type));
+    }
 
     /**
      * A finalizer

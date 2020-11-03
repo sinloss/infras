@@ -128,7 +128,7 @@ public @interface Sponte {
          * @see SponteFiler#names(String)
          */
         public static Set<String> names(String name) {
-            return SponteFiler.names(rootspec.concat("/").concat(name));
+            return lines(name, line -> line);
         }
 
         /**

@@ -19,7 +19,7 @@ import java.util.function.Supplier;
 @SuppressWarnings("ClassExplicitlyAnnotation")
 public class ProxyedSponte implements Sponte {
 
-    private final Sponte sponte;
+    public final Sponte sponte;
 
     public ProxyedSponte(Element e) {
         this.sponte = e.getAnnotation(Sponte.class);

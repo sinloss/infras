@@ -1,4 +1,4 @@
-package com.sinlo.test.domain.common;
+package com.sinlo.spring.domain.common;
 
 import com.sinlo.core.domain.persistor.Persistor;
 import com.sinlo.core.domain.persistor.spec.Entity;

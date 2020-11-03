@@ -128,6 +128,11 @@ public class Context {
         public Sponte sponte;
 
         /**
+         * The agented names of the current {@link #annotation}
+         */
+        Set<String> agented;
+
+        /**
          * The {@link PrintWriter} of agent manifest files
          */
         private PrintWriter wam;
@@ -170,6 +175,8 @@ public class Context {
         }
 
         void agent(String agent) {
+            if (agented == null) agented = Sponte.Fo.names(qname.concat(Agent.SIGNATURE));
+            if (agented.contains(agent)) return;
             if (wam == null) {
                 wam = SponteFiler.writer(Sponte.Fo.of(
                         qname.concat(Agent.SIGNATURE)), true);

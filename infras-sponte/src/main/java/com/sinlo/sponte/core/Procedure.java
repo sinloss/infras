@@ -97,20 +97,19 @@ public interface Procedure {
         cs.musts = cs.ctx.annotation.getAnnotationsByType(Must.class);
         if (cs.musts == null || cs.musts.length == 0) return;
 
-        Perch perch = Perch.regard(cs.kind);
         for (Must must : cs.musts) {
-            if (!must.value().equals(perch)) continue;
+            boolean should = false;
+            for (ElementKind kind : must.value()) {
+                if (kind.equals(cs.kind)) {
+                    should = true;
+                    break;
+                }
+            }
+            if (!should) continue;
 
-            Must.Mirror.EXTEND.check(must, cs.current.asType(), cs.ctx.types, parent ->
-                    cs.error(String.format(
-                            "The %s annotated element must extend the type %s",
-                            cs.ctx.qname, parent.toString())));
-
-            Must.Mirror.IN.check(must, cs.enclosing.asType(), cs.ctx.types, parent ->
-                    cs.error(String.format(
-                            "The type where %s annotated element reside must extend the type %s",
-                            cs.ctx.qname, parent.toString())));
-
+            for (Must.Mirror mirror : Must.Mirror.values()) {
+                mirror.check(must, cs);
+            }
         }
     }
 
@@ -122,9 +121,7 @@ public interface Procedure {
             Class<? extends CompileAware> type = cs.sponte.compiling();
             if (type.isInterface()) return;
 
-            CompileAware aware = CompileAware.Pri.get(type,
-                    Sponte.Keys.get(cs.sponte, type),
-                    () -> Typer.create(type));
+            CompileAware aware = CompileAware.pri.get(cs.sponte, type);
             if (aware != null) aware.onCompile(cs);
         } catch (IllegalStateException ise) {
             Throwable cause = ise.getCause();

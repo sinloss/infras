@@ -1,10 +1,10 @@
-package com.sinlo.test
+package com.sinlo.spring
 
 
 import com.sinlo.core.jdbc.Jadebee
 import com.sinlo.core.service.Pond
-import com.sinlo.test.configuration.GeneralConfiguration
-import com.sinlo.test.service.FooService
+import com.sinlo.spring.configuration.GeneralConfiguration
+import com.sinlo.spring.service.FooService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.support.AnnotationConfigContextLoader
@@ -22,7 +22,6 @@ class SpringContextTest extends Specification {
     def "should proxy method commit"() {
         when:
         new Jadebee(null)
-        def pond = Pond.of()
         fooService.foo()
         def e = fooService.get()
 

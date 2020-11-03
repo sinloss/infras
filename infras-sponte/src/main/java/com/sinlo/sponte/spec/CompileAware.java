@@ -14,7 +14,7 @@ import java.lang.annotation.*;
 @FunctionalInterface
 public interface CompileAware {
 
-    Pri<CompileAware> Pri = new Pri<>();
+    Pri<CompileAware> pri = new Pri<>();
 
     void onCompile(Context.Subject cs);
 

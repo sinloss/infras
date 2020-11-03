@@ -1,5 +1,6 @@
 package com.sinlo.sponte.util;
 
+import javax.lang.model.AnnotatedConstruct;
 import javax.lang.model.element.*;
 import javax.lang.model.type.*;
 import java.lang.reflect.InvocationTargetException;
@@ -62,6 +63,18 @@ public class Typer {
         Class<?> primitive = PRIMITIVE_TYPE.get(name);
         if (primitive != null) return primitive;
         return Class.forName(name);
+    }
+
+    /**
+     * Same as {@link #forName(String)} but for sure that the class could always be
+     * found, thus would panic if not
+     */
+    public static Class<?> forSure(String name) {
+        try {
+            return forName(name);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -200,10 +213,22 @@ public class Typer {
     }
 
     /**
-     * Get assigned values inside of the requested {@link AnnotationMirror} which itself is in
-     * a list of {@link AnnotationMirror}s of the given {@link Element}
+     * Get the {@link AnnotationMirror} of the requested {@link TypeMirror} on the given
+     * {@link AnnotatedConstruct}
      */
-    public static Map<String, String> values(Element e, String requested) {
+    public static AnnotationMirror annotated(AnnotatedConstruct e, TypeMirror requested) {
+        List<? extends AnnotationMirror> ams = e.getAnnotationMirrors();
+        for (AnnotationMirror am : ams) {
+            if (am.getAnnotationType().equals(requested)) return am;
+        }
+        return null;
+    }
+
+    /**
+     * Get assigned values inside of the requested {@link AnnotationMirror} which itself is in
+     * a list of {@link AnnotationMirror}s of the given {@link AnnotatedConstruct}
+     */
+    public static Map<String, String> values(AnnotatedConstruct e, String requested) {
         List<? extends AnnotationMirror> ams = e.getAnnotationMirrors();
         for (AnnotationMirror am : ams) {
             if (am.getAnnotationType().toString().equals(requested)) {
