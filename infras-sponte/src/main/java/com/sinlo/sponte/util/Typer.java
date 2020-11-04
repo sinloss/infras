@@ -109,6 +109,9 @@ public class Typer {
      * Get the type descriptor of the given {@link TypeMirror}
      */
     public static String descriptor(TypeMirror typeMirror) {
+        if (typeMirror instanceof DeclaredType) {
+            return descriptor((TypeElement) ((DeclaredType) typeMirror).asElement());
+        }
         return descriptor(typeMirror.toString());
     }
 

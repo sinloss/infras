@@ -152,7 +152,7 @@ public interface Procedure {
 
             // the builder that throws FilerException if the source file is already
             // created
-            Ext.Builder builder = ext.create(cs.ctx.env.getFiler());
+            Ext.Builder builder = ext.create(cs.ctx.filer);
 
             // values implemented by the current type
             Set<String> implementedValues = Typer.values(cs.enclosing);
@@ -226,7 +226,7 @@ public interface Procedure {
         try {
             // the builder that throws FilerException if the source file is already
             // created
-            Ext.Builder builder = ext.create(cs.ctx.env.getFiler());
+            Ext.Builder builder = ext.create(cs.ctx.filer);
 
             // extends or implements
             String extending = cs.enclosing.getSimpleName().toString().concat(def.generify());

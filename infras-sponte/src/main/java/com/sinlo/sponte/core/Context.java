@@ -7,6 +7,7 @@ import com.sinlo.sponte.spec.Ext;
 import com.sinlo.sponte.util.ProxyedSponte;
 import com.sinlo.sponte.util.SponteFiler;
 
+import javax.annotation.processing.Filer;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
@@ -14,7 +15,13 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
+import javax.tools.FileObject;
+import javax.tools.JavaFileManager;
+import javax.tools.StandardLocation;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Set;
 
 /**
@@ -36,6 +43,10 @@ public class Context {
      * The messager from {@link ProcessingEnvironment#getMessager()}
      */
     public final Messager messager;
+    /**
+     * The filer from {@link ProcessingEnvironment#getFiler()}
+     */
+    public final Filer filer;
     /**
      * The annotation type element
      */
@@ -75,6 +86,7 @@ public class Context {
         this.manifested = Sponte.Fo.names(qname);
         this.env = env;
         this.types = env.getTypeUtils();
+        this.filer = env.getFiler();
     }
 
     void close() {
@@ -82,6 +94,34 @@ public class Context {
         if (wim != null) wim.close();
         if (subject != null) subject.close();
         Sponte.Fo.closeAll();
+    }
+
+    /**
+     * Get the root path
+     */
+    public Path root() {
+        FileObject fo = null;
+        try {
+            fo = filer.createResource(StandardLocation.CLASS_OUTPUT,
+                    "", "_t_m_p_", (Element[]) null);
+            return Paths.get(fo.toUri()).getParent().getParent();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (fo != null) fo.delete();
+        }
+    }
+
+    /**
+     * @see Filer#createResource(JavaFileManager.Location, CharSequence, CharSequence, Element...)
+     */
+    public FileObject res(String pkg, String name) {
+        try {
+            return filer.createResource(
+                    StandardLocation.CLASS_OUTPUT, pkg, name, (Element[]) null);
+        } catch (IOException ignored) {
+        }
+        return null;
     }
 
     Subject subject(Element element) {

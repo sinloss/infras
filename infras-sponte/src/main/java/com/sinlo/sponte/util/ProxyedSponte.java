@@ -76,7 +76,7 @@ public class ProxyedSponte implements Sponte {
             return supplier.get();
         } catch (MirroredTypeException mte) {
             try {
-                return Class.forName(mte.getTypeMirror().toString());
+                return Class.forName(Typer.descriptor(mte.getTypeMirror()));
             } catch (ClassNotFoundException e) {
                 throw new IllegalStateException(e);
             }

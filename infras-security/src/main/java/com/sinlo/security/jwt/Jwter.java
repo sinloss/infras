@@ -25,6 +25,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
@@ -32,17 +33,21 @@ import java.util.function.Function;
 /**
  * Jwter the jwt encoder and decoder
  * <p/>
- * Only support PKCS#8 formatted 2048-bit RSA key
+ * Only support base64 encoded RSA key that is at least 2048-bit long
  * <p/>
  * <pre>
  * # Generate a 2048-bit RSA private key
  * <b>openssl</b> genrsa <i>-out</i> <u>pk.pem</u> 2048
  *
  * # Convert to PKCS#8 format
- * <b>openssl</b> pkcs8 <i>-topk8</i> <i>-inform</i> PEM <i>-outform</i> DER <i>-in</i> <u>pk.pem</u> <i>-out</i> <u>key</u> <i>-nocrypt</i>
+ * <b>openssl</b> pkcs8 <i>-topk8</i> <i>-inform</i> PEM <i>-outform</i> DER <i>-in</i> <u>pk.pem</u> <i>-out</i> <u>key.raw</u> <i>-nocrypt</i>
  *
  * # Output public key
- * <b>openssl</b> rsa <i>-in</i> <u>pk.pem</u> <i>-pubout</i> <i>-outform</i> DER <i>-out</i> <u>key.pub</u>
+ * <b>openssl</b> rsa <i>-in</i> <u>pk.pem</u> <i>-pubout</i> <i>-outform</i> DER <i>-out</i> <u>key.pub.raw</u>
+ *
+ * # Output base64 encoded file
+ * <b>openssl</b> base64 <i>-in</i> <u>key.raw</u> <i>-out</i> <u>key</u>
+ * <b>openssl</b> base64 <i>-in</i> <u>key.pub.raw</u> <i>-out</i> <u>key.pub</u>
  * </pre>
  * <p/>
  *
@@ -183,7 +188,7 @@ public class Jwter {
             byte[] buf = new byte[4089]; // 4K
             int len;
             while ((len = is.read(buf)) != -1) baos.write(buf, 0, len);
-            return loader.apply(buf);
+            return loader.apply(Base64.getDecoder().decode(baos.toByteArray()));
         } catch (IOException e) {
             e.printStackTrace();
         }
