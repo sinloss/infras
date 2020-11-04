@@ -114,16 +114,32 @@ public class Prototype<T> {
     }
 
     /**
-     * Get the method fitting the name of camel case concatenated leading and filedName
+     * Get the method fitting the name of camel case concatenated leading and property name
      */
-    public static Method fieldMethod(Class<?> c, String leading, String fieldName) {
-        if (fieldName != null && !fieldName.isEmpty()) {
+    public static Method fieldMethod(Class<?> c, String leading, String propertyName, Class<?>... args) {
+        if (propertyName != null && !propertyName.isEmpty()) {
             try {
                 return c.getMethod((leading == null ? "" : leading)
-                        .concat(fieldName.substring(0, 1).toUpperCase())
-                        .concat(fieldName.length() >= 2 ? fieldName.substring(1) : ""));
+                        .concat(propertyName.substring(0, 1).toUpperCase())
+                        .concat(propertyName.length() >= 2 ? propertyName.substring(1) : ""), args);
             } catch (NoSuchMethodException ignored) {
             }
+        }
+        return null;
+    }
+
+    /**
+     * Check if the given method name represents a valid filed method which is camel case
+     * concatenated leading and underlying property name
+     */
+    public static String propertyName(String methodName, String leading) {
+        int len = leading.length();
+        if (methodName.startsWith(leading)
+                && methodName.length() > len
+                && Character.isUpperCase(methodName.charAt(len))) {
+            return Character.toLowerCase(methodName.charAt(len)) +
+                    (len + 1 < methodName.length()
+                            ? methodName.substring(len + 1) : "");
         }
         return null;
     }
@@ -161,8 +177,22 @@ public class Prototype<T> {
         for (; !Object.class.equals(c); c = c.getSuperclass()) {
             if (c == null) break;
             for (Field field : c.getDeclaredFields()) {
-                Property<T, ?> prop = new Property<>(field);
+                Property<T, ?> prop = Property.of(field);
                 props.put(prop.name, prop);
+            }
+            for (Method m : c.getDeclaredMethods()) {
+                String rawName = m.getName();
+                String name = propertyName(rawName, "set");
+                boolean isSetter = name != null;
+                if (isSetter || (name = propertyName(rawName, "get")) != null) {
+                    Property<T, ?> prop = props.get(name);
+                    // if the property is already fully populated, continue to the next
+                    if (prop != null && prop.fullyPopulated()) continue;
+                    // try to get a fallback field
+                    Field f = prop == null ? null : prop.field;
+                    props.put(name, isSetter ? Property.bySetter(m, f)
+                            : Property.byGetter(m, f));
+                }
             }
         }
         return props;

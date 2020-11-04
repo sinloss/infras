@@ -275,6 +275,7 @@ public class Context {
          */
         public void error(String message) {
             ctx.messager.printMessage(Diagnostic.Kind.ERROR, message, this.current);
+            Stage.FIN.process(null);
         }
 
         void close() {

@@ -15,7 +15,20 @@ public enum Stage {
     /**
      * The initial stage which is not consumable
      */
-    INITIAL,
+    INITIAL {
+        @Override
+        public void process(Context.Subject cs) {
+            if (!Fo.INITIALIZED.exists()) {
+                try {
+                    Fo.clear();
+                    Fo.INITIALIZED.create();
+                    Runtime.getRuntime().addShutdownHook(new Thread(FIN::fin));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    },
 
     /**
      * Stage 1: process {@link com.sinlo.sponte.Sponte} annotated classes
@@ -53,7 +66,7 @@ public enum Stage {
             Procedure::agent),
 
     /**
-     * The final unadvanceable, un-processable state
+     * The final unadvanceable state
      */
     FIN {
         @Override
@@ -63,6 +76,26 @@ public enum Stage {
 
         @Override
         public void process(Context.Subject cs) {
+            try {
+                Fo.INITIALIZED.delete();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void fin() {
+            for (Stage stage : Stage.values()) {
+                try {
+                    Fo.delete(stage.fn);
+                } catch (IOException ignored) {
+                }
+            }
+            try {
+                Fo.create(FIN.fn);
+                FIN.process(null);
+            } catch (IOException ignored) {
+            }
         }
     };
 
@@ -126,6 +159,7 @@ public enum Stage {
         try {
             Fo.delete(fn);
             Fo.create(FIN.fn);
+            FIN.process(null);
         } catch (IOException e) {
             e.printStackTrace();
         }

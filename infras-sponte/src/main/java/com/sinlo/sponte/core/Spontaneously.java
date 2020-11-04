@@ -27,6 +27,7 @@ public class Spontaneously extends AbstractProcessor {
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
+        Stage.INITIAL.process(null);
     }
 
     /**
@@ -64,7 +65,12 @@ public class Spontaneously extends AbstractProcessor {
         return true;
     }
 
-    private Set<String> names(Stage stage) {
+    @Override
+    public Set<String> getSupportedAnnotationTypes() {
+        Stage stage = Stage.which().advance();
+        if (Stage.FIN.equals(stage)) {
+            return Collections.emptySet();
+        }
         switch (stage) {
             case INHERIT:
                 return Fo.INHERITANCE.names();
@@ -74,20 +80,6 @@ public class Spontaneously extends AbstractProcessor {
             default:
                 return super.getSupportedAnnotationTypes();
         }
-    }
-
-    @Override
-    public Set<String> getSupportedAnnotationTypes() {
-        Stage stage = Stage.which().advance();
-        if (Stage.FIN.equals(stage)) {
-            return Collections.emptySet();
-        }
-
-        Set<String> names = names(stage);
-        if (names == null || names.isEmpty()) {
-            stage.fin();
-        }
-        return names;
     }
 
     @Override

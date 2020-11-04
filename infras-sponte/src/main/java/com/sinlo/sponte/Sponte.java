@@ -9,6 +9,7 @@ import com.sinlo.sponte.spec.SponteAware;
 import com.sinlo.sponte.util.SponteFiler;
 import com.sinlo.sponte.util.Typer;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.annotation.*;
@@ -86,6 +87,7 @@ public @interface Sponte {
      * The file objects
      */
     enum Fo {
+        INITIALIZED(".initialized"),
         SPONTED(".sponted"),
         INHERITANCE(".inheritance");
 
@@ -99,6 +101,15 @@ public @interface Sponte {
         private static final Path root = SponteFiler.ensure(rootspec);
 
         private PrintWriter pw;
+
+        /**
+         * Clear the {@link #root}
+         */
+        @SuppressWarnings("ResultOfMethodCallIgnored")
+        public static void clear() throws IOException {
+            Files.walk(root).map(Path::toFile).forEach(File::delete);
+            SponteFiler.ensure(rootspec);
+        }
 
         /**
          * Get the path of the given filename in {@link #root}
@@ -200,6 +211,13 @@ public @interface Sponte {
          */
         public void create() throws IOException {
             create(name);
+        }
+
+        /**
+         * @see #delete(String)
+         */
+        public void delete() throws IOException {
+            delete(name);
         }
 
         /**
