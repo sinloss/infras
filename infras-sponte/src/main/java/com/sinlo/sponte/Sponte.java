@@ -4,6 +4,7 @@ import com.sinlo.sponte.core.Context;
 import com.sinlo.sponte.core.Spontaneously;
 import com.sinlo.sponte.spec.Agent;
 import com.sinlo.sponte.spec.CompileAware;
+import com.sinlo.sponte.spec.Profile;
 import com.sinlo.sponte.spec.SponteAware;
 import com.sinlo.sponte.util.SponteFiler;
 import com.sinlo.sponte.util.Typer;
@@ -129,6 +130,14 @@ public @interface Sponte {
          */
         public static Set<String> names(String name) {
             return lines(name, line -> line);
+        }
+
+        /**
+         * Get corresponding {@link Profile profiles} of the given subject
+         */
+        public static Set<Profile> profiles(Class<? extends Annotation> subject) {
+            return Sponte.Fo.lines(subject,
+                    line -> Profile.of(line, subject, Sponte.Fo.inheritors(subject)));
         }
 
         /**

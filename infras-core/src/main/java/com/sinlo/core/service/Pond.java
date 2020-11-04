@@ -7,7 +7,6 @@ import com.sinlo.core.service.spec.TooMany;
 import com.sinlo.sponte.Sponte;
 import com.sinlo.sponte.SponteInitializer;
 import com.sinlo.sponte.spec.Agent;
-import com.sinlo.sponte.spec.Ext;
 import com.sinlo.sponte.spec.Profile;
 import com.sinlo.sponte.spec.SponteAware;
 import com.sinlo.sponte.util.Pool;
@@ -206,25 +205,27 @@ public class Pond {
          * @param type   the type of the delegated object
          * @param target optional, an instance of the delegated object
          * @param noter  the noter that fetches the pivot annotation from an {@link AnnotatedElement}
-         * @param pump   a {@link Pump}
+         * @param pp     a specific {@link Pump}
          */
         @SuppressWarnings("unchecked")
         default Object maintain(final Class<?> type, final Object target,
-                                final Function<AnnotatedElement, T> noter, final Pump pump) {
+                                final Function<AnnotatedElement, T> noter, Pump pp) {
             // the pond key
             final String pk = type.getName();
 
+            final Pump pump = pp == null ? Pump.DEFAULT : pp;
+
             // the target object
             final Object service = target == null ? (
-                    Pond.p.get(pk, pump != null
-                            ? () -> pump.sink(type) : () -> Pump.create(type)))
+                    Pond.p.get(pk, () -> pump.sink(type)))
                     : target;
-            // already delegated, skip the following process
-            if (service instanceof Ext.I) return service;
+
+            // check if should do the maintenance
+            if (!pump.should(type, service)) return service;
 
             // the pivot annotation on the enclosing type
             T noted = noter.apply(type);
-            final T enc = pump == null ? noted : pump.note(noted, type);
+            final T enc = pump.note(noted, type);
             // lazy delegation when the pivot annotation is not annotated on the enclosing
             // type, which means only the methods annotated with the pivot annotation will
             // be delegated
@@ -239,8 +240,7 @@ public class Pond {
             // find and keep all the method specific payloads
             Prototype.methods(type)
                     .forEach(m -> {
-                        T pivot = noter.apply(m);
-                        if (pump != null) pivot = pump.note(pivot, m);
+                        T pivot = pump.note(noter.apply(m), m);
                         // not should then return
                         if (!should(pivot == null ? enc : pivot, m, lazy)) return;
                         // maintain payloads
@@ -262,7 +262,7 @@ public class Pond {
                 @Override
                 public <A> A sink(A a) {
                     A readied = (A) Agent.M.create(type, a);
-                    return pump == null ? readied : pump.sink(readied);
+                    return pump.sink(readied);
                 }
             });
         }

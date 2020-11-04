@@ -53,7 +53,7 @@ public abstract class SponteInitializer implements Predicate<Profile> {
 
         // the real initializing process does not really care about threads
         List<? extends SponteAware> explored = SponteExplorer
-                .explore(this, payload(), subjects).collect(Collectors.toList());
+                .of(this, payload(), subjects).explore().collect(Collectors.toList());
 
         int fin = state.get();
 
@@ -88,7 +88,7 @@ public abstract class SponteInitializer implements Predicate<Profile> {
     }
 
     /**
-     * The filter to be provided to the {@link SponteExplorer#explore(Predicate, Object, Class[])}
+     * The filter to be provided to the {@link SponteExplorer#of(Predicate, Object, Class[])}
      * called in then {@link #SponteInitializer() constructor}
      */
     @Override
