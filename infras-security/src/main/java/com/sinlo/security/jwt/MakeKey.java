@@ -61,7 +61,7 @@ public @interface MakeKey {
             if (Files.notExists(res))
                 cs.error("Could not find the specified resources folder [ "
                         .concat(mk.value()).concat(" ]"));
-            // the home jwt keys
+            // the home of jwt keys
             String pkg = Jwter.class.getPackage().getName();
             res = res.resolve(pkg.replace('.', '/'));
             if (Files.notExists(res)) {
