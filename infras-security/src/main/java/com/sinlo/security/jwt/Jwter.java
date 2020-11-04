@@ -33,17 +33,24 @@ import java.util.function.Function;
 /**
  * Jwter the jwt encoder and decoder
  * <p/>
- * Only support base64 encoded RSA key that is at least 2048-bit long
+ * Only support base64 encoded RSA key that is at least 2048-bit long, the key could be
+ * generated using the following command lines or, better, using the {@link MakeKey}
+ * annotation which can generate valid key files in the {@code resources} folder of the
+ * working tree if there are neither {@code key} file nor {@code key.pub} file exists. And
+ * also create copies of those generated key files in their corresponding build paths
+ * <p>
  * <p/>
  * <pre>
  * # Generate a 2048-bit RSA private key
  * <b>openssl</b> genrsa <i>-out</i> <u>pk.pem</u> 2048
  *
  * # Convert to PKCS#8 format
- * <b>openssl</b> pkcs8 <i>-topk8</i> <i>-inform</i> PEM <i>-outform</i> DER <i>-in</i> <u>pk.pem</u> <i>-out</i> <u>key.raw</u> <i>-nocrypt</i>
+ * <b>openssl</b> pkcs8 <i>-topk8</i> <i>-inform</i> PEM <i>-outform</i> DER <i>-in</i>
+ *      <u>pk.pem</u> <i>-out</i> <u>key.raw</u> <i>-nocrypt</i>
  *
  * # Output public key
- * <b>openssl</b> rsa <i>-in</i> <u>pk.pem</u> <i>-pubout</i> <i>-outform</i> DER <i>-out</i> <u>key.pub.raw</u>
+ * <b>openssl</b> rsa <i>-in</i> <u>pk.pem</u> <i>-pubout</i> <i>-outform</i> DER <i>-out</i>
+ *      <u>key.pub.raw</u>
  *
  * # Output base64 encoded file
  * <b>openssl</b> base64 <i>-in</i> <u>key.raw</u> <i>-out</i> <u>key</u>
