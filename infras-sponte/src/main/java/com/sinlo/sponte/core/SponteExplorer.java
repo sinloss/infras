@@ -6,6 +6,7 @@ import com.sinlo.sponte.spec.SponteAware;
 
 import java.lang.annotation.Annotation;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -55,8 +56,9 @@ public class SponteExplorer<T> {
                                            Class<? extends Annotation>... subjects) {
         if (subjects == null) return new SponteExplorer<>(Stream.empty(), payload);
         return new SponteExplorer<>(Stream.of(subjects)
-                .flatMap(subject -> Sponte.Fo.profiles(subject)
-                        .stream().filter(filter == null ? profile -> true : filter))
+                .map(Sponte.Fo::profiles)
+                .flatMap(Set::stream)
+                .filter(filter == null ? profile -> true : filter)
                 .filter(Objects::nonNull), payload);
 
     }
