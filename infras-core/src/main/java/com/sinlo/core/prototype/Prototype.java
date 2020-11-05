@@ -1,6 +1,7 @@
 package com.sinlo.core.prototype;
 
 import com.sinlo.core.common.wraparound.Iterational;
+import com.sinlo.core.prototype.spec.Detail;
 import com.sinlo.core.prototype.spec.Property;
 import com.sinlo.core.prototype.spec.Retriever;
 import com.sinlo.sponte.util.Pool;
@@ -91,6 +92,20 @@ public class Prototype<T> {
      */
     public <A> T from(A any) {
         return from(any, (n, t) -> true);
+    }
+
+    /**
+     * Compare the two given objects
+     */
+    public List<Detail> compare(T one, T other) {
+        final List<Detail> details = new LinkedList<>();
+        every(p -> {
+            Detail detail = new Detail.Calculator(p.name, p.prop)
+                    .calculate(p.get(one), p.get(other));
+            if (Detail.SAME.equals(detail)) return;
+            details.add(detail);
+        });
+        return details;
     }
 
     /**

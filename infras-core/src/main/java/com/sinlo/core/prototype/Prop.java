@@ -9,6 +9,9 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * The property information for the {@link com.sinlo.core.prototype.spec.Property}
@@ -21,19 +24,39 @@ import java.lang.annotation.Target;
 @Sponte.CompilingNeglect
 public @interface Prop {
 
+    /**
+     * Property description
+     */
     String value();
+
+    /**
+     * A specific comparator to compare the annotated property
+     */
+    Class<? extends Comparator> comparator() default Comparator.class;
 
     class Must implements CompileAware {
 
+        private static final Set<String> annotated = new HashSet<>();
+
         @Override
         public void onCompile(Context.Subject cs) {
-            if (!ElementKind.METHOD.equals(cs.kind)) return;
+            String name = cs.current.getSimpleName().toString();
+            if (ElementKind.METHOD.equals(cs.kind)) {
+                final String methodName = name;
+                if ((name = Prototype.propertyName(methodName, "set")) == null &&
+                        (name = Prototype.propertyName(methodName, "get")) == null) {
+                    cs.error("The @Prop could only be annotated on setters " +
+                            "or getters except fields");
+                    return;
+                }
+            }
 
-            String methodName = cs.current.getSimpleName().toString();
-            if (Prototype.propertyName(methodName, "set") != null
-                    || Prototype.propertyName(methodName, "get") != null) return;
-
-            cs.error("The @Prop could only be annotated on setters or getters except fields");
+            if (annotated.contains(name)) {
+                cs.error("The @Prop could only be annotated once per property " +
+                        "on any of its setter, getter or field");
+                return;
+            }
+            annotated.add(name);
         }
     }
 }

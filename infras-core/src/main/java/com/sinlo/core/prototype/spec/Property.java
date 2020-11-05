@@ -2,11 +2,13 @@ package com.sinlo.core.prototype.spec;
 
 import com.sinlo.core.prototype.Prop;
 import com.sinlo.core.prototype.Prototype;
-import com.sinlo.sponte.util.Pool;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
-import java.util.Objects;
+import java.util.AbstractMap;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
@@ -18,8 +20,6 @@ import java.util.stream.Stream;
  */
 public class Property<T, V> {
 
-    private final Pool.Simple<Annotation[]> notes = new Pool.Simple<>();
-
     public final String name;
 
     public final Class<V> type;
@@ -30,6 +30,12 @@ public class Property<T, V> {
 
     public final Method getter;
 
+    public final boolean readable;
+
+    public final boolean writable;
+
+    public final Map.Entry<On, Prop> prop;
+
     private Property(String name, Class<V> type, Field field, Method setter, Method getter) {
         this.name = name;
         this.type = type;
@@ -39,6 +45,10 @@ public class Property<T, V> {
         if (this.field != null) this.field.setAccessible(true);
         if (this.setter != null) this.setter.setAccessible(true);
         if (this.getter != null) this.getter.setAccessible(true);
+        this.readable = this.field != null || this.getter != null;
+        this.writable = (this.field != null && !Modifier.isFinal(this.field.getModifiers()))
+                || this.setter != null;
+        this.prop = notes(Prop.class).findFirst().orElse(null);
     }
 
     /**
@@ -117,6 +127,7 @@ public class Property<T, V> {
      * Set the value of this property from the given object, priorly uses setter if any
      */
     public void set(T obj, V value) {
+        if (!writable) return;
         if (setter != null) try {
             setter.invoke(obj, value);
             return;
@@ -135,6 +146,7 @@ public class Property<T, V> {
      */
     @SuppressWarnings("unchecked")
     public V get(T obj) {
+        if (!readable) return null;
         if (getter != null) try {
             return (V) getter.invoke(obj);
         } catch (IllegalAccessException | InvocationTargetException e) {
@@ -149,23 +161,49 @@ public class Property<T, V> {
     }
 
     /**
-     * Get and cache annotations of the given type from all possible places, which includes
-     * {@link #field}, {@link #getter} and {@link #setter}
+     * Get all occurrences of the given annotation type on all accessible elements of the
+     * current property
      */
-    @SuppressWarnings("unchecked")
-    public <A extends Annotation> A[] notes(Class<A> type) {
-        return (A[]) notes.get(type.getName(), () ->
-                Stream.<AnnotatedElement>of(field, getter, setter)
-                        .filter(Objects::nonNull)
-                        .map(e -> e.getAnnotation(type))
-                        .filter(Objects::nonNull)
-                        .toArray(i -> (A[]) Array.newInstance(type, i)));
+    public <A extends Annotation> Stream<Map.Entry<On, A>> notes(Class<A> type) {
+        return On.stream(this)
+                .<Map.Entry<On, A>>map(e -> new AbstractMap
+                        .SimpleImmutableEntry<>(e.getKey(), e.getValue().getAnnotation(type)))
+                .filter(e -> e.getValue() != null);
+    }
+
+    public Field field() {
+        return field;
+    }
+
+    public Method setter() {
+        return setter;
+    }
+
+    public Method getter() {
+        return getter;
     }
 
     /**
-     * Specifically get and cache the {@link Prop}
+     * On where the annotation is
      */
-    public Prop[] props() {
-        return notes(Prop.class);
+    public enum On {
+        FIELD(Property::field), SETTER(Property::setter), GETTER(Property::getter);
+
+        private final Function<Property<?, ?>, AccessibleObject> picker;
+
+        On(Function<Property<?, ?>, AccessibleObject> picker) {
+            this.picker = picker;
+        }
+
+        /**
+         * Get a stream of all non null {@link AccessibleObject} of the given {@link Property}
+         */
+        public static Stream<Map.Entry<On, AccessibleObject>> stream(Property<?, ?> property) {
+            return Arrays.stream(values())
+                    .<Map.Entry<On, AccessibleObject>>map(
+                            on -> new AbstractMap.SimpleImmutableEntry<>(
+                                    on, on.picker.apply(property)))
+                    .filter(e -> e.getValue() != null);
+        }
     }
 }

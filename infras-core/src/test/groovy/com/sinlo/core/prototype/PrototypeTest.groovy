@@ -4,11 +4,13 @@ import spock.lang.Specification
 
 class PrototypeTest extends Specification {
 
-    def "should prototype extract all properties as intended"() {
-        expect:
+    def "should prototype compare all properties as intended"() {
+        given:
         def proto = Prototype.of(SampleBean)
-        proto.property("aDragon") != null
-        proto.property("aDragon").props().size() == 1
-        proto.property("id").props().size() == 2
+
+        expect:
+        def details = proto.compare(new SampleBean(id: 2, monster: "wood", name: "first"),
+                new SampleBean(id: 1, monster: "wood", name: "second"))
+        details.size() == 2
     }
 }

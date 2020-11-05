@@ -24,7 +24,6 @@ public class SampleBean {
         this.name = name;
     }
 
-    @Prop("Of course!")
     public int getId() {
         return id;
     }
