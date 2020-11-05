@@ -5,7 +5,6 @@ import com.sinlo.sponte.Sponte;
 import com.sinlo.sponte.spec.Agent;
 import com.sinlo.sponte.spec.Ext;
 import com.sinlo.sponte.util.ProxyedSponte;
-import com.sinlo.sponte.util.SponteFiler;
 
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.Messager;
@@ -19,7 +18,6 @@ import javax.tools.FileObject;
 import javax.tools.JavaFileManager;
 import javax.tools.StandardLocation;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
@@ -57,21 +55,13 @@ public class Context {
     public final String qname;
 
     /**
-     * The {@link PrintWriter} of manifest files
+     * The {@link Sponte.Writer} of manifest files
      */
-    private final PrintWriter wm;
+    private final Sponte.Writer wm;
     /**
-     * The {@link PrintWriter} of inheritance manifest files
+     * The {@link Sponte.Writer} of inheritance manifest files
      */
-    private PrintWriter wim;
-    /**
-     * All existed type names listed in sponted files
-     */
-    final Set<String> existed;
-    /**
-     * The manifested names of the current {@link #annotation}
-     */
-    final Set<String> manifested;
+    private Sponte.Writer wim;
     /**
      * Current subject
      */
@@ -81,9 +71,7 @@ public class Context {
         this.messager = env.getMessager();
         this.qname = (this.annotation = annotation)
                 .getQualifiedName().toString();
-        this.wm = SponteFiler.writer(Sponte.Fo.of(qname), true);
-        this.existed = existed != null ? existed : Sponte.Fo.SPONTED.names();
-        this.manifested = Sponte.Fo.names(qname);
+        this.wm = Sponte.Writer.of(qname, true);
         this.env = env;
         this.types = env.getTypeUtils();
         this.filer = env.getFiler();
@@ -169,14 +157,9 @@ public class Context {
         public Sponte sponte;
 
         /**
-         * The agented names of the current {@link #annotation}
+         * The {@link Sponte.Writer} of agent manifest files
          */
-        Set<String> agented;
-
-        /**
-         * The {@link PrintWriter} of agent manifest files
-         */
-        private PrintWriter wam;
+        private Sponte.Writer wam;
 
         Subject(Element current) {
             this.ctx = Context.this;
@@ -205,54 +188,42 @@ public class Context {
             if (ElementKind.ANNOTATION_TYPE.equals(kind) &&
                     (sponte.inheritable() ||
                             current.getAnnotation(Sponte.Inherit.class) != null)) {
-                Sponte.Fo.INHERITANCE.println(qname);
+                Sponte.Fo.INHERITANCE.println(qname, null);
                 if (wim == null) {
-                    wim = SponteFiler.writer(Sponte.Fo.of(
-                            ctx.qname.concat(Sponte.Fo.INHERITANCE.name)), true);
+                    wim = Sponte.Writer.of(
+                            ctx.qname.concat(Sponte.Fo.INHERITANCE.name), true);
                 }
-                wim.println(descriptor);
-                wim.flush();
+                wim.println(descriptor, null);
             } else {
                 throw new InterruptedException();
             }
         }
 
         void agent(String agent) {
-            if (agented == null) agented = Sponte.Fo.names(qname.concat(Agent.SIGNATURE));
-            if (agented.contains(agent)) return;
             if (wam == null) {
-                wam = SponteFiler.writer(Sponte.Fo.of(
-                        qname.concat(Agent.SIGNATURE)), true);
+                wam = Sponte.Writer.of(qname.concat(Agent.SIGNATURE), true);
             }
-            wam.println(agent);
-            wam.flush();
+            wam.println(agent, null);
         }
 
         void sponted() {
             if (ElementKind.ANNOTATION_TYPE.equals(kind)
                     && idle()) {
-                Sponte.Fo.SPONTED.println(qname);
-                ctx.existed.add(qname);
+                Sponte.Fo.SPONTED.println(qname, null);
             }
         }
 
         /**
-         * Not exists in the {@link #ctx#existed}
+         * Not exists in the manifest of {@link Sponte.Fo#SPONTED}
          */
         boolean idle() {
-            return !ctx.existed.contains(qname);
+            return !Sponte.Fo.SPONTED.contains(qname);
         }
 
         void manifest(String entry) {
-            if (ctx.manifested.contains(entry)) {
-                error(String.format(
-                        "Could only annotate [ %s ] or anyone of its inheritors on the same element",
-                        ctx.annotation));
-            } else {
-                ctx.wm.println(entry);
-                ctx.wm.flush();
-                ctx.manifested.add(entry);
-            }
+            ctx.wm.println(entry, () -> error(String.format(
+                    "Could only annotate [ %s ] or anyone of its inheritors on the same element",
+                    ctx.annotation)));
         }
 
         /**
@@ -284,5 +255,6 @@ public class Context {
         void close() {
             if (wam != null) wam.close();
         }
+
     }
 }

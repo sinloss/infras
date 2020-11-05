@@ -120,7 +120,7 @@ public @interface Sponte {
         private static final String rootspec = "META-INF/spontaneously";
         private static final Path root = SponteFiler.ensure(rootspec);
 
-        private PrintWriter pw;
+        private Writer pw;
 
         /**
          * Clear the {@link #root}
@@ -247,15 +247,25 @@ public @interface Sponte {
             return names(name);
         }
 
+        private Writer pw() {
+            if (pw == null) pw = Writer.of(name, true);
+            return pw;
+        }
+
         /**
          * Println the given text to the underlying file object
          *
-         * @see PrintWriter#println(String)
+         * @see Writer#println(String, Runnable)
          */
-        public void println(String text) {
-            if (pw == null) pw = SponteFiler.writer(root.resolve(name), true);
-            pw.println(text);
-            pw.flush();
+        public void println(String text, Runnable ifDuplicated) {
+            pw().println(text, ifDuplicated);
+        }
+
+        /**
+         * If the given content contained in the corresponding manifest
+         */
+        public boolean contains(String content) {
+            return pw().existed.contains(content);
         }
 
         /**
@@ -267,5 +277,38 @@ public @interface Sponte {
                 pw = null;
             }
         }
+    }
+
+    /**
+     * A writer that refuse to write duplicated contents
+     */
+    class Writer {
+        private final PrintWriter pw;
+        private final Set<String> existed;
+
+        private Writer(PrintWriter pw, Set<String> existed) {
+            this.pw = pw;
+            this.existed = existed;
+        }
+
+        public static Writer of(String name, boolean append) {
+            return new Writer(
+                    SponteFiler.writer(Fo.of(name), append), Fo.names(name));
+        }
+
+        public void println(String content, Runnable ifDuplicated) {
+            if (existed.contains(content)) {
+                if (ifDuplicated != null) ifDuplicated.run();
+                return;
+            }
+            pw.println(content);
+            pw.flush();
+            existed.add(content);
+        }
+
+        public void close() {
+            pw.close();
+        }
+
     }
 }

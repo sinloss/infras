@@ -75,7 +75,7 @@ public class Jadebee extends SponteInitializer {
     @SuppressWarnings("unchecked")
     @Override
     public Class<? extends Annotation>[] subjects() {
-        return new Class[]{Shape.class, Mould.class};
+        return new Class[]{Shape.class};
     }
 
     public static class Sql {

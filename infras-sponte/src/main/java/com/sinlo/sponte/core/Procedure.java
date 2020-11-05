@@ -184,7 +184,7 @@ public interface Procedure {
 
             builder.build();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            cs.error("An annotation could only inherit one inheritable *Sponte* annotation");
         }
     }
 

@@ -35,17 +35,17 @@ public @interface Must {
     ElementKind[] value();
 
     /**
-     * The class which the {@link Context.Subject#current} must extend
+     * The class which the target element must extend
      */
     Class<?> extend() default All.class;
 
     /**
-     * The class in which the {@link Context.Subject#current} must be
+     * The class in which the target element must be
      */
     Class<?> in() default All.class;
 
     /**
-     * The annotations with which the {@link Context.Subject#current} must be
+     * The annotations with which the target element must be
      */
     Class<? extends Annotation> with() default All.class;
 
