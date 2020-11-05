@@ -1,6 +1,9 @@
 package com.sinlo.core.common.util;
 
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
@@ -12,19 +15,37 @@ import java.util.TimeZone;
  */
 public class Daty {
 
-    private Daty() {
+    public static final String DF_PATTERN = "yyyy-MM-dd HH:mm:ss";
+    public static final Daty DEFAULT = of(DF_PATTERN).build();
+
+    public final TimeZone timeZone;
+    public final DateFormat df;
+
+    private Daty(TimeZone timeZone, DateFormat df) {
+        this.timeZone = timeZone;
+        this.df = df;
     }
 
-    private static TimeZone timeZone = TimeZone.getTimeZone("Asia/Shanghai");
+    /**
+     * A builder starting from {@link Builder#timeZone(TimeZone)}
+     */
+    public static Builder of(TimeZone timeZone) {
+        return new Builder().timeZone(timeZone);
+    }
 
-    private static final SimpleDateFormat YYYY_MM_DD = new SimpleDateFormat("yyyy-MM-dd");
+    /**
+     * A builder starting from {@link Builder#sdf(String)}
+     */
+    public static Builder of(String pattern) {
+        return new Builder().sdf(pattern);
+    }
 
     /**
      * check if the two given date is the sameday
      *
      * @see Daty#same(Date, Date, int)
      */
-    public static boolean sameday(Date d1, Date d2) {
+    public boolean sameday(Date d1, Date d2) {
         return same(d1, d2, Calendar.DAY_OF_MONTH);
     }
 
@@ -45,7 +66,7 @@ public class Daty {
      *                  <li>{@link Calendar#MILLISECOND}</li>
      *               </ul>
      */
-    public static boolean same(Date d1, Date d2, int field) {
+    public boolean same(Date d1, Date d2, int field) {
         Calendar c1 = calendar(d1);
         Calendar c2 = calendar(d2);
 
@@ -62,7 +83,7 @@ public class Daty {
      *
      * @see Daty#get(Date, int)
      */
-    public static int weekday(Date date) {
+    public int weekday(Date date) {
         return get(date, Calendar.DAY_OF_WEEK);
     }
 
@@ -71,14 +92,14 @@ public class Daty {
      *
      * @see Daty#get(Date, int)
      */
-    public static int day365(Date date) {
+    public int day365(Date date) {
         return get(date, Calendar.DAY_OF_YEAR);
     }
 
     /**
      * @see Calendar#get(int)
      */
-    public static int get(Date date, int field) {
+    public int get(Date date, int field) {
         Calendar c = calendar(date);
         return c.get(field);
     }
@@ -88,7 +109,7 @@ public class Daty {
      *
      * @param offset offset the given date
      */
-    public static Date dayOneOfMonth(Date date, int offset) {
+    public Date dayOneOfMonth(Date date, int offset) {
         Calendar cal = calendar(date);
         cal.add(Calendar.MONTH, offset);
         cal.add(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH));
@@ -100,7 +121,7 @@ public class Daty {
      *
      * @param offset offset the given date
      */
-    public static Date dayOneOfYear(Date date, int offset) {
+    public Date dayOneOfYear(Date date, int offset) {
         Calendar cal = calendar(date);
         cal.add(Calendar.YEAR, offset);
         cal.add(Calendar.DAY_OF_YEAR, cal.getActualMinimum(Calendar.DAY_OF_YEAR));
@@ -110,7 +131,7 @@ public class Daty {
     /**
      * @see Daty#calendar(Date, TimeZone)
      */
-    public static Calendar calendar(Date date) {
+    public Calendar calendar(Date date) {
         return calendar(date, timeZone);
     }
 
@@ -124,9 +145,64 @@ public class Daty {
     }
 
     /**
-     * use the given {@link TimeZone} globally
+     * {@link Date} to {@link LocalDateTime}
      */
-    public static void use(TimeZone timeZone) {
-        Daty.timeZone = timeZone;
+    public LocalDateTime toLocal(Date date) {
+        return date.toInstant().atZone(timeZone.toZoneId()).toLocalDateTime();
+    }
+
+    /**
+     * {@link LocalDateTime} to {@link Date}
+     */
+    public Date fromLocal(LocalDateTime local) {
+        return Date.from(local.atZone(timeZone.toZoneId()).toInstant());
+    }
+
+    /**
+     * The builder of {@link Daty}
+     */
+    public static class Builder {
+        private DateFormat df;
+        private TimeZone timeZone;
+
+        public Builder df(DateFormat df) {
+            this.df = df;
+            return this;
+        }
+
+        /**
+         * @see SimpleDateFormat#SimpleDateFormat(String)
+         */
+        public Builder sdf(String pattern) {
+            this.df = new SimpleDateFormat(pattern);
+            return this;
+        }
+
+        public Builder timeZone(TimeZone timeZone) {
+            this.timeZone = timeZone;
+            return this;
+        }
+
+        /**
+         * @see TimeZone#getTimeZone(String)
+         */
+        public Builder timeZone(String timeZone) {
+            this.timeZone = TimeZone.getTimeZone(timeZone);
+            return this;
+        }
+
+        /**
+         * @see TimeZone#getTimeZone(ZoneId)
+         */
+        public Builder timeZone(ZoneId zoneId) {
+            this.timeZone = TimeZone.getTimeZone(zoneId);
+            return this;
+        }
+
+        public Daty build() {
+            if (timeZone == null) timeZone(TimeZone.getDefault());
+            if (df == null) sdf(DF_PATTERN);
+            return new Daty(timeZone, df);
+        }
     }
 }
