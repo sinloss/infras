@@ -16,14 +16,16 @@ import java.util.function.Function;
  */
 public class JwtKnowledge<A> implements Knowledge<String, A> {
 
-    public static final Jwter jwter = new Jwter();
+    public final Jwter jwter;
     private final Jwter.Issuer<A> issuer;
     private final Function<String, A> des;
 
-    public JwtKnowledge(String issuer,
+    public JwtKnowledge(String pri, String pub,
+                        String issuer,
                         Function<A, String> ser,
                         Function<String, A> des,
                         int leeway) {
+        this.jwter = new Jwter(pri, pub);
         this.des = des;
         this.issuer = jwter.issuer(issuer, ser, leeway);
     }

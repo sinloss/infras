@@ -1,5 +1,6 @@
 package com.sinlo.security.tkn;
 
+import com.sinlo.security.jwt.Jwter;
 import com.sinlo.security.tkn.knowledges.JwtKnowledge;
 import com.sinlo.security.tkn.spec.Knowledge;
 import com.sinlo.security.tkn.spec.Tkn;
@@ -116,10 +117,28 @@ public class TkBuilder<T, A> {
      * An implementation of the {@link KnowledgeBuilder} that builds {@link JwtKnowledge}
      */
     public class JwtBuilder extends FinalBuilderProducer implements KnowledgeBuilder<T, A> {
+        private String pri;
+        private String pub;
         private String issuer;
         private Function<A, String> ser;
         private Function<String, A> des;
         private Integer leeway;
+
+        /**
+         * The {@link JwtKnowledge#jwter#pri}
+         */
+        public JwtBuilder pri(String pri) {
+            this.pri = pri;
+            return this;
+        }
+
+        /**
+         * The {@link JwtKnowledge#jwter#pub}
+         */
+        public JwtBuilder pub(String pub) {
+            this.pub = pub;
+            return this;
+        }
 
         /**
          * The {@link com.sinlo.security.jwt.Jwter.Issuer#iss}
@@ -164,10 +183,12 @@ public class TkBuilder<T, A> {
         public Knowledge<T, A> knowledge() {
             if (des == null)
                 throw new IllegalArgumentException("Must provide a deserializer");
+            if (pri == null) pri = Jwter.DEFAULT_PRI;
+            if (pub == null) pub = Jwter.DEFAULT_PUB;
             if (issuer == null) issuer = TkBuilder.class.getCanonicalName();
             if (leeway == null) leeway = 30000;
             if (ser == null) ser = Object::toString;
-            return new JwtKnowledge(issuer, ser, des, leeway);
+            return new JwtKnowledge(pri, pub, issuer, ser, des, leeway);
         }
     }
 }

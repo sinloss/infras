@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.Key;
@@ -24,10 +25,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 
 /**
@@ -62,16 +60,19 @@ import java.util.function.Function;
  */
 public class Jwter {
 
-    private final JwtDecoder dec;
+    public static final String DEFAULT_PRI = "key";
+    public static final String DEFAULT_PUB = "key.pub";
+
     private final RSASSASigner enc;
+    private final JwtDecoder dec;
 
     public Jwter() {
-        this("key.pub", "key");
+        this(DEFAULT_PRI, DEFAULT_PUB);
     }
 
-    public Jwter(String pub, String pri) {
-        this.dec = dec(pub);
+    public Jwter(String pri, String pub) {
         this.enc = enc(pri);
+        this.dec = dec(pub);
     }
 
     /**
@@ -185,9 +186,31 @@ public class Jwter {
         return null;
     }
 
+    /**
+     * Expecting only one single resource from the given resource name
+     */
+    public static Optional<URL> singleResource(String name) {
+        try {
+            Enumeration<URL> resources = Jwter.class.getClassLoader()
+                    .getResources(Jwter.class.getPackage().getName()
+                            .replace('.', '/') + '/' + name);
+            URL res = resources.hasMoreElements() ? resources.nextElement() : null;
+            if (res != null && resources.hasMoreElements())
+                throw new TooManyKeyFilesException(name);
+            return Optional.ofNullable(res);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Load a file or a resource
+     */
     public static <K extends Key> K load(String name, Function<byte[], K> loader) {
         try (InputStream is = Files.exists(Paths.get(name))
-                ? new FileInputStream(name) : Jwter.class.getResourceAsStream(name);
+                ? new FileInputStream(name)
+                : singleResource(name).map(Jwter::open).orElse(null);
              ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             // the 'is' might be null
             if (is == null) return null;
@@ -200,6 +223,17 @@ public class Jwter {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * Leniently call {@link URL#openStream()}
+     */
+    public static InputStream open(URL url) {
+        try {
+            return url.openStream();
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     /**
@@ -270,4 +304,12 @@ public class Jwter {
 
     }
 
+    public static class TooManyKeyFilesException extends RuntimeException {
+
+        public TooManyKeyFilesException(String name) {
+            super(String.format(
+                    "There are too many key files named [ %s ] in %s",
+                    name, Jwter.class.getPackage().getName()));
+        }
+    }
 }

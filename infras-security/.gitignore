@@ -24,7 +24,7 @@ HELP.md
 /nbdist/
 /.nb-gradle/
 /build/
-/src/test/resources/com/sinlo/security/jwt/key*
+/src/test/resources/com/sinlo/security/jwt/k*
 
 ### VS Code ###
 .vscode/

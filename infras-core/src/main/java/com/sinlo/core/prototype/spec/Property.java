@@ -44,7 +44,6 @@ public class Property<T, V> {
     /**
      * Create a property from the given {@link Field} without any fallbacks
      */
-    @SuppressWarnings("unchecked")
     public static <T, V> Property<T, V> of(Field field) {
         return of(field, null, null);
     }

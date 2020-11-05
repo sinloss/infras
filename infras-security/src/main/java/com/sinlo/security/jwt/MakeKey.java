@@ -1,5 +1,6 @@
 package com.sinlo.security.jwt;
 
+import com.sinlo.security.jwt.spec.Keys;
 import com.sinlo.sponte.Sponte;
 import com.sinlo.sponte.core.Context;
 import com.sinlo.sponte.spec.CompileAware;
@@ -9,6 +10,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,6 +26,7 @@ import java.util.Base64;
  *
  * @author sinlo
  */
+@Retention(RetentionPolicy.RUNTIME)
 @Sponte(compiling = MakeKey.Maker.class, inheritable = false)
 @CompileAware.Neglect
 public @interface MakeKey {
@@ -40,6 +44,8 @@ public @interface MakeKey {
      */
     int size() default 2048;
 
+    Keys keys() default @Keys(pri = Jwter.DEFAULT_PRI, pub = Jwter.DEFAULT_PUB);
+
     class Maker implements CompileAware {
 
         private final KeyPairGenerator kpg;
@@ -55,14 +61,14 @@ public @interface MakeKey {
 
         @Override
         public void onCompile(Context.Subject cs) {
-            MakeKey mk = cs.current.getAnnotation(MakeKey.class);
+            final MakeKey mk = cs.current.getAnnotation(MakeKey.class);
             // the resources folder
             Path res = cs.ctx.root().resolve(mk.value());
             if (Files.notExists(res))
                 cs.error("Could not find the specified resources folder [ "
                         .concat(mk.value()).concat(" ]"));
             // the home of jwt keys
-            String pkg = Jwter.class.getPackage().getName();
+            final String pkg = Jwter.class.getPackage().getName();
             res = res.resolve(pkg.replace('.', '/'));
             if (Files.notExists(res)) {
                 try {
@@ -72,20 +78,34 @@ public @interface MakeKey {
                 }
             }
 
-            Path pri = res.resolve("key");
-            Path pub = res.resolve("key.pub");
-            // do not generate when any one of the keys exists
-            if (Files.notExists(pri) && Files.notExists(pub)) {
+            final Keys keys = mk.keys();
+            final Path pri = ifNotExist(res, keys.pri());
+            final Path pub = ifNotExist(res, keys.pub());
+            // only generate when none of the keys exists
+            if (pri != null && pub != null) {
                 // initialize
                 this.kpg.initialize(mk.size());
                 // generate
                 final KeyPair kp = kpg.genKeyPair();
                 // output private
-                gen(cs.ctx.res(pkg, "key"), pri, kp.getPrivate());
+                gen(cs.ctx.res(pkg, keys.pri()), pri, kp.getPrivate());
                 // output public
-                gen(cs.ctx.res(pkg, "key.pub"), pub, kp.getPublic());
+                gen(cs.ctx.res(pkg, keys.pub()), pub, kp.getPublic());
             }
 
+        }
+
+        private static Path ifNotExist(Path folder, String name) {
+            try {
+                // not present
+                if (!Jwter.singleResource(name).isPresent()) {
+                    Path res = folder.resolve(name);
+                    // not exists
+                    if (Files.notExists(res)) return res;
+                }
+            } catch (Jwter.TooManyKeyFilesException ignored) {
+            }
+            return null;
         }
 
         private void gen(FileObject fo, Path file, Key key) {
