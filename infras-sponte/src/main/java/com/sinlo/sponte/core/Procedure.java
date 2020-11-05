@@ -36,7 +36,8 @@ public interface Procedure {
      * while having no @Sponte directly presented on it
      */
     static void killUsurpers(Context.Subject cs) throws InterruptedException {
-        if (cs.kind.isClass() && !cs.sponte.inheritable()
+        if (cs.kind.isClass() && !cs.sponte.inheritable() &&
+                cs.current.getAnnotation(Sponte.Inherit.class) == null
                 && cs.current.getAnnotationMirrors().stream()
                 .map(AnnotationMirror::getAnnotationType)
                 .map(Objects::toString)
@@ -127,7 +128,7 @@ public interface Procedure {
             Throwable cause = ise.getCause();
             if (cause instanceof ClassNotFoundException) {
                 // neglect the compiling
-                if (cs.current.getAnnotation(CompileAware.Neglect.class) != null) return;
+                if (cs.current.getAnnotation(Sponte.CompilingNeglect.class) != null) return;
                 cs.error("The given compile aware class must exist before compiling");
             }
         }

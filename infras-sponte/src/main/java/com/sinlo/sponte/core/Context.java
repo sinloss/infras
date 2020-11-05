@@ -202,7 +202,9 @@ public class Context {
          * if it's not
          */
         void inheritance() throws InterruptedException {
-            if (ElementKind.ANNOTATION_TYPE.equals(kind) && sponte.inheritable()) {
+            if (ElementKind.ANNOTATION_TYPE.equals(kind) &&
+                    (sponte.inheritable() ||
+                            current.getAnnotation(Sponte.Inherit.class) != null)) {
                 Sponte.Fo.INHERITANCE.println(qname);
                 if (wim == null) {
                     wim = SponteFiler.writer(Sponte.Fo.of(

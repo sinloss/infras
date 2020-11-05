@@ -28,7 +28,7 @@ import java.util.Base64;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Sponte(compiling = MakeKey.Maker.class, inheritable = false)
-@CompileAware.Neglect
+@Sponte.CompilingNeglect
 public @interface MakeKey {
 
     /**

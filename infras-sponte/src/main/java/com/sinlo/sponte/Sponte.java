@@ -66,6 +66,26 @@ public @interface Sponte {
 
     Agent agent() default @Agent(Agent.Bond.class);
 
+    /**
+     * Skip the {@link Sponte#compiling()} on and only on the target annotated by this
+     * annotation. It is very useful when the assigned {@link CompileAware} class is in the
+     * same code base with the {@link Sponte} annotated target as the {@link CompileAware} is
+     * not really compiled in the annotation processing process
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Documented
+    @interface CompilingNeglect {
+    }
+
+    /**
+     * Override the assigned {@link #inheritable()} only for the annotated element
+     */
+    @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @Documented
+    @interface Inherit {
+    }
+
     class Keys {
 
         public static final String DEFAULT = "";

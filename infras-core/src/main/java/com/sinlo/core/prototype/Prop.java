@@ -18,7 +18,7 @@ import java.lang.annotation.Target;
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Sponte(compiling = Prop.Must.class, inheritable = false)
-@CompileAware.Neglect
+@Sponte.CompilingNeglect
 public @interface Prop {
 
     String value();
