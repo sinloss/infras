@@ -228,6 +228,35 @@ public class Typer {
     }
 
     /**
+     * Get the {@link AnnotationValue} from the given {@link AnnotationMirror} that matches
+     * the given {@code path}
+     *
+     * @throws IllegalAccessException when a intermedia value is expected by the given path
+     *                                to be an annotation yet not. The message is set to be
+     *                                the current value name in the path
+     */
+    public static AnnotationValue value(
+            AnnotationMirror am, String path) throws IllegalAccessException {
+        final int splitter = path.indexOf(".");
+        final boolean tracing = splitter != -1;
+
+        AnnotationValue av = am.getElementValues().entrySet().stream()
+                .filter(e -> (tracing ? path.substring(0, splitter) : path)
+                        .equals(e.getKey().getSimpleName().toString()))
+                .findFirst().map(Map.Entry::getValue).orElse(null);
+        if (av == null) return null;
+
+        if (tracing) {
+            Object v = av.getValue();
+            if (!(v instanceof AnnotationMirror)) {
+                throw new IllegalAccessException(path.substring(0, splitter));
+            }
+            return value((AnnotationMirror) v, path.substring(splitter + 1));
+        }
+        return av;
+    }
+
+    /**
      * Get assigned values inside of the requested {@link AnnotationMirror} which itself is in
      * a list of {@link AnnotationMirror}s of the given {@link AnnotatedConstruct}
      */

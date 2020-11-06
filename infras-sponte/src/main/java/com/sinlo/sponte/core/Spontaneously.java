@@ -9,6 +9,7 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.TypeElement;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
 import static com.sinlo.sponte.Sponte.*;
@@ -42,12 +43,13 @@ public class Spontaneously extends AbstractProcessor {
         // get all existed sponted annotation names
         Set<String> existed = Fo.SPONTED.names();
 
+        final AtomicBoolean erred = new AtomicBoolean(false);
         // the proc in which the main process logic is being held
         BiConsumer<TypeElement, TypeElement> proc = (t, a) -> {
             Context ctx = new Context(this.processingEnv, t, existed);
             roundEnv.getElementsAnnotatedWith(a).stream()
                     .map(ctx::subject).forEach(stage::process);
-            ctx.close();
+            erred.compareAndSet(false, ctx.close());
         };
 
         if (Stage.INHERIT.equals(stage)) {
@@ -61,6 +63,10 @@ public class Spontaneously extends AbstractProcessor {
                     .forEach(t -> proc.accept(t, a)));
         } else {
             types.forEach(a -> proc.accept(a, a));
+        }
+        if (erred.get() || roundEnv.errorRaised()) {
+            Stage.FIN.fin();
+            return false;
         }
         return true;
     }

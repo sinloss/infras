@@ -20,7 +20,6 @@ public enum Stage {
         public void process(Context.Subject cs) {
             if (!Fo.INITIALIZED.exists()) {
                 try {
-                    Fo.clear();
                     Fo.INITIALIZED.create();
                     Runtime.getRuntime().addShutdownHook(new Thread(FIN::fin));
                 } catch (IOException e) {

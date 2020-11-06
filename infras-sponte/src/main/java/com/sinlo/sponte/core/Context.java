@@ -66,6 +66,10 @@ public class Context {
      * Current subject
      */
     private Subject subject;
+    /**
+     * If error occurred
+     */
+    private boolean erred = false;
 
     Context(ProcessingEnvironment env, TypeElement annotation, Set<String> existed) {
         this.messager = env.getMessager();
@@ -77,11 +81,12 @@ public class Context {
         this.filer = env.getFiler();
     }
 
-    void close() {
+    boolean close() {
         wm.close();
         if (wim != null) wim.close();
         if (subject != null) subject.close();
         Sponte.Fo.closeAll();
+        return erred;
     }
 
     /**
@@ -249,7 +254,7 @@ public class Context {
          */
         public void error(String message) {
             ctx.messager.printMessage(Diagnostic.Kind.ERROR, message, this.current);
-            Stage.FIN.process(null);
+            ctx.erred = true;
         }
 
         void close() {

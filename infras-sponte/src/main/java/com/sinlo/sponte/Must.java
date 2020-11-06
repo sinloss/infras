@@ -12,7 +12,6 @@ import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeMirror;
 import java.lang.annotation.*;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -89,6 +88,11 @@ public @interface Must {
          * collection
          */
         boolean any() default false;
+
+        /**
+         * The value must present
+         */
+        boolean mandatory() default false;
     }
 
     enum Mirror {
@@ -121,10 +125,13 @@ public @interface Must {
                     AnnotationMirror am = Typer.annotated(cs.current, ref);
                     if (am != null) {
                         for (Spec spec : must.spec()) {
-                            check(spec, am.getElementValues().entrySet().stream()
-                                    .filter(e ->
-                                            spec.value().equals(e.getKey().getSimpleName().toString()))
-                                    .findFirst().map(Map.Entry::getValue).orElse(null), cs);
+                            try {
+                                check(spec, Typer.value(am, spec.value()), cs);
+                            } catch (IllegalAccessException e) {
+                                cs.error(String.format(
+                                        "Expecting an annotation for the [ %s ] of the path [ %s ] yet not",
+                                        e.getMessage(), spec.value()));
+                            }
                         }
                         return;
                     }
@@ -138,6 +145,10 @@ public @interface Must {
          */
         public void check(Spec spec, AnnotationValue v, Context.Subject cs) {
             Object value = v == null ? null : v.getValue();
+            // mandatory() check
+            if (value == null && spec.mandatory())
+                cs.error(String.format("The property [ %s ] is mandatory", spec.value()));
+            // val() check
             String specVal = spec.val();
             if (!specVal.isEmpty()) {
                 if (value instanceof List) {
@@ -151,6 +162,7 @@ public @interface Must {
                 cs.error(String.format("The property [ %s ] must%s match %s",
                         spec.value(), spec.negative() ? " not" : "", specVal));
             }
+            // clz() check
             DeclaredType clz = Typer.mirrorType(spec::clz);
             if (!Spec.class.getCanonicalName().equals(clz.toString())) {
                 if ((value instanceof TypeMirror &&
@@ -158,7 +170,10 @@ public @interface Must {
                 cs.error(String.format("The property [ %s ] must%s extend class %s",
                         spec.value(), spec.negative() ? " not" : "", clz.toString()));
             }
-            cs.error("The @Spec must either specify a val() or a clz()");
+            // a mandatory check does not strictly need the val() nor the clz()
+            if (!spec.mandatory()) {
+                cs.error("The @Spec must either specify a val() or a clz()");
+            }
         }
 
         /**

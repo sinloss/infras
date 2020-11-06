@@ -30,7 +30,8 @@ import java.util.stream.Stream;
 @Documented
 @Sponte(inheritable = false)
 @Must(value = ElementKind.ANNOTATION_TYPE, with = Sponte.class,
-        spec = @Must.Spec(value = "value", clz = Pond.Keeper.class))
+        spec = {@Must.Spec(value = "value", clz = Pond.Keeper.class),
+                @Must.Spec(value = "agent.value", clz = Pond.Delegate.class)})
 public @interface Ponded {
 
     class Manifest {
