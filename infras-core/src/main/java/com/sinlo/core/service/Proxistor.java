@@ -65,12 +65,13 @@ public @interface Proxistor {
                     .enclose(null, payload.getKey())) {
                 try {
                     return mission.call();
-                } catch (RuntimeException e) {
-                    e.printStackTrace();
+                } catch (Exception e) {
                     stub.cancel();
-                } catch (Exception ignored) {
+                    if (e instanceof RuntimeException) {
+                        throw (RuntimeException) e;
+                    }
+                    throw new RuntimeException(e);
                 }
-                return null;
             }
         }
     }
