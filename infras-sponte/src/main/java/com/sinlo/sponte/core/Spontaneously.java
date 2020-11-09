@@ -49,7 +49,7 @@ public class Spontaneously extends AbstractProcessor {
             Context ctx = new Context(this.processingEnv, t, existed);
             roundEnv.getElementsAnnotatedWith(a).stream()
                     .map(ctx::subject).forEach(stage::process);
-            erred.compareAndSet(false, ctx.close());
+            erred.compareAndSet(false, !ctx.close());
         };
 
         if (Stage.INHERIT.equals(stage)) {
@@ -64,11 +64,7 @@ public class Spontaneously extends AbstractProcessor {
         } else {
             types.forEach(a -> proc.accept(a, a));
         }
-        if (erred.get() || roundEnv.errorRaised()) {
-            Stage.FIN.fin();
-            return false;
-        }
-        return true;
+        return !erred.get() && !roundEnv.errorRaised();
     }
 
     @Override

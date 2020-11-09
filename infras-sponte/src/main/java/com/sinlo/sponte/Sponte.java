@@ -283,17 +283,19 @@ public @interface Sponte {
      * A writer that refuse to write duplicated contents
      */
     class Writer {
+        public final String name;
         private final PrintWriter pw;
         private final Set<String> existed;
 
-        private Writer(PrintWriter pw, Set<String> existed) {
+        private Writer(String name, PrintWriter pw, Set<String> existed) {
+            this.name = name;
             this.pw = pw;
             this.existed = existed;
         }
 
         public static Writer of(String name, boolean append) {
             return new Writer(
-                    SponteFiler.writer(Fo.of(name), append), Fo.names(name));
+                    name, SponteFiler.writer(Fo.of(name), append), Fo.names(name));
         }
 
         public void println(String content, Runnable ifDuplicated) {
@@ -304,6 +306,10 @@ public @interface Sponte {
             pw.println(content);
             pw.flush();
             existed.add(content);
+        }
+
+        public boolean contains(String content) {
+            return existed.contains(content);
         }
 
         public void close() {

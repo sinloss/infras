@@ -5,10 +5,12 @@ import com.sinlo.sponte.Sponte;
 import com.sinlo.sponte.spec.Agent;
 import com.sinlo.sponte.spec.Ext;
 import com.sinlo.sponte.util.ProxyedSponte;
+import com.sinlo.sponte.util.Typer;
 
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
@@ -53,6 +55,10 @@ public class Context {
      * The qualified name of the {@link #annotation}
      */
     public final String qname;
+    /**
+     * The descriptor of the {@link #annotation}
+     */
+    public final String descriptor;
 
     /**
      * The {@link Sponte.Writer} of manifest files
@@ -61,7 +67,7 @@ public class Context {
     /**
      * The {@link Sponte.Writer} of inheritance manifest files
      */
-    private Sponte.Writer wim;
+    private final Sponte.Writer wim;
     /**
      * Current subject
      */
@@ -75,7 +81,10 @@ public class Context {
         this.messager = env.getMessager();
         this.qname = (this.annotation = annotation)
                 .getQualifiedName().toString();
+        this.descriptor = Typer.descriptor(this.annotation);
         this.wm = Sponte.Writer.of(qname, true);
+        this.wim = Sponte.Writer.of(
+                qname.concat(Sponte.Fo.INHERITANCE.name), true);
         this.env = env;
         this.types = env.getTypeUtils();
         this.filer = env.getFiler();
@@ -86,7 +95,7 @@ public class Context {
         if (wim != null) wim.close();
         if (subject != null) subject.close();
         Sponte.Fo.closeAll();
-        return erred;
+        return !erred;
     }
 
     /**
@@ -194,10 +203,6 @@ public class Context {
                     (sponte.inheritable() ||
                             current.getAnnotation(Sponte.Inherit.class) != null)) {
                 Sponte.Fo.INHERITANCE.println(qname, null);
-                if (wim == null) {
-                    wim = Sponte.Writer.of(
-                            ctx.qname.concat(Sponte.Fo.INHERITANCE.name), true);
-                }
                 wim.println(descriptor, null);
             } else {
                 throw new InterruptedException();
@@ -226,9 +231,17 @@ public class Context {
         }
 
         void manifest(String entry) {
-            ctx.wm.println(entry, () -> error(String.format(
-                    "Could only annotate [ %s ] or anyone of its inheritors on the same element",
-                    ctx.annotation)));
+            ctx.wm.println(entry, () -> {
+                if (subject.current.getAnnotationMirrors().stream().
+                        map(AnnotationMirror::getAnnotationType)
+                        .map(Typer::descriptor)
+                        .filter(e -> e.equals(ctx.descriptor) || ctx.wim.contains(e))
+                        .count() > 1) {
+                    error(String.format(
+                            "Could not annotate [ %s ] or anyone of its inheritors on the same element",
+                            ctx.annotation));
+                }
+            });
         }
 
         /**

@@ -228,6 +228,17 @@ public class Typer {
     }
 
     /**
+     * Get the {@link AnnotationMirror} of the requested name on the given {@link AnnotatedConstruct}
+     */
+    public static AnnotationMirror annotated(AnnotatedConstruct e, String requested) {
+        List<? extends AnnotationMirror> ams = e.getAnnotationMirrors();
+        for (AnnotationMirror am : ams) {
+            if (am.getAnnotationType().toString().equals(requested)) return am;
+        }
+        return null;
+    }
+
+    /**
      * Get the {@link AnnotationValue} from the given {@link AnnotationMirror} that matches
      * the given {@code path}
      *
@@ -261,14 +272,12 @@ public class Typer {
      * a list of {@link AnnotationMirror}s of the given {@link AnnotatedConstruct}
      */
     public static Map<String, String> values(AnnotatedConstruct e, String requested) {
-        List<? extends AnnotationMirror> ams = e.getAnnotationMirrors();
-        for (AnnotationMirror am : ams) {
-            if (am.getAnnotationType().toString().equals(requested)) {
-                final Map<String, String> values = new HashMap<>();
-                am.getElementValues().forEach((k, v) ->
-                        values.put(k.getSimpleName().toString(), v.toString()));
-                return values;
-            }
+        AnnotationMirror am = annotated(e, requested);
+        if (am != null) {
+            final Map<String, String> values = new HashMap<>();
+            am.getElementValues().forEach((k, v) ->
+                    values.put(k.getSimpleName().toString(), v.toString()));
+            return values;
         }
         return null;
     }

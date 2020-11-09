@@ -8,6 +8,7 @@ import com.sinlo.sponte.spec.Perch;
 import com.sinlo.sponte.spec.Ext;
 import com.sinlo.sponte.util.*;
 
+import javax.annotation.processing.FilerException;
 import javax.lang.model.element.*;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
@@ -183,8 +184,10 @@ public interface Procedure {
             });
 
             builder.build();
-        } catch (IOException e) {
+        } catch (FilerException fe) {
             cs.error("An annotation could only inherit one inheritable *Sponte* annotation");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -311,6 +314,7 @@ public interface Procedure {
             });
 
             builder.build();
+        } catch (FilerException ignored) {
         } catch (IOException e) {
             e.printStackTrace();
         }
