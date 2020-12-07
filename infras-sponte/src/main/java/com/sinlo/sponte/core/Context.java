@@ -105,8 +105,7 @@ public class Context {
         FileObject fo = null;
         try {
             fo = filer.createResource(StandardLocation.CLASS_OUTPUT,
-                    "", "_t_m_p_" + System.currentTimeMillis(),
-                    (Element[]) null);
+                    "", "_t_m_p_" + System.currentTimeMillis());
             return Paths.get(fo.toUri()).getParent().getParent();
         } catch (IOException e) {
             throw new RuntimeException(e);
