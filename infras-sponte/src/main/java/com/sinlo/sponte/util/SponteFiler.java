@@ -5,6 +5,7 @@ import com.sinlo.sponte.Sponte;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,6 +27,7 @@ public class SponteFiler {
      * Ensure the directory of the given name
      */
     public static Path ensure(String dir) {
+        if (!VISITABLE) return null;
         try {
             Path f = Paths.get(Sponte.class.getResource("/").toURI())
                     .resolve(dir);
@@ -33,9 +35,35 @@ public class SponteFiler {
                 Files.createDirectories(f);
             }
             return f;
+        } catch (FileSystemNotFoundException fse) {
+            return null;
         } catch (URISyntaxException | IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static boolean visitable() {
+        try {
+            Paths.get(Sponte.class.getResource("/").toURI());
+        } catch (FileSystemNotFoundException fse) {
+            return false;
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    /**
+     * If there's an available file system for the files inside the project
+     */
+    public static final boolean VISITABLE = visitable();
+
+    /**
+     * Throw the {@link NotVisitable} exception if not {@link #VISITABLE}
+     */
+    public static void mustVisitable() {
+        if (!VISITABLE)
+            throw new NotVisitable();
     }
 
     /**
@@ -43,6 +71,7 @@ public class SponteFiler {
      * it
      */
     public static boolean ephemeral(Path f) {
+        mustVisitable();
         try {
             if (!Files.deleteIfExists(f)) {
                 Files.createFile(f);
@@ -97,10 +126,22 @@ public class SponteFiler {
      * Get the corresponding {@link PrintWriter}
      */
     public static PrintWriter writer(Path path, boolean append) {
+        mustVisitable();
         try {
             return new PrintWriter(new FileOutputStream(path.toFile(), append));
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * The current file system is not visitable
+     */
+    public static class NotVisitable extends RuntimeException {
+        public NotVisitable() {
+            super("There's none visitable file system right now, " +
+                    "please try this operation in a normal file system " +
+                    "instead of a jar or what not");
         }
     }
 }

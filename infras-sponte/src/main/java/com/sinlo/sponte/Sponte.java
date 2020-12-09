@@ -127,6 +127,7 @@ public @interface Sponte {
          */
         @SuppressWarnings("ResultOfMethodCallIgnored")
         public static void clear() throws IOException {
+            SponteFiler.mustVisitable();
             Files.walk(root).map(Path::toFile).forEach(File::delete);
             SponteFiler.ensure(rootspec);
         }
@@ -135,7 +136,8 @@ public @interface Sponte {
          * Get the path of the given filename in {@link #root}
          */
         public static Path of(String name) {
-            return root.resolve(name);
+            SponteFiler.mustVisitable();
+            return Objects.requireNonNull(root).resolve(name);
         }
 
         /**
