@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
@@ -63,6 +64,31 @@ public class Filia {
             e.printStackTrace();
         }
         return -1L;
+    }
+
+    /**
+     * @see #drain(InputStream, boolean)
+     */
+    public static byte[] drain(InputStream in) {
+        return drain(in, false);
+    }
+
+    /**
+     * Read all the bytes from the given {@link InputStream in}, throws a {@link RuntimeException}
+     * enclosing the caught {@link IOException} if {@code panic}
+     */
+    public static byte[] drain(InputStream in, boolean panic) {
+        try (InputStream is = in;
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[4096];
+            int len;
+            while ((len = is.read(buf)) != -1) baos.write(buf, 0, len);
+            return baos.toByteArray();
+        } catch (IOException e) {
+            if (panic) throw new RuntimeException(e);
+            e.printStackTrace();
+            return new byte[0];
+        }
     }
 
     /**
