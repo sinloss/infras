@@ -133,6 +133,23 @@ public class Filia {
     }
 
     /**
+     * Clear the given directory or file
+     */
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    public static boolean clear(Path path) {
+        try {
+            if (Files.isDirectory(path)) {
+                Files.walk(path).map(Path::toFile).forEach(File::delete);
+                return true;
+            }
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
      * Create a locker for the given path
      */
     public static Lock locker(Path path) {
