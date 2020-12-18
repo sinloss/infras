@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
@@ -67,6 +66,32 @@ public class Filia {
     }
 
     /**
+     * load the given file where the given path [ fn ] indicated
+     *
+     * @param fn the given path
+     */
+    public Item load(String fn) {
+        return new Item(this.resolve(fn));
+    }
+
+    public Stream<Item> load(String... fn) {
+        if (fn != null) {
+            return Arrays.stream(fn).map(this::load);
+        }
+        return null;
+    }
+
+    private static String stamp(String fn) {
+        if (fn == null) return "";
+        int sp = fn.substring(0, fn.length() - 1).lastIndexOf(File.separator);
+        if (sp == -1) {
+            return System.currentTimeMillis() + "-" + fn;
+        } else {
+            return fn.substring(0, sp) + System.currentTimeMillis() + "-" + fn.substring(sp + 1);
+        }
+    }
+
+    /**
      * @see #drain(InputStream, boolean)
      */
     public static byte[] drain(InputStream in) {
@@ -92,29 +117,26 @@ public class Filia {
     }
 
     /**
-     * load the given file where the given path [ fn ] indicated
-     *
-     * @param fn the given path
+     * Ensure all folders of the given path exist
      */
-    public Item load(String fn) {
-        return new Item(this.resolve(fn));
+    public static boolean ensure(Path path) {
+        try {
+            if (Files.isDirectory(path)) {
+                if (Files.notExists(path)) Files.createDirectories(path);
+            } else {
+                return ensure(path.resolve(".."));
+            }
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
     }
 
-    public Stream<Item> load(String... fn) {
-        if (fn != null) {
-            return Arrays.stream(fn).map(this::load);
-        }
-        return null;
-    }
-
-    private static String stamp(String fn) {
-        if (fn == null) return "";
-        int sp = fn.substring(0, fn.length() - 1).lastIndexOf(File.separator);
-        if (sp == -1) {
-            return System.currentTimeMillis() + "-" + fn;
-        } else {
-            return fn.substring(0, sp) + System.currentTimeMillis() + "-" + fn.substring(sp + 1);
-        }
+    /**
+     * Create a locker for the given path
+     */
+    public static Lock locker(Path path) {
+        return new Lock(path);
     }
 
     /**
@@ -169,6 +191,40 @@ public class Filia {
 
         public void to(OutputStream out) {
             retrieve(out, path);
+        }
+    }
+
+    /**
+     * The file lock
+     */
+    public static class Lock {
+        private final Path l;
+
+        private Lock(Path l) {
+            ensure(l);
+            this.l = Files.isDirectory(l) ? l.resolve(".lock") : l;
+        }
+
+        public boolean locked() {
+            return Files.exists(l);
+        }
+
+        public boolean unlock() {
+            try {
+                Files.deleteIfExists(l);
+                return true;
+            } catch (IOException e) {
+                return false;
+            }
+        }
+
+        public boolean lock() {
+            try {
+                Files.createFile(l);
+                return true;
+            } catch (IOException e) {
+                return false;
+            }
         }
     }
 }
