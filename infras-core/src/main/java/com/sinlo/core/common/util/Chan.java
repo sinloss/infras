@@ -4,7 +4,6 @@ import java.util.Queue;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -23,9 +22,9 @@ public abstract class Chan<T> {
      */
     protected final Queue<T> q;
     /**
-     * Consumer that consumes items in the {@link #q}
+     * Consumer that consumes items in the {@link #q} by returning true
      */
-    private final Consumer<T> consumer;
+    private final Function<T, Boolean> consumer;
 
     /**
      * The polling interval
@@ -44,11 +43,11 @@ public abstract class Chan<T> {
 
     protected final AtomicLong tally = new AtomicLong(0);
 
-    public Chan(Consumer<T> consumer) {
+    public Chan(Function<T, Boolean> consumer) {
         this(consumer, 1);
     }
 
-    public Chan(Consumer<T> consumer, long interval) {
+    public Chan(Function<T, Boolean> consumer, long interval) {
         this.q = create();
         this.consumer = consumer;
         this.interval = interval <= 0 ? 1 : interval;
@@ -79,14 +78,16 @@ public abstract class Chan<T> {
     }
 
     protected boolean consume() {
-        T item = this.q.poll();
+        T item = this.q.peek();
         if (item == null) {
             ifNone();
             return false;
         }
         tally.getAndDecrement();
         try {
-            consumer.accept(item);
+            if (consumer.apply(item)) {
+                this.q.poll();
+            }
         } catch (Interrupt e) {
             this.halt(true);
             return false;
@@ -131,7 +132,7 @@ public abstract class Chan<T> {
      */
     public static class Interval<T> extends Chan<T> {
 
-        public Interval(Consumer<T> consumer, long interval) {
+        public Interval(Function<T, Boolean> consumer, long interval) {
             super(consumer, interval);
         }
 
@@ -147,8 +148,8 @@ public abstract class Chan<T> {
      */
     public static class Defer<T> extends Chan<Deferred<T>> {
 
-        public Defer(Consumer<T> consumer) {
-            super(d -> consumer.accept(d.t));
+        public Defer(Function<T, Boolean> consumer) {
+            super(d -> consumer.apply(d.t));
         }
 
         /**
