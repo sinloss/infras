@@ -117,15 +117,12 @@ public class Filia {
     }
 
     /**
-     * Ensure all folders of the given path exist
+     * Ensure all parent folders of the given path exist
      */
     public static boolean ensure(Path path) {
         try {
-            if (Files.isDirectory(path)) {
-                if (Files.notExists(path)) Files.createDirectories(path);
-            } else {
-                return ensure(path.resolve(".."));
-            }
+            Path p = path.getParent();
+            if (Files.notExists(p)) Files.createDirectories(p);
             return true;
         } catch (IOException e) {
             return false;
@@ -218,8 +215,8 @@ public class Filia {
         private final Path l;
 
         private Lock(Path l) {
-            ensure(l);
-            this.l = Files.isDirectory(l) ? l.resolve(".lock") : l;
+            ensure(this.l =
+                    Files.isDirectory(l) ? l.resolve(".lock") : l);
         }
 
         public boolean locked() {
