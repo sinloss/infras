@@ -3,7 +3,6 @@ package com.sinlo.core.common.util;
 import java.util.Queue;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 /**
@@ -41,8 +40,6 @@ public abstract class Chan<T> {
      */
     private final AtomicBoolean polling = new AtomicBoolean(false);
 
-    protected final AtomicLong tally = new AtomicLong(0);
-
     public Chan(Function<T, Boolean> consumer) {
         this(consumer, 1);
     }
@@ -57,7 +54,6 @@ public abstract class Chan<T> {
      * @see Queue#offer(Object)
      */
     public boolean offer(T t) {
-        tally.getAndIncrement();
         return q.offer(t);
     }
 
@@ -75,6 +71,7 @@ public abstract class Chan<T> {
         if (polling.compareAndSet(true, false)) {
             this.future.cancel(interrupt);
             this.future = null;
+            this.q.clear();
         }
         return this;
     }
@@ -85,7 +82,6 @@ public abstract class Chan<T> {
             ifNone();
             return false;
         }
-        tally.getAndDecrement();
         try {
             if (consumer.apply(item)) {
                 this.q.poll();
@@ -97,8 +93,8 @@ public abstract class Chan<T> {
         return true;
     }
 
-    public long count() {
-        return this.tally.get();
+    public int size() {
+        return this.q.size();
     }
 
     /**
@@ -165,12 +161,12 @@ public abstract class Chan<T> {
 
         /**
          * Same as {@link #deferred(Object, long)} but calculate the {@code delay} using the
-         * given {@link Function} which takes the current item count as the parameter and
+         * given {@link Function} which takes the current queue size as the parameter and
          * returns the calculated delay
          */
-        public boolean deferred(T t, Function<Long, Long> delay) {
+        public boolean deferred(T t, Function<Integer, Long> delay) {
             return this.offer(new Deferred<>(t,
-                    delay.apply(tally.getAndIncrement())));
+                    delay.apply(q.size())));
         }
 
         @Override

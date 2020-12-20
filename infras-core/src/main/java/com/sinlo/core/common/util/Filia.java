@@ -113,7 +113,7 @@ public class Filia {
     }
 
     /**
-     * Ensure folder identified by the given path exist
+     * Ensure the folder identified by the given path exist
      */
     public static boolean ensure(Path path) {
         try {
@@ -211,8 +211,8 @@ public class Filia {
         private final Path l;
 
         private Lock(Path l) {
-            ensure(this.l =
-                    Files.isDirectory(l) ? l.resolve(".lock") : l);
+            ensure((this.l =
+                    Files.isDirectory(l) ? l.resolve(".lock") : l).getParent());
         }
 
         public boolean locked() {
