@@ -1,5 +1,7 @@
 package com.sinlo.core.common.util;
 
+import com.sinlo.sponte.util.Pool;
+
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
@@ -9,8 +11,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Stream;
 
@@ -21,14 +21,10 @@ import java.util.stream.Stream;
  */
 public class Filia {
 
-    private static final Map<String, Filia> pool = new HashMap<>();
+    private static final Pool.Simple<Filia> pool = new Pool.Simple<>();
 
     public static Filia of(String folder) {
-        Filia filia = pool.get(folder);
-        if (filia == null) {
-            pool.put(folder, filia = new Filia(folder));
-        }
-        return filia;
+        return pool.get(folder, () -> new Filia(folder));
     }
 
     /**
@@ -117,12 +113,12 @@ public class Filia {
     }
 
     /**
-     * Ensure all parent folders of the given path exist
+     * Ensure folder identified by the given path exist
      */
     public static boolean ensure(Path path) {
         try {
-            Path p = path.getParent();
-            if (Files.notExists(p)) Files.createDirectories(p);
+            if (Files.notExists(path))
+                Files.createDirectories(path);
             return true;
         } catch (IOException e) {
             return false;

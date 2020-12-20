@@ -215,7 +215,7 @@ public class Jwter {
             // the 'is' might be null
             if (is == null) return null;
 
-            byte[] buf = new byte[4089]; // 4K
+            byte[] buf = new byte[4096]; // 4K
             int len;
             while ((len = is.read(buf)) != -1) baos.write(buf, 0, len);
             return loader.apply(Base64.getDecoder().decode(baos.toByteArray()));

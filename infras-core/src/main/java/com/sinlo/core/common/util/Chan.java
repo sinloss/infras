@@ -64,17 +64,19 @@ public abstract class Chan<T> {
     /**
      * Start polling
      */
-    public void polling() {
+    public Chan<T> polling() {
         if (polling.compareAndSet(false, true)) {
             this.future = execute(this::consume);
         }
+        return this;
     }
 
-    public void halt(boolean interrupt) {
+    public Chan<T> halt(boolean interrupt) {
         if (polling.compareAndSet(true, false)) {
             this.future.cancel(interrupt);
             this.future = null;
         }
+        return this;
     }
 
     protected boolean consume() {
