@@ -10,6 +10,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Stream;
@@ -115,12 +117,31 @@ public class Filia {
     /**
      * Ensure the folder identified by the given path exist
      */
-    public static boolean ensure(Path path) {
+    public static boolean ensure(final Path path) {
         try {
             if (Files.notExists(path))
                 Files.createDirectories(path);
             return true;
         } catch (IOException e) {
+            return false;
+        }
+    }
+
+    /**
+     * An equivalent of linux command {@code touch}
+     */
+    public static boolean touch(final Path path) {
+        try {
+            if (Files.exists(path)) {
+                Files.setLastModifiedTime(path, FileTime.from(Instant.now()));
+                return true;
+            }
+            if (ensure(path.getParent())) {
+                Files.createFile(path);
+                return true;
+            }
+            return false;
+        } catch (IOException ignored) {
             return false;
         }
     }
