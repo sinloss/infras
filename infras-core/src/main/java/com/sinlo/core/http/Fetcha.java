@@ -8,9 +8,7 @@ import com.sinlo.core.http.spec.Response;
 import com.sinlo.core.http.spec.Timeout;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -26,19 +24,23 @@ import java.util.stream.Collectors;
 public class Fetcha<T> {
 
     private final URL url;
+    private final URI uri;
     private final Method method;
     private final Map<String, String> headers = new HashMap<>();
     private final Course<T> course;
+    private final CookieManager cookieManager;
 
     private boolean followRedirects = true;
     private Consumer<OutputStream> bodyWriter;
 
-    private Fetcha(URL url, Method method, Course<T> course) {
+    private Fetcha(URL url, Method method, Course<T> course, CookieManager cookieManager) {
         if (!ifProtocolSupported(this.url = url))
             throw new IllegalArgumentException(
                     String.format("Unsupported protocol %s", url.getProtocol()));
+        this.uri = strip(this.url);
         this.method = method;
         this.course = Objects.requireNonNull(course);
+        this.cookieManager = cookieManager;
     }
 
     /**
@@ -93,6 +95,26 @@ public class Fetcha<T> {
      */
     public Fetcha<T> header(Map<String, String> headers) {
         this.headers.putAll(headers);
+        return this;
+    }
+
+    /**
+     * Set a cookie
+     */
+    public Fetcha<T> cookie(HttpCookie cookie) {
+        if (cookieManager != null) {
+            cookieManager.getCookieStore().add(uri, cookie);
+        }
+        return this;
+    }
+
+    /**
+     * Set cookies
+     */
+    public Fetcha<T> cookie(List<HttpCookie> cookies) {
+        if (cookieManager != null && cookies != null) {
+            cookies.forEach(this::cookie);
+        }
         return this;
     }
 
@@ -167,6 +189,8 @@ public class Fetcha<T> {
                 // set timeout if any
                 if (course.timeout != null) course.timeout.set(conn);
                 headers.forEach(conn::setRequestProperty);
+                // take the cookies
+                carryCookies(conn);
                 conn = precept(conn);
                 if (bodyWriter == null) {
                     // connect without body
@@ -183,17 +207,60 @@ public class Fetcha<T> {
                     // ignore the illegal state as the connecting and writing is allowed to happen
                     // in preceptors
                 }
-                if (Next.RETRY.equals(intercept(conn))) {
-                    // retry by build another conn and wait for its response
-                    future.complete(this.build().join());
-                } else {
-                    future.complete(new Response(conn));
-                }
-            } catch (IOException | Halted e) {
+                Response response = Next.RETRY.equals(intercept(conn))
+                        // retry by build another conn and wait for its response
+                        ? this.build().join()
+                        : new Response(conn);
+                storeCookies(response);
+                future.complete(response);
+            } catch (Exception e) {
                 future.completeExceptionally(e);
             }
         });
         return future;
+    }
+
+    /**
+     * Get all cookies of the current {@link Fetcha}
+     */
+    public List<HttpCookie> cookies() {
+        CookieStore store;
+        if (cookieManager == null
+                || (store = cookieManager.getCookieStore()) == null) {
+            return Collections.emptyList();
+        }
+        return store.get(uri);
+    }
+
+    /**
+     * Get the cookie of the given name
+     */
+    public HttpCookie cookie(String name) {
+        return this.cookies().stream()
+                .filter(c -> c.getName().equals(name))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void storeCookies(Response response) {
+        // no storing cookies when the cookie manager is system wide
+        if (cookieManager == null) return;
+        try {
+            cookieManager.put(uri, response.conn.getHeaderFields());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void carryCookies(HttpURLConnection conn) {
+        // no carrying cookies when the cookie manager is system wide
+        if (cookieManager == null) return;
+        try {
+            cookieManager.get(uri, conn.getRequestProperties()).forEach(
+                    (k, list) -> list.forEach(v -> conn.addRequestProperty(k, v)));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private HttpURLConnection precept(HttpURLConnection conn) {
@@ -219,6 +286,20 @@ public class Fetcha<T> {
     }
 
     /**
+     * Strip the given {@link URL} to a mere simple {@link URI} that is mainly used by the
+     * {@link CookieManager}
+     */
+    public static URI strip(URL url) {
+        try {
+            return new URI(url.getProtocol(), url.getAuthority(),
+                    null, null, null);
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
      * Check if the protocol of the given {@link URL} is supported
      */
     public static boolean ifProtocolSupported(URL url) {
@@ -240,11 +321,17 @@ public class Fetcha<T> {
      */
     public static class Course<T> {
 
+        /**
+         * The cookie center where all cookies are managed globally if not locally
+         */
+        public static final CookieManager NATIONAL_COOKIE_CENTER = new CookieManager();
+
         private static final Course<Response> RAW = identity();
 
         private final List<Ordered<Function<HttpURLConnection, Next>>> interceptors = new LinkedList<>();
         private final List<Ordered<Function<HttpURLConnection, HttpURLConnection>>> preceptors = new LinkedList<>();
         private Timeout timeout;
+        private CookieManager cookieManager = NATIONAL_COOKIE_CENTER;
 
         public final Function<Response, T> transformer;
 
@@ -273,7 +360,7 @@ public class Fetcha<T> {
          */
         public Fetcha<T> from(String url, Method method) {
             try {
-                return new Fetcha<>(new URL(url), method, this);
+                return new Fetcha<>(new URL(url), method, this, cookieManager);
             } catch (MalformedURLException e) {
                 throw new RuntimeException(e);
             }
@@ -318,6 +405,22 @@ public class Fetcha<T> {
          */
         public Course<T> timeout(Timeout timeout) {
             this.timeout = timeout;
+            return this;
+        }
+
+        /**
+         * Use a local cookie manager instead of the {@link #NATIONAL_COOKIE_CENTER}
+         */
+        public Course<T> cookieLocally() {
+            this.cookieManager = new CookieManager();
+            return this;
+        }
+
+        /**
+         * Use none cookie manager at all
+         */
+        public Course<T> cookieNone() {
+            this.cookieManager = null;
             return this;
         }
 
