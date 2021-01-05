@@ -20,6 +20,7 @@ public class TooMany extends Exception {
      * A convenient {@link java.util.function.BiFunction} reference that returns always
      * the {@link #MANY}
      */
+    @SuppressWarnings("SameReturnValue")
     public static Object really(Object __, Object ___) {
         return MANY;
     }

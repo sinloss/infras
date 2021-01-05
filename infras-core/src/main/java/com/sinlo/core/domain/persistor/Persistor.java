@@ -14,7 +14,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * Persistor the persistor who persists tagged entitys, this is specifically designed to
+ * Persistor the persistor who persists tagged entities, this is specifically designed to
  * tackle the entity persisting problems inside of aggregate roots
  *
  * @author sinlo

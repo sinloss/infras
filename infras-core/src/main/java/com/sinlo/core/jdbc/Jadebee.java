@@ -116,6 +116,7 @@ public class Jadebee extends SponteInitializer {
             this.s = s;
         }
 
+        @SuppressWarnings("SameReturnValue")
         public <T> T single(Class<T> t) {
             try {
                 final ResultSet rs = s.getResultSet();

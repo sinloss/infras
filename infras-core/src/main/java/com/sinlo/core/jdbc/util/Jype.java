@@ -206,7 +206,7 @@ public enum Jype {
     }
 
     /**
-     * The comma seperated value
+     * The comma separated value
      */
     public static class Csv extends Wrapper<String> {
 

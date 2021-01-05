@@ -262,6 +262,7 @@ public class Jwter {
          *                  fields in the conversion process
          * @param leeway    the leeway for {@link com.nimbusds.jwt.JWTClaimsSet.Builder#notBeforeTime(Date) nbf}
          */
+        @SuppressWarnings("SpellCheckingInspection")
         private Issuer(String iss, Function<T, String> converter, int leeway) {
             this.iss = iss;
             this.converter = converter == null
@@ -285,6 +286,7 @@ public class Jwter {
          * @param lifespan  the lifespan of this token, in milliseconds
          * @param audiences {@link com.nimbusds.jwt.JWTClaimsSet.Builder#audience(List)}
          */
+        @SuppressWarnings("SpellCheckingInspection")
         public SignedJWT issue(String jti, T sub, long lifespan, List<String> audiences) {
             JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
                     .issuer(iss)

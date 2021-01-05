@@ -2,6 +2,7 @@ package com.sinlo.core.prototype;
 
 import java.util.List;
 
+@SuppressWarnings("SameReturnValue")
 public class SampleBean {
 
     private String name;

@@ -38,6 +38,7 @@ public class Profiler {
         }
     }
 
+    @SuppressWarnings("SameReturnValue")
     private boolean describe(VariableElement v, int i) {
         if (i != 0) {
             builder.append(METHOD_ARG_DELIMITER);

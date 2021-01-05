@@ -113,6 +113,7 @@ public abstract class Chan<T> {
     /**
      * Called when polled nothing
      */
+    @SuppressWarnings("EmptyMethod")
     protected void ifNone() {
 
     }

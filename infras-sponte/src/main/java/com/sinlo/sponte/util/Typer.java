@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * The type uitl
+ * The type util
  *
  * @author sinlo
  */
@@ -166,10 +166,10 @@ public class Typer {
      * Create a new instance of the given {@link Class type} using the constructor
      * with the given argument types, and arguments
      */
-    public static <T> T create(Class<T> c, Class<?>[] argt, Object... args) {
+    public static <T> T create(Class<T> c, Class<?>[] argTypes, Object... args) {
         try {
-            if (argt != null && argt.length >= 1) {
-                return c.getDeclaredConstructor(argt).newInstance(args);
+            if (argTypes != null && argTypes.length >= 1) {
+                return c.getDeclaredConstructor(argTypes).newInstance(args);
             }
             return c.getDeclaredConstructor().newInstance();
         } catch (InstantiationException | IllegalAccessException |

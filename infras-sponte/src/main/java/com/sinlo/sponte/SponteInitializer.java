@@ -84,6 +84,7 @@ public abstract class SponteInitializer implements Predicate<Profile> {
     /**
      * A finalizer for subclasses to override
      */
+    @SuppressWarnings("EmptyMethod")
     public void finale(int state) {
     }
 
