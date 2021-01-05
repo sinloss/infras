@@ -321,9 +321,8 @@ public class Fetcha<T> {
             return new URI(url.getProtocol(), url.getAuthority(),
                     null, null, null);
         } catch (URISyntaxException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     /**
@@ -362,16 +361,28 @@ public class Fetcha<T> {
          */
         public static final CookieManager NATIONAL_COOKIE_CENTER = new CookieManager();
 
-        private static final Course<Response> RAW = identity();
+        private static final Course<Response> RAW = identity("");
 
         private final List<Ordered<Function<HttpURLConnection, Next>>> interceptors = new LinkedList<>();
         private final List<Ordered<BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection>>> preceptors = new LinkedList<>();
         private Timeout timeout;
         private CookieManager cookieManager = NATIONAL_COOKIE_CENTER;
+        private final String root;
+        private final String basic;
 
         public final Function<Response, T> transformer;
 
-        private Course(Function<Response, T> transformer) {
+        private Course(String root, Function<Response, T> transformer) {
+            if (!Strine.isEmpty(root)) {
+                this.root = !root.endsWith("/") ? root.concat("/") : root;
+                try {
+                    this.basic = strip(new URL(this.root)).toString();
+                } catch (MalformedURLException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                this.root = this.basic = "";
+            }
             this.transformer = Objects.requireNonNull(transformer);
         }
 
@@ -379,15 +390,15 @@ public class Fetcha<T> {
          * The course that transforms the final {@link Response} to a specific type of
          * object
          */
-        public static <T> Course<T> of(Function<Response, T> transformer) {
-            return new Course<>(transformer);
+        public static <T> Course<T> of(String root, Function<Response, T> transformer) {
+            return new Course<>(root, transformer);
         }
 
         /**
          * The course that returns the final {@link Response} as is
          */
-        public static Course<Response> identity() {
-            return new Course<>(Funny::identity);
+        public static Course<Response> identity(String root) {
+            return new Course<>(root, Funny::identity);
         }
 
         /**
@@ -396,7 +407,9 @@ public class Fetcha<T> {
          */
         public Fetcha<T> from(String url, Method method) {
             try {
-                return new Fetcha<>(new URL(url), method, this, cookieManager);
+                return new Fetcha<>(
+                        new URL((url.startsWith("/") ? basic : root).concat(url)),
+                        method, this, cookieManager);
             } catch (MalformedURLException e) {
                 throw new RuntimeException(e);
             }
