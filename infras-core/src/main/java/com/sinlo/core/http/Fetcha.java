@@ -8,7 +8,7 @@ import com.sinlo.core.http.spec.*;
 
 import java.io.*;
 import java.net.*;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
@@ -140,22 +140,16 @@ public class Fetcha<T> {
      * Set the {@link #bodyWriter} to write the given bytes
      */
     public Fetcha<T> body(byte[] bytes) {
-        this.bodyWriter = w -> {
-            try {
-                w.write(bytes);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        };
+        this.bodyWriter = new ContentAwareBodyWriter(bytes, Charset.defaultCharset());
         return this;
     }
 
     /**
      * Set the {@link #bodyWriter} to write the given text by decoding it using
-     * {@link StandardCharsets#UTF_8}
+     * {@link Charset#defaultCharset()}
      */
     public Fetcha<T> body(String text) {
-        return this.body(text.getBytes(StandardCharsets.UTF_8));
+        return this.body(text.getBytes(Charset.defaultCharset()));
     }
 
     /**
@@ -345,6 +339,65 @@ public class Fetcha<T> {
             default:
                 return false;
         }
+    }
+
+    /**
+     * Get the {@link #url} of the current underlying request
+     */
+    public URL getUrl() {
+        return url;
+    }
+
+    /**
+     * Get the {@link #uri} that are composed with schema and authority parts of
+     * the {@link #url}
+     */
+    public URI getUri() {
+        return uri;
+    }
+
+    /**
+     * Get the {@link #method} of the current underlying request
+     */
+    public Method getMethod() {
+        return method;
+    }
+
+    /**
+     * Get the {@link #headers} of the current underlying request
+     */
+    public Map<String, String> getHeaders() {
+        return headers;
+    }
+
+    /**
+     * Get the {@link #bodyType} of the current underlying request
+     */
+    public BodyType getBodyType() {
+        return bodyType;
+    }
+
+    /**
+     * Check if the current underlying request follows redirects or not
+     */
+    public boolean isFollowRedirects() {
+        return followRedirects;
+    }
+
+    /**
+     * Get the {@link ContentAwareBodyWriter} typed {@link #bodyWriter}. In case that the
+     * {@link #bodyWriter} is not instanceof {@link ContentAwareBodyWriter}, this method would
+     * read all bytes out of the {@link #bodyWriter} and then replace the {@link #bodyWriter}
+     * with a newly created {@link ContentAwareBodyWriter} which contains all the read bytes
+     * and finally return it.
+     */
+    public ContentAwareBodyWriter getBody() {
+        if (bodyWriter instanceof ContentAwareBodyWriter) {
+            return (ContentAwareBodyWriter) bodyWriter;
+        }
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bodyWriter.accept(baos);
+        return body(baos.toByteArray()).getBody();
     }
 
     /**
