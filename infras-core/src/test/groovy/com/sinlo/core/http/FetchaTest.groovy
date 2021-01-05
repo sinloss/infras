@@ -10,7 +10,7 @@ class FetchaTest extends Specification {
     def "should fetcha properly fetch"() {
         given:
         def first = new AtomicBoolean(true)
-        def course = Fetcha.Course.identity().precept({ c ->
+        def course = Fetcha.Course.identity().precept({ c, f ->
             println(" Precept - $c")
             return c
         }).intercept({ c ->

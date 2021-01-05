@@ -1,17 +1,17 @@
 package com.sinlo.core.http;
 
 import com.sinlo.core.common.util.Funny;
+import com.sinlo.core.common.util.Jason;
+import com.sinlo.core.common.util.Strine;
 import com.sinlo.core.common.wraparound.Ordered;
-import com.sinlo.core.http.spec.Method;
-import com.sinlo.core.http.spec.Next;
-import com.sinlo.core.http.spec.Response;
-import com.sinlo.core.http.spec.Timeout;
+import com.sinlo.core.http.spec.*;
 
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -23,10 +23,11 @@ import java.util.stream.Collectors;
  */
 public class Fetcha<T> {
 
-    private final URL url;
+    private URL url;
     private final URI uri;
     private final Method method;
     private final Map<String, String> headers = new HashMap<>();
+    private BodyType bodyType = BodyType.FORM;
     private final Course<T> course;
     private final CookieManager cookieManager;
 
@@ -161,10 +162,36 @@ public class Fetcha<T> {
      * Set the {@link #bodyWriter} to write the given parameter map by joining them in the form
      * of post data
      */
-    public Fetcha<T> body(Map<String, String> params) {
-        return this.body(params.entrySet().stream()
-                .map(e -> e.getKey() + "=" + e.getValue())
-                .collect(Collectors.joining("&")));
+    public Fetcha<T> body(Map<String, ?> params) {
+        bodyType = BodyType.FORM;
+        return this.body(queryString(params));
+    }
+
+    /**
+     * Set the {@link #bodyWriter} to write the given {@link Jason.Thingamabob} by deserialize it
+     * as json
+     *
+     * @see Jason.Thingamabob#toString()
+     */
+    public Fetcha<T> body(Jason.Thingamabob thingamabob) {
+        bodyType = BodyType.JSON;
+        return this.body(thingamabob.toString());
+    }
+
+    public Fetcha<T> query(Map<String, ?> params) {
+        try {
+            this.url = new URL(this.url.toString()
+                    .concat(Strine.isEmpty(this.url.getQuery()) ? "?" : "&")
+                    .concat(queryString(params)));
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
+        return this;
+    }
+
+    public Fetcha<T> type(BodyType bodyType) {
+        this.bodyType = bodyType;
+        return this;
     }
 
     /**
@@ -183,15 +210,15 @@ public class Fetcha<T> {
         CompletableFuture<Response> future = new CompletableFuture<>();
         CompletableFuture.runAsync(() -> {
             try {
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                HttpURLConnection conn = precept((HttpURLConnection) url.openConnection());
                 conn.setRequestMethod(method.toString());
                 conn.setInstanceFollowRedirects(followRedirects);
                 // set timeout if any
                 if (course.timeout != null) course.timeout.set(conn);
+                conn.setRequestProperty("Content-Type", (bodyType == null ? BodyType.FORM : bodyType).value);
                 headers.forEach(conn::setRequestProperty);
                 // take the cookies
                 carryCookies(conn);
-                conn = precept(conn);
                 if (bodyWriter == null) {
                     // connect without body
                     conn.connect();
@@ -264,8 +291,8 @@ public class Fetcha<T> {
     }
 
     private HttpURLConnection precept(HttpURLConnection conn) {
-        for (Ordered<Function<HttpURLConnection, HttpURLConnection>> preceptor : course.preceptors) {
-            conn = preceptor.t.apply(conn);
+        for (Ordered<BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection>> preceptor : course.preceptors) {
+            conn = preceptor.t.apply(conn, this);
         }
         return conn;
     }
@@ -300,6 +327,15 @@ public class Fetcha<T> {
     }
 
     /**
+     * Derive the query string from the given parameter map
+     */
+    public static String queryString(Map<String, ?> params) {
+        return params.entrySet().stream()
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .collect(Collectors.joining("&"));
+    }
+
+    /**
      * Check if the protocol of the given {@link URL} is supported
      */
     public static boolean ifProtocolSupported(URL url) {
@@ -329,7 +365,7 @@ public class Fetcha<T> {
         private static final Course<Response> RAW = identity();
 
         private final List<Ordered<Function<HttpURLConnection, Next>>> interceptors = new LinkedList<>();
-        private final List<Ordered<Function<HttpURLConnection, HttpURLConnection>>> preceptors = new LinkedList<>();
+        private final List<Ordered<BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection>>> preceptors = new LinkedList<>();
         private Timeout timeout;
         private CookieManager cookieManager = NATIONAL_COOKIE_CENTER;
 
@@ -443,7 +479,7 @@ public class Fetcha<T> {
         /**
          * Add an preceptor to the {@link #preceptors}
          */
-        public Course<T> precept(Function<HttpURLConnection, HttpURLConnection> preceptor) {
+        public Course<T> precept(BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection> preceptor) {
             Ordered.last(preceptors, preceptor);
             return this;
         }
@@ -451,7 +487,7 @@ public class Fetcha<T> {
         /**
          * Add an preceptor to the {@link #preceptors} ordered by the given order
          */
-        public Course<T> precept(Function<HttpURLConnection, HttpURLConnection> preceptor, int order) {
+        public Course<T> precept(BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection> preceptor, int order) {
             Ordered.add(preceptors, preceptor, order);
             return this;
         }
