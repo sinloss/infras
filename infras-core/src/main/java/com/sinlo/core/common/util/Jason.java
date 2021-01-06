@@ -168,6 +168,16 @@ public class Jason {
         }
 
         /**
+         * Put the key/value only if the value is not null
+         *
+         * @see #val(String, Object)
+         */
+        public Thingamabob valIfNonNull(String key, Object value) {
+            if (value == null) return this;
+            return val(key, value);
+        }
+
+        /**
          * Map the key with a new {@link Thingamajig}
          */
         public Thingamajig<Thingamabob> map(String key) {
