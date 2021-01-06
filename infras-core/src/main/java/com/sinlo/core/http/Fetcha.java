@@ -1,5 +1,6 @@
 package com.sinlo.core.http;
 
+import com.sinlo.core.common.util.Arria;
 import com.sinlo.core.common.util.Funny;
 import com.sinlo.core.common.util.Jason;
 import com.sinlo.core.common.util.Strine;
@@ -86,8 +87,8 @@ public class Fetcha<T> {
     /**
      * Set a header
      */
-    public Fetcha<T> header(String key, String value) {
-        this.headers.put(key, value);
+    public Fetcha<T> header(String key, String... values) {
+        this.headers.put(key, Arria.join(",", values));
         return this;
     }
 
