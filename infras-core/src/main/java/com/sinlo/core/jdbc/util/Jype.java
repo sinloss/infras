@@ -154,8 +154,8 @@ public enum Jype {
             if (jype.conv != null) {
                 val = jype.conv.apply(val);
             }
-            jype.setter.accept(statement, i, val);
-        } catch (Exception e) {
+            jype.setter.consume(statement, i, val);
+        } catch (Throwable e) {
             e.printStackTrace();
         }
     }
@@ -178,13 +178,13 @@ public enum Jype {
         }
 
         try {
-            Object val = jype.getter.apply(rs, name);
+            Object val = jype.getter.employ(rs, name);
             if (c != null && Wrapper.class.isAssignableFrom(c)) {
                 return c.getDeclaredConstructor(Object.class)
                         .newInstance(val);
             }
             return (T) val;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
         return null;

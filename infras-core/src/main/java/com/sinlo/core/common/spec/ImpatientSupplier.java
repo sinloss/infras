@@ -1,20 +1,20 @@
 package com.sinlo.core.common.spec;
 
-import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
- * The impatient function who throws the specific exception ASAP
+ * The impatient supplier who throws the specific exception ASAP
  *
  * @author sinlo
  */
 @FunctionalInterface
-public interface ImpatientFunction<T, R, E extends Throwable> extends Function<T, R> {
+public interface ImpatientSupplier<T, E extends Throwable> extends Supplier<T> {
 
-    R employ(T t) throws E;
+    T supply() throws E;
 
-    default R apply(T t) {
+    default T get() {
         try {
-            return employ(t);
+            return supply();
         } catch (Throwable e) {
             if (e instanceof RuntimeException)
                 throw (RuntimeException) e;
