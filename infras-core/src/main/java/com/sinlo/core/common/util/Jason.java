@@ -33,9 +33,8 @@ public class Jason {
         try {
             return om.writeValueAsString(obj);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     /**
@@ -55,10 +54,9 @@ public class Jason {
     public static <T> T parse(String json, Class<T> clz) {
         try {
             return om.readValue(json, clz);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     /**
@@ -67,10 +65,9 @@ public class Jason {
     public static <T> T parse(String json, TypeReference<T> typeReference) {
         try {
             return om.readValue(json, typeReference);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     /**
@@ -79,10 +76,9 @@ public class Jason {
     public static byte[] serialize(Object obj) {
         try {
             return om.writeValueAsBytes(obj);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     /**
@@ -101,12 +97,10 @@ public class Jason {
      */
     public static <T> T deserialize(byte[] source, Class<T> clz) {
         try {
-            if (source == null) return null;
             return om.readValue(source, clz);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     /**
@@ -115,10 +109,9 @@ public class Jason {
     public static <T> T deserialize(byte[] source, TypeReference<T> typeReference) {
         try {
             return om.readValue(source, typeReference);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     /**
@@ -156,6 +149,15 @@ public class Jason {
      * @author sinlo
      */
     public static class Thingamabob extends HashMap<String, Object> {
+
+        /**
+         * Convert a given {@link HashMap} to a {@link Thingamabob}
+         */
+        public Thingamabob from(HashMap<String, Object> map) {
+            Thingamabob thingamabob = new Thingamabob();
+            thingamabob.putAll(map);
+            return thingamabob;
+        }
 
         /**
          * @see HashMap#put(Object, Object)
