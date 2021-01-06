@@ -44,7 +44,7 @@ public class Filia {
     }
 
     public Path resolve(String fn) {
-        return this.root.resolve(stamp(fn));
+        return this.root.resolve(fn);
     }
 
     /**
@@ -77,16 +77,6 @@ public class Filia {
             return Arrays.stream(fn).map(this::load);
         }
         return null;
-    }
-
-    private static String stamp(String fn) {
-        if (fn == null) return "";
-        int sp = fn.substring(0, fn.length() - 1).lastIndexOf(File.separator);
-        if (sp == -1) {
-            return System.currentTimeMillis() + "-" + fn;
-        } else {
-            return fn.substring(0, sp) + System.currentTimeMillis() + "-" + fn.substring(sp + 1);
-        }
     }
 
     /**
