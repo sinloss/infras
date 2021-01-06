@@ -93,6 +93,14 @@ public class Fetcha<T> {
     }
 
     /**
+     * Set the header if absent
+     */
+    public Fetcha<T> headerIfAbsent(String key, String... values) {
+        this.headers.putIfAbsent(key, Arria.join(",", values));
+        return this;
+    }
+
+    /**
      * Set headers
      */
     public Fetcha<T> header(Map<String, String> headers) {
