@@ -1,5 +1,6 @@
 package com.sinlo.core.http;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.sinlo.core.common.util.Arria;
 import com.sinlo.core.common.util.Funny;
 import com.sinlo.core.common.util.Jason;
@@ -174,11 +175,21 @@ public class Fetcha<T> {
      * Set the {@link #bodyWriter} to write the given {@link Jason.Thingamabob} by deserialize it
      * as json
      *
-     * @see Jason.Thingamabob#toString()
+     * @see Jason#map()
+     * @see Jason.Thingamabob#from(HashMap)
      */
     public Fetcha<T> body(Jason.Thingamabob thingamabob) {
         bodyType = BodyType.JSON;
         return this.body(thingamabob.toString());
+    }
+
+    /**
+     * Set the {@link #bodyWriter} to write the given {@link JsonNode} by deserialize it
+     * as json
+     */
+    public Fetcha<T> body(JsonNode jn) {
+        bodyType = BodyType.JSON;
+        return this.body(Jason.stringify(jn));
     }
 
     public Fetcha<T> query(Map<String, ?> params) {
