@@ -1,6 +1,9 @@
 package com.sinlo.core.common.util;
 
+import com.sinlo.core.common.spec.ImpatientSupplier;
+
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Funny the function util
@@ -23,5 +26,15 @@ public class Funny {
     public static <T, R> R maybe(T t, Function<T, R> ifNotNull) {
         if (t == null) return null;
         return ifNotNull.apply(t);
+    }
+
+    /**
+     * Leniently get supplies from the supplier that throws exceptions, meaning suppress the
+     * underlying exceptions
+     *
+     * @see ImpatientSupplier#get()
+     */
+    public static <T, E extends Throwable> T leniently(ImpatientSupplier<T, E> supplier) {
+        return supplier.get();
     }
 }
