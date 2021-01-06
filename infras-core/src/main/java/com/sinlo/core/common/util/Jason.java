@@ -4,6 +4,7 @@ package com.sinlo.core.common.util;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -25,6 +26,9 @@ public class Jason {
             // default date format
             .setDateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
 
+    /**
+     * Stringify the given object
+     */
     public static String stringify(Object obj) {
         try {
             return om.writeValueAsString(obj);
@@ -34,6 +38,20 @@ public class Jason {
         return null;
     }
 
+    /**
+     * @see ObjectMapper#readTree(String)
+     */
+    public static JsonNode parse(String json) {
+        try {
+            return om.readTree(json);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * @see ObjectMapper#readValue(String, Class)
+     */
     public static <T> T parse(String json, Class<T> clz) {
         try {
             return om.readValue(json, clz);
@@ -43,6 +61,9 @@ public class Jason {
         return null;
     }
 
+    /**
+     * @see ObjectMapper#readValue(String, TypeReference)
+     */
     public static <T> T parse(String json, TypeReference<T> typeReference) {
         try {
             return om.readValue(json, typeReference);
@@ -52,6 +73,9 @@ public class Jason {
         return null;
     }
 
+    /**
+     * @see ObjectMapper#writeValueAsBytes(Object)
+     */
     public static byte[] serialize(Object obj) {
         try {
             return om.writeValueAsBytes(obj);
@@ -61,6 +85,20 @@ public class Jason {
         return null;
     }
 
+    /**
+     * @see ObjectMapper#readTree(byte[])
+     */
+    public static JsonNode deserialize(byte[] source) {
+        try {
+            return om.readTree(source);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * @see ObjectMapper#readValue(String, Class)
+     */
     public static <T> T deserialize(byte[] source, Class<T> clz) {
         try {
             if (source == null) return null;
@@ -71,8 +109,30 @@ public class Jason {
         return null;
     }
 
+    /**
+     * @see ObjectMapper#readValue(byte[], TypeReference)
+     */
+    public static <T> T deserialize(byte[] source, TypeReference<T> typeReference) {
+        try {
+            return om.readValue(source, typeReference);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * Get the {@link DateFormat} used by the underlying {@link #om}
+     */
     public static DateFormat df() {
         return om.getDateFormat();
+    }
+
+    /**
+     * Set the {@link DateFormat} used by the underlying {@link #om}
+     */
+    public static void df(DateFormat df) {
+        om.setDateFormat(df);
     }
 
     public static void with(ObjectMapper om) {
