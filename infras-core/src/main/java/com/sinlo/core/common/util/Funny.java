@@ -3,7 +3,6 @@ package com.sinlo.core.common.util;
 import com.sinlo.core.common.spec.ImpatientSupplier;
 
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * Funny the function util
