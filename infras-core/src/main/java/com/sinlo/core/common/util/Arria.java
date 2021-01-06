@@ -114,12 +114,11 @@ public class Arria {
 
         StringBuilder builder = new StringBuilder();
         for (Iterator<T> it = iterable.iterator(); ; ) {
-            builder.append(delimiter)
-                    .append(conv.apply(it.next()));
-
+            builder.append(conv.apply(it.next()));
             if (!it.hasNext()) break;
             builder.append(delimiter);
         }
         return builder.toString();
     }
+
 }
