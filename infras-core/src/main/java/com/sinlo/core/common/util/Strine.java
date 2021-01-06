@@ -13,4 +13,11 @@ public class Strine {
     public static boolean isEmpty(String s) {
         return s == null || s.isEmpty();
     }
+
+    /**
+     * Turn the possible null value to an empty string
+     */
+    public static String blankIfNull(String s) {
+        return s == null ? "" : s;
+    }
 }
