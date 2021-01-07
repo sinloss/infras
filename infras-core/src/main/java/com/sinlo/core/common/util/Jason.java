@@ -143,28 +143,27 @@ public class Jason {
         return new Thingamabob();
     }
 
-    /**
-     * Thingamabob is a json object builder based on map
-     *
-     * @author sinlo
-     */
-    public static class Thingamabob extends HashMap<String, Object> {
+    @SuppressWarnings("unchecked")
+    private static class Thingama<T extends Thingama<T>> extends HashMap<String, Object> {
 
         /**
-         * Convert a given {@link HashMap} to a {@link Thingamabob}
+         * Put an object
+         *
+         * @see HashMap#put(Object, Object)
          */
-        public Thingamabob from(HashMap<String, Object> map) {
-            Thingamabob thingamabob = new Thingamabob();
-            thingamabob.putAll(map);
-            return thingamabob;
+        public T val(String key, Object value) {
+            this.check(key);
+            put(key, value);
+            return (T) this;
         }
 
         /**
-         * @see HashMap#put(Object, Object)
+         * Put an array of objects
          */
-        public Thingamabob val(String key, Object value) {
-            put(key, value);
-            return this;
+        public T val(String key, Object... values) {
+            this.check(key);
+            put(key, values);
+            return (T) this;
         }
 
         /**
@@ -172,9 +171,37 @@ public class Jason {
          *
          * @see #val(String, Object)
          */
-        public Thingamabob valIfNonNull(String key, Object value) {
-            if (value == null) return this;
+        public T optional(String key, Object value) {
+            this.check(key);
+            if (value == null) return (T) this;
             return val(key, value);
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this);
+        }
+
+        private void check(String key) {
+            if (Strine.isEmpty(key))
+                throw new IllegalArgumentException("Key empty");
+        }
+    }
+
+    /**
+     * Thingamabob is a json object builder based on map
+     *
+     * @author sinlo
+     */
+    public static class Thingamabob extends Thingama<Thingamabob> {
+
+        /**
+         * Convert a given {@link HashMap} to a {@link Thingamabob}
+         */
+        public static Thingamabob from(HashMap<String, Object> map) {
+            Thingamabob thingamabob = new Thingamabob();
+            thingamabob.putAll(map);
+            return thingamabob;
         }
 
         /**
@@ -186,10 +213,6 @@ public class Jason {
             return next;
         }
 
-        @Override
-        public String toString() {
-            return stringify(this);
-        }
     }
 
     /**
@@ -197,21 +220,13 @@ public class Jason {
      *
      * @author sinlo
      */
-    public static class Thingamajig<T> extends HashMap<String, Object> {
+    public static class Thingamajig<T extends Thingama<T>> extends Thingama<Thingamajig<T>> {
 
         @JsonIgnore
         private final T thingama;
 
         private Thingamajig(T thingama) {
             this.thingama = thingama;
-        }
-
-        /**
-         * @see HashMap#put(Object, Object)
-         */
-        public Thingamajig<T> val(String key, Object value) {
-            put(key, value);
-            return this;
         }
 
         /**
@@ -230,10 +245,6 @@ public class Jason {
             return this.thingama;
         }
 
-        @Override
-        public String toString() {
-            return stringify(this);
-        }
     }
 
 }
