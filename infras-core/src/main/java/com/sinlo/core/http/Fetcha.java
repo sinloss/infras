@@ -207,7 +207,7 @@ public class Fetcha<T> {
      * @see Jason.Thingamabob#from(HashMap)
      */
     public Fetcha<T> json(Jason.Thingamabob thingamabob) {
-        return this.type(BodyType.JSON).body(thingamabob.toString());
+        return this.json(thingamabob.toString());
     }
 
     /**
