@@ -3,6 +3,7 @@ package com.sinlo.core.common.util;
 import com.sinlo.core.common.spec.ImpatientSupplier;
 
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Funny the function util
@@ -25,6 +26,13 @@ public class Funny {
     public static <T, R> R maybe(T t, Function<T, R> ifNotNull) {
         if (t == null) return null;
         return ifNotNull.apply(t);
+    }
+
+    /**
+     * An equivalent of the nvl function in Oracle/PLSQL
+     */
+    public static <T> T nvl(T nullable, Supplier<T> ifNull) {
+        return nullable == null ? ifNull.get() : nullable;
     }
 
     /**
