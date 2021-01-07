@@ -296,8 +296,16 @@ public class Typer {
      * Check if the given {@link Element} is abstract, which means it contains an
      * {@link java.lang.reflect.Modifier#ABSTRACT abstract} modifier
      */
-    public static boolean isAbstract(Element te) {
-        return te.getModifiers().contains(Modifier.ABSTRACT);
+    public static boolean isAbstract(Element e) {
+        return e.getModifiers().contains(Modifier.ABSTRACT);
+    }
+
+    /**
+     * Check if the given {@link Element} is not private, which means it does not
+     * contain the {@link java.lang.reflect.Modifier#PRIVATE private} modifier
+     */
+    public static boolean isNotPrivate(Element e) {
+        return !e.getModifiers().contains(Modifier.PRIVATE);
     }
 
     /**

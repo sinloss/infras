@@ -257,7 +257,7 @@ public interface Procedure {
                     :
                     // all declared methods in class
                     Typer.methods(cs.enclosing)
-            ).forEach(method -> {
+            ).filter(Typer::isNotPrivate).forEach(method -> {
                 // method name
                 String name = method.getSimpleName().toString();
                 // method structure
