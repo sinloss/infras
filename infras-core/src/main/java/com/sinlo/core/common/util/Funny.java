@@ -2,6 +2,7 @@ package com.sinlo.core.common.util;
 
 import com.sinlo.core.common.spec.ImpatientSupplier;
 
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -26,6 +27,18 @@ public class Funny {
     public static <T, R> R maybe(T t, Function<T, R> ifNotNull) {
         if (t == null) return null;
         return ifNotNull.apply(t);
+    }
+
+    /**
+     * Convert the given {@link Consumer} to a valid {@link Function} having no
+     * return value. It is mainly used to meet the requirements of some methods
+     * which only accepts {@link Function}s
+     */
+    public static <T> Function<T, Void> voided(Consumer<T> proc) {
+        return (t) -> {
+            proc.accept(t);
+            return null;
+        };
     }
 
     /**
