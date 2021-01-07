@@ -7,7 +7,9 @@ import com.sinlo.core.common.util.Jason;
 import com.sinlo.core.common.util.Strine;
 import com.sinlo.core.common.wraparound.Ordered;
 import com.sinlo.core.http.spec.*;
+import com.sinlo.core.http.util.CredulousTrustManager;
 
+import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.Charset;
@@ -29,11 +31,12 @@ public class Fetcha<T> {
     private final URI uri;
     private final Method method;
     private final Map<String, String> headers = new HashMap<>();
-    private BodyType bodyType = BodyType.FORM;
+    private BodyType bodyType;
     private final Course<T> course;
     private final CookieManager cookieManager;
 
     private boolean followRedirects = true;
+    private boolean credulous;
     private Consumer<OutputStream> bodyWriter;
 
     private Fetcha(URL url, Method method, Course<T> course, CookieManager cookieManager) {
@@ -43,7 +46,10 @@ public class Fetcha<T> {
         this.uri = strip(this.url);
         this.method = method;
         this.course = Objects.requireNonNull(course);
+        this.credulous = this.course.credulous;
         this.cookieManager = cookieManager;
+        // set the default body type
+        type(BodyType.FORM);
     }
 
     /**
@@ -167,8 +173,7 @@ public class Fetcha<T> {
      * of post data
      */
     public Fetcha<T> body(Map<String, ?> params) {
-        bodyType = BodyType.FORM;
-        return this.body(queryString(params));
+        return this.type(BodyType.FORM).body(queryString(params));
     }
 
     /**
@@ -179,8 +184,7 @@ public class Fetcha<T> {
      * @see Jason.Thingamabob#from(HashMap)
      */
     public Fetcha<T> body(Jason.Thingamabob thingamabob) {
-        bodyType = BodyType.JSON;
-        return this.body(thingamabob.toString());
+        return this.type(BodyType.JSON).body(thingamabob.toString());
     }
 
     /**
@@ -188,10 +192,12 @@ public class Fetcha<T> {
      * as json
      */
     public Fetcha<T> body(JsonNode jn) {
-        bodyType = BodyType.JSON;
-        return this.body(Jason.stringify(jn));
+        return this.type(BodyType.JSON).body(Jason.stringify(jn));
     }
 
+    /**
+     * Append query string converted from the given parameter map
+     */
     public Fetcha<T> query(Map<String, ?> params) {
         try {
             this.url = new URL(this.url.toString()
@@ -203,8 +209,25 @@ public class Fetcha<T> {
         return this;
     }
 
+    /**
+     * Set the body type
+     *
+     * @see BodyType
+     */
     public Fetcha<T> type(BodyType bodyType) {
-        this.bodyType = bodyType;
+        (this.bodyType = (bodyType == null ? BodyType.NONE : bodyType)).set(this);
+        return this;
+    }
+
+    /**
+     * Trust the current underlying request anyway by making the {@link Fetcha}
+     * {@link #credulous}
+     *
+     * @see #build()
+     * @see CredulousTrustManager
+     */
+    public Fetcha<T> trust() {
+        this.credulous = true;
         return this;
     }
 
@@ -229,10 +252,12 @@ public class Fetcha<T> {
                 conn.setInstanceFollowRedirects(followRedirects);
                 // set timeout if any
                 if (course.timeout != null) course.timeout.set(conn);
-                conn.setRequestProperty("Content-Type", (bodyType == null ? BodyType.FORM : bodyType).value);
                 headers.forEach(conn::setRequestProperty);
                 // take the cookies
                 carryCookies(conn);
+                if (credulous && conn instanceof HttpsURLConnection) {
+                    CredulousTrustManager.trust((HttpsURLConnection) conn);
+                }
                 if (bodyWriter == null) {
                     // connect without body
                     conn.connect();
@@ -440,6 +465,7 @@ public class Fetcha<T> {
         private final List<Ordered<BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection>>> preceptors = new LinkedList<>();
         private Timeout timeout;
         private CookieManager cookieManager = NATIONAL_COOKIE_CENTER;
+        private boolean credulous = false;
         private final String root;
         private final String basic;
 
@@ -543,6 +569,15 @@ public class Fetcha<T> {
          */
         public Course<T> cookieNone() {
             this.cookieManager = null;
+            return this;
+        }
+
+        /**
+         * Be a credulous {@link Course} that trusts any remote hosts of every spawned
+         * {@link Fetcha}
+         */
+        public Course<T> credulous() {
+            this.credulous = true;
             return this;
         }
 
