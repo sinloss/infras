@@ -169,11 +169,34 @@ public class Fetcha<T> {
     }
 
     /**
+     * Set the {@link #bodyWriter} to write the given form data string
+     */
+    public Fetcha<T> form(String form) {
+        return this.type(BodyType.FORM).body(form);
+    }
+
+    /**
      * Set the {@link #bodyWriter} to write the given parameter map by joining them in the form
      * of post data
      */
-    public Fetcha<T> body(Map<String, ?> params) {
-        return this.type(BodyType.FORM).body(queryString(params));
+    public Fetcha<T> form(Map<String, ?> params) {
+        return this.form(queryString(params));
+    }
+
+    /**
+     * Set the {@link #bodyWriter} to write the given json string
+     */
+    public Fetcha<T> json(String json) {
+        return this.type(BodyType.JSON).body(json);
+    }
+
+    /**
+     * Set the {@link #bodyWriter} to write the given {@link Object} by deserialize it as json
+     *
+     * @see Jason#stringify(Object)
+     */
+    public Fetcha<T> json(Object object) {
+        return this.json(Jason.stringify(object));
     }
 
     /**
@@ -183,7 +206,7 @@ public class Fetcha<T> {
      * @see Jason#map()
      * @see Jason.Thingamabob#from(HashMap)
      */
-    public Fetcha<T> body(Jason.Thingamabob thingamabob) {
+    public Fetcha<T> json(Jason.Thingamabob thingamabob) {
         return this.type(BodyType.JSON).body(thingamabob.toString());
     }
 
@@ -191,8 +214,8 @@ public class Fetcha<T> {
      * Set the {@link #bodyWriter} to write the given {@link JsonNode} by deserialize it
      * as json
      */
-    public Fetcha<T> body(JsonNode jn) {
-        return this.type(BodyType.JSON).body(Jason.stringify(jn));
+    public Fetcha<T> json(JsonNode jn) {
+        return this.json(Jason.stringify(jn));
     }
 
     /**
