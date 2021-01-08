@@ -483,7 +483,7 @@ public class Fetcha<T> {
          */
         public static final CookieManager NATIONAL_COOKIE_CENTER = new CookieManager();
 
-        private static final Course<Response> RAW = identity("");
+        private static final Course<Response> RAW = identity();
 
         private final List<Ordered<Function<HttpURLConnection, Next>>> interceptors = new LinkedList<>();
         private final List<Ordered<BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection>>> preceptors = new LinkedList<>();
@@ -517,6 +517,14 @@ public class Fetcha<T> {
          */
         public static <T> Course<T> of(String root, Function<Response, T> transformer) {
             return new Course<>(root, transformer);
+        }
+
+
+        /**
+         * A shortcut of {@link #identity(String)}("")
+         */
+        public static Course<Response> identity() {
+            return identity("");
         }
 
         /**
