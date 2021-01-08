@@ -270,7 +270,8 @@ public class Fetcha<T> {
         CompletableFuture<Response> future = new CompletableFuture<>();
         CompletableFuture.runAsync(() -> {
             try {
-                HttpURLConnection conn = precept((HttpURLConnection) url.openConnection());
+                HttpURLConnection conn = precept((HttpURLConnection)
+                        (course.proxy == null ? url.openConnection() : url.openConnection(course.proxy)));
                 conn.setRequestMethod(method.toString());
                 conn.setInstanceFollowRedirects(followRedirects);
                 // set timeout if any
@@ -486,11 +487,13 @@ public class Fetcha<T> {
 
         private final List<Ordered<Function<HttpURLConnection, Next>>> interceptors = new LinkedList<>();
         private final List<Ordered<BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection>>> preceptors = new LinkedList<>();
+        private final String root;
+        private final String basic;
+
         private Timeout timeout;
         private CookieManager cookieManager = NATIONAL_COOKIE_CENTER;
         private boolean credulous = false;
-        private final String root;
-        private final String basic;
+        private Proxy proxy;
 
         public final Function<Response, T> transformer;
 
@@ -521,6 +524,22 @@ public class Fetcha<T> {
          */
         public static Course<Response> identity(String root) {
             return new Course<>(root, Funny::identity);
+        }
+
+        /**
+         * Use a http proxy
+         */
+        public Course<T> proxy(String host, int port) {
+            proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
+            return this;
+        }
+
+        /**
+         * Use a socks proxy
+         */
+        public Course<T> socks(String host, int port) {
+            proxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(host, port));
+            return this;
         }
 
         /**
