@@ -270,7 +270,7 @@ public class Fetcha<T> {
         CompletableFuture<Response> future = new CompletableFuture<>();
         CompletableFuture.runAsync(() -> {
             try {
-                HttpURLConnection conn = precept((HttpURLConnection)
+                HttpURLConnection conn = precept(Stage.OPEN, (HttpURLConnection)
                         (course.proxy == null ? url.openConnection() : url.openConnection(course.proxy)));
                 conn.setRequestMethod(method.toString());
                 conn.setInstanceFollowRedirects(followRedirects);
@@ -282,6 +282,7 @@ public class Fetcha<T> {
                 if (credulous && conn instanceof HttpsURLConnection) {
                     CredulousTrustManager.trust((HttpsURLConnection) conn);
                 }
+                conn = precept(Stage.ABOUT_TO_CONNECT, conn);
                 if (bodyWriter == null) {
                     // connect without body
                     conn.connect();
@@ -297,6 +298,7 @@ public class Fetcha<T> {
                     // ignore the illegal state as the connecting and writing is allowed to happen
                     // in preceptors
                 }
+                conn = precept(Stage.CONNECTED, conn);
                 Response response = Next.RETRY.equals(intercept(conn))
                         // retry by build another conn and wait for its response
                         ? this.build().join()
@@ -353,8 +355,8 @@ public class Fetcha<T> {
         }
     }
 
-    private HttpURLConnection precept(HttpURLConnection conn) {
-        for (Ordered<BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection>> preceptor : course.preceptors) {
+    private HttpURLConnection precept(Stage stage, HttpURLConnection conn) {
+        for (Ordered<BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection>> preceptor : course.forStage(stage)) {
             conn = preceptor.t.apply(conn, this);
         }
         return conn;
@@ -470,6 +472,24 @@ public class Fetcha<T> {
     }
 
     /**
+     * The preceptor stages
+     */
+    public enum Stage {
+        /**
+         * The {@link HttpURLConnection} has been open
+         */
+        OPEN,
+        /**
+         * The {@link HttpURLConnection} is about to connect
+         */
+        ABOUT_TO_CONNECT,
+        /**
+         * The {@link HttpURLConnection} has connected, meaning the underlying request has been sent
+         */
+        CONNECTED
+    }
+
+    /**
      * A factory that creates {@link Fetcha} instance with specific {@link #interceptors} and {@link #preceptors}
      * and the {@link #transformer}. Meaning that all {@link Fetcha} instance created would follow the same course
      * to finally produce the specified {@link T}
@@ -486,7 +506,7 @@ public class Fetcha<T> {
         private static final Course<Response> RAW = identity();
 
         private final List<Ordered<Function<HttpURLConnection, Next>>> interceptors = new LinkedList<>();
-        private final List<Ordered<BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection>>> preceptors = new LinkedList<>();
+        private final Map<Stage, List<Ordered<BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection>>>> preceptors = new HashMap<>();
         private final String root;
         private final String basic;
 
@@ -650,19 +670,22 @@ public class Fetcha<T> {
         /**
          * Add an preceptor to the {@link #preceptors}
          */
-        public Course<T> precept(BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection> preceptor) {
-            Ordered.last(preceptors, preceptor);
+        public Course<T> precept(Stage stage, BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection> preceptor) {
+            Ordered.last(forStage(stage), preceptor);
             return this;
         }
 
         /**
          * Add an preceptor to the {@link #preceptors} ordered by the given order
          */
-        public Course<T> precept(BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection> preceptor, int order) {
-            Ordered.add(preceptors, preceptor, order);
+        public Course<T> precept(Stage stage, BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection> preceptor, int order) {
+            Ordered.add(forStage(stage), preceptor, order);
             return this;
         }
 
+        private List<Ordered<BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection>>> forStage(Stage stage) {
+            return preceptors.computeIfAbsent(stage, (k) -> new LinkedList<>());
+        }
     }
 
     /**
