@@ -38,6 +38,7 @@ public class Fetcha<T> {
     private boolean followRedirects = true;
     private boolean credulous;
     private Consumer<OutputStream> bodyWriter;
+    private Timeout timeout;
 
     private Fetcha(URL url, Method method, Course<T> course, CookieManager cookieManager) {
         if (!ifProtocolSupported(this.url = url))
@@ -47,6 +48,7 @@ public class Fetcha<T> {
         this.method = method;
         this.course = Objects.requireNonNull(course);
         this.credulous = this.course.credulous;
+        this.timeout = this.course.timeout;
         this.cookieManager = cookieManager;
         // set the default body type
         type(BodyType.FORM);
@@ -255,6 +257,16 @@ public class Fetcha<T> {
     }
 
     /**
+     * Set the timeout
+     *
+     * @see Timeout
+     */
+    public Fetcha<T> timeout(Timeout timeout) {
+        this.timeout = timeout;
+        return this;
+    }
+
+    /**
      * Do the fetch
      */
     public CompletableFuture<T> fetch() {
@@ -275,7 +287,7 @@ public class Fetcha<T> {
                 conn.setRequestMethod(method.toString());
                 conn.setInstanceFollowRedirects(followRedirects);
                 // set timeout if any
-                if (course.timeout != null) course.timeout.set(conn);
+                if (timeout != null) timeout.set(conn);
                 headers.forEach(conn::setRequestProperty);
                 // take the cookies
                 carryCookies(conn);
