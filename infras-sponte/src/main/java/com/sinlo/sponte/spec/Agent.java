@@ -10,7 +10,6 @@ import javax.lang.model.type.DeclaredType;
 import java.lang.annotation.*;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 /**
@@ -67,29 +66,48 @@ public @interface Agent {
         /**
          * Agent on the mission
          */
-        <T> T act(Context context, Callable<T> mission);
+        <T> T act(Context context, Mission<T> mission);
+    }
+
+    /**
+     * The mission that calls
+     */
+    @FunctionalInterface
+    interface Mission<R> {
+        R call(Object... args) throws Exception;
     }
 
     /**
      * Mission context
      */
     class Context {
-        public final Object self;
+        public final Ext.I self;
         public final String name;
         public final String signature;
-        public final Class<? extends Annotation> pivot;
         public final Set<String> annotations;
         public final Object[] args;
 
-        public Context(Object self, String name, String signature,
-                       Class<? extends Annotation> pivot,
+        public Context(Ext.I self, String name, String signature,
                        String[] annotations, Object... args) {
             this.self = self;
             this.name = name;
             this.signature = signature;
-            this.pivot = pivot;
             Collections.addAll(this.annotations = new HashSet<>(), annotations);
             this.args = args;
+        }
+
+        /**
+         * Alter the current context with new arguments
+         */
+        public Context alter(Object... args) {
+            if (this.args.length != args.length) {
+                throw new IllegalArgumentException(String.format(
+                        "The number of given new arguments does not match [ %s ] as expected",
+                        this.args.length));
+            }
+            // copy args
+            System.arraycopy(args, 0, this.args, 0, this.args.length);
+            return this;
         }
 
         /**
@@ -120,19 +138,21 @@ public @interface Agent {
         }
 
         @Override
-        public <T> T act(Context context, Callable<T> mission) {
+        public <T> T act(Context context, Mission<T> mission) {
             try {
-                return act(0, context, mission);
+                return act(0, context, mission, context.args);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
 
-        private <T> T act(int i, Context context, Callable<T> mission) throws Exception {
+        private <T> T act(int i, Context context, Mission<T> mission, Object... args) throws Exception {
             if (i >= bonds.length) {
-                return mission.call();
+                return mission.call(args);
             }
-            return bonds[i].act(context, () -> act(i + 1, context, mission));
+            return bonds[i].act(
+                    i == 0 ? context : context.alter(args),
+                    (a) -> act(i + 1, context, mission, a));
         }
     }
 

@@ -154,7 +154,7 @@ public interface Procedure {
 
             // the builder that throws FilerException if the source file is already
             // created
-            Ext.Builder builder = ext.create(cs.ctx.filer);
+            Ext.Builder builder = ext.create(cs.ctx.filer, cs.ctx.annotation);
 
             // values implemented by the current type
             Set<String> implementedValues = Typer.values(cs.enclosing);
@@ -226,11 +226,12 @@ public interface Procedure {
         Ext ext = cs.ext(isInterface)
                 .importing(cs.qname,
                         Agent.class.getCanonicalName(),
-                        Agent.Context.class.getCanonicalName());
+                        Agent.Context.class.getCanonicalName(),
+                        Annotation.class.getCanonicalName());
         try {
             // the builder that throws FilerException if the source file is already
             // created
-            Ext.Builder builder = ext.create(cs.ctx.filer);
+            Ext.Builder builder = ext.create(cs.ctx.filer, cs.ctx.annotation);
 
             // extends or implements
             String extending = cs.enclosing.getSimpleName().toString().concat(def.generify());
@@ -292,23 +293,21 @@ public interface Procedure {
                     boolean voided = TypeKind.VOID.equals(method.getReturnType().getKind());
                     // formatted method body
                     m.lines(String.format(
-                            "%sAgent.MI6.get(\"%s\").act(new Context(this," +
-                                    "\"%s\",\"%s\",%s.class,new String[]{%s}%s),%s)",
+                            "%s agent().act(ctx(" +
+                                    "\"%s\",\"%s\",new String[]{%s}%s),%s)",
                             voided ? "" : "return ",
-                            cs.qname,
                             name,
                             Signature.of(method).toString(),
-                            cs.ctx.annotation.getQualifiedName(),
                             method.getAnnotationMirrors().stream()
                                     .map(AnnotationMirror::getAnnotationType)
                                     .map(Object::toString)
                                     .map(s -> "\"".concat(s).concat("\""))
                                     .collect(Collectors.joining(",")),
                             actual.isEmpty() ? "" : ",".concat(actual),
-                            isInterface ? "null" : String.format("()->{%st.%s(%s);%s}",
+                            isInterface ? "null" : String.format("(args)->{%st.%s(%s);%s}",
                                     voided ? "" : "return ",
                                     name,
-                                    actual,
+                                    m.varargs("args"),
                                     voided ? "return null;" : "")));
                 }
             });

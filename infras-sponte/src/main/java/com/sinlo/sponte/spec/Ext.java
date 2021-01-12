@@ -7,9 +7,11 @@ import javax.lang.model.element.TypeElement;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.annotation.Annotation;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * The extension class creator
@@ -42,6 +44,10 @@ public class Ext extends WithAnnotations<Ext> {
      * Super Class
      */
     private String sc = "";
+    /**
+     * Constants
+     */
+    private final Map<String, String> c = new HashMap<>();
     /**
      * Methods
      */
@@ -90,6 +96,16 @@ public class Ext extends WithAnnotations<Ext> {
             this.rv = rv == null || rv.isEmpty() ? "void" : rv;
             this.n = n;
             this.a = a == null ? Collections.emptyList() : Arrays.asList(a);
+        }
+
+        /**
+         * Prepare arguments from an argument array
+         */
+        public String varargs(String name) {
+            return IntStream.range(0, a.size())
+                    .mapToObj(i -> String.format("(%s) %s[%s]",
+                            a.get(i).t, name, i))
+                    .collect(Collectors.joining(","));
         }
 
         /**
@@ -238,6 +254,14 @@ public class Ext extends WithAnnotations<Ext> {
     }
 
     /**
+     * constants
+     */
+    public Ext constant(String name, String value) {
+        this.c.put(name, value);
+        return this;
+    }
+
+    /**
      * Add a method with string argument expressions
      */
     public Method method(String modifiers, String returnValue, String name, String... args) {
@@ -257,10 +281,12 @@ public class Ext extends WithAnnotations<Ext> {
     /**
      * Create the {@link Builder}
      */
-    public Builder create(Filer filer) throws IOException {
+    public Builder create(Filer filer, TypeElement pivot) throws IOException {
         this.implementing(Ext.I.class.getCanonicalName())
                 .method("public", "Class<?>", "type", (Argument[]) null)
-                .lines(String.format("return %s.class", tc));
+                .lines(String.format("return %s.class", tc))
+                .method("public", "Class<? extends Annotation>", "pivot", (Argument[]) null)
+                .lines(String.format("return %s.class", pivot.getQualifiedName()));
         return new Builder(filer.createSourceFile(pn.concat(".").concat(cn)));
     }
 
@@ -288,6 +314,8 @@ public class Ext extends WithAnnotations<Ext> {
                                 .concat(si.isEmpty() ? "" : String.format(
                                         " implements %s", String.join(",", si)))));
 
+                c.forEach((k, v) -> w.println(String.format("public static final %s = %s;", k, v)));
+
                 if (!ji) {
                     w.println(String.format("private final %s t;", tc));
                     w.println(String.format("public %s(%s t){this.t=t;}", cn, tc));
@@ -310,6 +338,24 @@ public class Ext extends WithAnnotations<Ext> {
      * The interface which all {@link Ext} built classes implement
      */
     public interface I {
+
+        default Agent.Context ctx(String name, String sig, String[] notes, Object... args) {
+            return new Agent.Context(this, name, sig, notes, args);
+        }
+
+        default Agent.Bond agent() {
+            return Agent.MI6.get(type().getName());
+        }
+
+        /**
+         * Simple cast
+         */
+        @SuppressWarnings("unchecked")
+        default <T> T as(Class<T> t) {
+            return (T) this;
+        }
+
+        Class<? extends Annotation> pivot();
 
         Class<?> type();
     }

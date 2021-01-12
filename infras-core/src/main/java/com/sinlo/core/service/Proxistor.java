@@ -15,7 +15,6 @@ import com.sinlo.sponte.util.Typer;
 import java.lang.annotation.*;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
 /**
@@ -59,12 +58,12 @@ public @interface Proxistor {
     class Delegate implements Pond.Delegate<Map.Entry<Selector, Persistor>> {
         @SuppressWarnings("unchecked")
         @Override
-        public <R> R handle(Agent.Context context, Callable<R> mission,
+        public <R> R handle(Agent.Context context, Agent.Mission<R> mission,
                             Map.Entry<Selector, Persistor> payload) {
             try (Persistor.Stub stub = payload.getValue()
                     .enclose(null, payload.getKey())) {
                 try {
-                    return mission.call();
+                    return mission.call(context.args);
                 } catch (Exception e) {
                     stub.cancel();
                     if (e instanceof RuntimeException) {

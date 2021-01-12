@@ -16,7 +16,6 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -150,18 +149,18 @@ public class Pond {
         /**
          * Handle the invocation
          */
-        <R> R handle(Agent.Context context, Callable<R> mission, L payload);
+        <R> R handle(Agent.Context context, Agent.Mission<R> mission, L payload);
 
         @SuppressWarnings("unchecked")
         @Override
-        default <R> R act(Agent.Context context, Callable<R> mission) {
-            L payload = (L) Pond.p.get(Keeper.key(context.pivot, context.signature));
+        default <R> R act(Agent.Context context, Agent.Mission<R> mission) {
+            L payload = (L) Pond.p.get(Keeper.key(context.self.pivot(), context.signature));
             if (payload != null) {
                 return handle(context, mission, payload);
             }
             // no payload, call the mission directly
             try {
-                return mission.call();
+                return mission.call(context.args);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
