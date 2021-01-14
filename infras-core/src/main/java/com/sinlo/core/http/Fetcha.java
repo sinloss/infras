@@ -584,13 +584,33 @@ public class Fetcha<T> {
 
         /**
          * Create a {@link Fetcha} instance that would fetch things from the given {@link URL} via the given
-         * {@link Method} following the current course
+         * {@link Method} following the current course. The given url will be processed by {@link #go(String)}
+         *
+         * @see #go(String)
          */
         public Fetcha<T> from(String url, Method method) {
+            return new Fetcha<>(go(url), method, this, cookieManager);
+        }
+
+        /**
+         * Analyze the given url, then create a proper {@link URL} instance
+         *
+         * @param url <ul>
+         *            <li>the given {@code url} as is</li>
+         *            when it starts with {@code http://} or {@code https://}
+         *            <li>{@link #root} appending the given {@code url}</li>
+         *            when it starts with a slash {@code /}
+         *            <li>{@link #basic} appending the given {@code url}</li>
+         *            otherwise
+         *            </ul>
+         */
+        public URL go(String url) {
             try {
-                return new Fetcha<>(
-                        new URL((url.startsWith("/") ? basic : root).concat(url)),
-                        method, this, cookieManager);
+                if (url.startsWith("http://")
+                        || url.startsWith("https://")) {
+                    return new URL(url);
+                }
+                return new URL((url.startsWith("/") ? basic : root).concat(url));
             } catch (MalformedURLException e) {
                 throw new RuntimeException(e);
             }
