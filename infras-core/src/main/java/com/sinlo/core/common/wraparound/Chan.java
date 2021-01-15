@@ -152,12 +152,20 @@ public abstract class Chan<T, R> {
     public static class Defer<T> extends Chan<Deferred<T>, Deferred<T>> {
 
         /**
+         * @see #Defer(Consumer, long)
+         */
+        public Defer(Consumer<T> consumer) {
+            this(consumer, 1);
+        }
+
+        /**
          * Constructor
          *
          * @param consumer the global fallback consumer for all {@link Deferred} items
+         * @param tick     the polling ratio
          */
-        public Defer(Consumer<T> consumer) {
-            super(d -> d.accomplish(consumer));
+        public Defer(Consumer<T> consumer, long tick) {
+            super(d -> d.accomplish(consumer), tick);
         }
 
         /**
