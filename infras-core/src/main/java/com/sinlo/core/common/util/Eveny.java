@@ -27,18 +27,18 @@ public class Eveny<K, V> {
      *
      * @param k       event key
      * @param handler event handler
-     * @return the hash key relating to the given handler
+     * @return a {@link Canceler} that holds the hash key relating to the given handler
      */
-    public int on(K k, Consumer<V> handler) {
+    public Canceler on(K k, Consumer<V> handler) {
         return put(k, handler.hashCode(), handler);
     }
 
-    private int put(K k, int hash, Consumer<V> handler) {
+    private Canceler put(K k, int hash, Consumer<V> handler) {
         pool.on(Pool.Key.catstate(k), (key, t) -> {
             (t == null ? (t = new HashMap<>()) : t).putIfAbsent(hash, handler);
             return t;
         });
-        return hash;
+        return this.new Canceler(hash, k);
     }
 
     /**
@@ -49,7 +49,7 @@ public class Eveny<K, V> {
      *
      * @see Eveny#on(Object, Consumer)
      */
-    public int once(K k, Consumer<V> handler) {
+    public Canceler once(K k, Consumer<V> handler) {
         // use the hash code of the given handler
         int hash = handler.hashCode();
         // wrap the given handler around
@@ -60,20 +60,22 @@ public class Eveny<K, V> {
     /**
      * Fire the event without any {@code executor}
      */
-    public void fire(K k, V v) {
+    public Eveny<K, V> fire(K k, V v) {
         fire(k, v, null);
+        return this;
     }
 
     /**
      * Fire the event using the given {@code executor}, it is very useful when asynchronous
      * event handling is demanded
      */
-    public void fire(K k, V v, Consumer<Runnable> executor) {
+    public Eveny<K, V> fire(K k, V v, Consumer<Runnable> executor) {
         pool.on(Pool.Key.present(k), (key, value) -> {
             value.values().forEach(executor == null
                     ? c -> c.accept(v)
                     : c -> executor.accept(() -> c.accept(v)));
         });
+        return this;
     }
 
     /**
@@ -112,4 +114,67 @@ public class Eveny<K, V> {
         });
         return this;
     }
+
+    /**
+     * Instances of this class would hold the event {@link #k key} and the {@link #hash} key
+     * relating to a specific handler. So that it can easily cancel the related handler
+     */
+    public class Canceler {
+
+        public final int hash;
+        public final K k;
+
+        private Canceler(int hash, K k) {
+            this.hash = hash;
+            this.k = k;
+        }
+
+        /**
+         * Cancel the handler related to this canceler
+         */
+        public void cancel(Consumer<Consumer<V>> then) {
+            Eveny.this.forget(k, hash, then);
+        }
+
+        /**
+         * Cancel without a further handler
+         *
+         * @see #cancel(Consumer)
+         */
+        public void cancel() {
+            cancel(null);
+        }
+
+        /**
+         * Get a {@link Siblings} that represents all siblings of this canceler
+         */
+        public Siblings siblings() {
+            return this.new Siblings();
+        }
+
+
+        /**
+         * Representing all siblings of a specific canceller
+         */
+        public class Siblings {
+
+            private Siblings() {
+            }
+
+            /**
+             * Cancel all the handlers registered under the same key with the {@link Canceler}
+             */
+            public void cancel(Consumer<Collection<Consumer<V>>> then) {
+                Eveny.this.forget(Canceler.this.k, then);
+            }
+
+            /**
+             * Cancel without a further handler
+             */
+            public void cancel() {
+                cancel(null);
+            }
+        }
+    }
+
 }
