@@ -1,6 +1,7 @@
 package com.sinlo.sponte.util;
 
 import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -14,7 +15,15 @@ import java.util.function.Supplier;
  */
 public class Pool<K, T> {
 
-    private final Map<K, T> pool = new ConcurrentHashMap<>();
+    private final Map<K, T> pool;
+
+    public Pool() {
+        this(new ConcurrentHashMap<>());
+    }
+
+    public Pool(Map<K, T> pool) {
+        this.pool = pool;
+    }
 
     /**
      * Just get
@@ -138,5 +147,23 @@ public class Pool<K, T> {
      */
     public static class Simple<T> extends Pool<String, T> {
 
+    }
+
+    /**
+     * A cache typed {@link Pool} which uses the {@link WeakHashMap} as its
+     * underlying {@link #pool}
+     */
+    public static class Cache<K, T> extends Pool<K, T> {
+
+        public Cache() {
+            super(new WeakHashMap<>());
+        }
+
+        /**
+         * Simple string keyed {@link Cache}
+         */
+        public static class Simple<T> extends Cache<String, T> {
+
+        }
     }
 }

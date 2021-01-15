@@ -186,7 +186,7 @@ public class Genericia {
     }
 
     private static class Privat {
-        private final Pool.Simple<String> pool = new Pool.Simple<>();
+        private final Pool.Cache.Simple<String> pool = new Pool.Cache.Simple<>();
         private final Class<?> anchor;
 
         private Privat(Class<?> anchor) {
