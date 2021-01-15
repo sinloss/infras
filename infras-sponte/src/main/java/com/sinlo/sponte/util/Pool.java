@@ -109,6 +109,14 @@ public class Pool<K, T> {
             this.existence = existence;
         }
 
+        public boolean present() {
+            return this.existence == 1;
+        }
+
+        public boolean absent() {
+            return this.existence == 0;
+        }
+
         public static <K> Key<K> present(K k) {
             return new Key<>(k, 1);
         }

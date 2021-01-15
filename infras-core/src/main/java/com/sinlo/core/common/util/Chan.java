@@ -6,8 +6,10 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Chan the abstract channel
@@ -191,31 +193,82 @@ public abstract class Chan<T> {
 
         private final Defer<K> chan = new Defer<>(this::expiring);
         private final Consumer<V> onExpired;
+        private final long delay;
+        private static final ThreadLocal<Long> withed = new ThreadLocal<>();
 
-        private ExpiringPool(Consumer<V> onExpired) {
+        private ExpiringPool(Consumer<V> onExpired, long delay) {
             this.onExpired = onExpired;
+            this.delay = delay;
+        }
+
+        private long delay() {
+            return Funny.nvl(withed.get(), () -> delay);
         }
 
         /**
          * Create a quiet {@link ExpiringPool} that expiring the items in the pool without
          * notifying others
+         *
+         * @param delay the default delay
          */
-        public static <K, V> ExpiringPool<K, V> quiet() {
-            return new ExpiringPool<>(null);
+        public static <K, V> ExpiringPool<K, V> quiet(long delay) {
+            return new ExpiringPool<>(null, delay);
         }
 
         /**
          * Create a perceptible {@link ExpiringPool} that expiring the items in the pool
          * and notify the provided {@link #onExpired}
+         *
+         * @param delay the default delay
          */
-        public static <K, V> ExpiringPool<K, V> perceptible(Consumer<V> onExpired) {
-            return new ExpiringPool<>(Objects.requireNonNull(onExpired));
+        public static <K, V> ExpiringPool<K, V> perceptible(long delay, Consumer<V> onExpired) {
+            return new ExpiringPool<>(Objects.requireNonNull(onExpired), delay);
+        }
+
+        /**
+         * @InheritDoc
+         */
+        @Override
+        public V on(Key<K> key, BiFunction<K, V, V> compute) {
+            if (key.absent()) {
+                chan.deferred(key.k, delay());
+            }
+            return super.on(key, compute);
+        }
+
+        /**
+         * @InheritDoc
+         */
+        @Override
+        public V get(K key, Supplier<V> ifNone) {
+            return super.get(key, () -> {
+                chan.deferred(key, delay());
+                return ifNone.get();
+            });
+        }
+
+        /**
+         * Apply the given {@code then} on this pool with a special {@code delay} that will
+         * be chosen over the default {@link #delay}. The given {@code delay} will be discarded
+         * once the {@code then} function is done
+         */
+        public <T> T with(long delay, Function<ExpiringPool<K, V>, T> then) {
+            withed.set(delay);
+            try {
+                return then.apply(this);
+            } finally {
+                withed.set(null);
+            }
         }
 
         private boolean expiring(K k) {
             V expired = this.take(k);
             if (onExpired != null) onExpired.accept(expired);
             return true;
+        }
+
+        public long defaultDelay() {
+            return this.delay;
         }
     }
 
