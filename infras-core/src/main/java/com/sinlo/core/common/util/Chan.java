@@ -1,8 +1,12 @@
 package com.sinlo.core.common.util;
 
+import com.sinlo.sponte.util.Pool;
+
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -175,6 +179,44 @@ public abstract class Chan<T> {
             return new DelayQueue<>();
         }
 
+    }
+
+    /**
+     * An expiring pool implementation of {@link Pool} based on the {@link Defer} to maintain
+     * the expiring
+     *
+     * @see Pool
+     */
+    public static class ExpiringPool<K, V> extends Pool<K, V> {
+
+        private final Defer<K> chan = new Defer<>(this::expiring);
+        private final Consumer<V> onExpired;
+
+        private ExpiringPool(Consumer<V> onExpired) {
+            this.onExpired = onExpired;
+        }
+
+        /**
+         * Create a quiet {@link ExpiringPool} that expiring the items in the pool without
+         * notifying others
+         */
+        public static <K, V> ExpiringPool<K, V> quiet() {
+            return new ExpiringPool<>(null);
+        }
+
+        /**
+         * Create a perceptible {@link ExpiringPool} that expiring the items in the pool
+         * and notify the provided {@link #onExpired}
+         */
+        public static <K, V> ExpiringPool<K, V> perceptible(Consumer<V> onExpired) {
+            return new ExpiringPool<>(Objects.requireNonNull(onExpired));
+        }
+
+        private boolean expiring(K k) {
+            V expired = this.take(k);
+            if (onExpired != null) onExpired.accept(expired);
+            return true;
+        }
     }
 
     /**
