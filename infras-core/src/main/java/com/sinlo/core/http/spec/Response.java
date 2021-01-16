@@ -1,15 +1,17 @@
 package com.sinlo.core.http.spec;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.sinlo.core.common.util.Arria;
+import com.sinlo.core.common.util.Filia;
 import com.sinlo.core.common.util.Jason;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * The response entity
@@ -18,11 +20,27 @@ import java.nio.charset.StandardCharsets;
  */
 public class Response {
 
-    public final HttpURLConnection conn;
+    private final Map<String, List<String>> headers;
+    private final byte[] content;
     private Charset charset = StandardCharsets.UTF_8;
 
-    public Response(HttpURLConnection conn) {
-        this.conn = conn;
+    private Response(Map<String, List<String>> headers, byte[] content) {
+        this.headers = headers;
+        this.content = content;
+    }
+
+    /**
+     * Create a response out of the given {@link HttpURLConnection}
+     */
+    public static Response of(HttpURLConnection conn) {
+        try {
+            return new Response(conn.getHeaderFields(),
+                    Filia.drain(conn.getInputStream()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            conn.disconnect();
+        }
     }
 
     /**
@@ -34,41 +52,53 @@ public class Response {
     }
 
     /**
-     * Get the {@link InputStream} of the {@link #conn}
+     * Get the header identified by the given key
      */
-    public InputStream inputStream() {
-        try {
-            return conn.getInputStream();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public String header(String key) {
+        List<String> header = headers.get(key);
+        if (Arria.isEmpty(header)) return "";
+        return Arria.join(header, ",");
     }
 
     /**
-     * Get the text content of the {@link #conn}
+     * Get a {@link Stream} containing all the header values identified by the given key
+     */
+    public Stream<String> headers(String key) {
+        List<String> header = headers.get(key);
+        if (Arria.isEmpty(header)) return Stream.empty();
+        return header.stream();
+    }
+
+    /**
+     * Get the original headers
+     */
+    public Map<String, List<String>> headers() {
+        return headers;
+    }
+
+    /**
+     * Get the content bytes
+     */
+    public byte[] content() {
+        return content;
+    }
+
+    /**
+     * Get the text content
      */
     public String text() {
-        final StringBuilder out = new StringBuilder();
-        try (BufferedReader in = new BufferedReader(
-                new InputStreamReader(conn.getInputStream(), charset.toString()))) {
-            String line;
-            while ((line = in.readLine()) != null) {
-                out.append(line).append('\n');
-            }
-        } catch (IOException ignored) {
-        }
-        return out.toString();
+        return new String(content, charset);
     }
 
     /**
-     * Parse the text content of the {@link #conn} to {@link T}
+     * Parse the text content to {@link T}
      */
     public <T> T json(Class<T> clz) {
         return Jason.parse(text(), clz);
     }
 
     /**
-     * Parse the text content of the {@link #conn} to {@link T} using {@link TypeReference}
+     * Parse the text content to {@link T} using {@link TypeReference}
      */
     public <T> T json(TypeReference<T> typeReference) {
         return Jason.parse(text(), typeReference);

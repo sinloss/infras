@@ -2,6 +2,7 @@ package com.sinlo.core.common.util;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.function.Function;
@@ -14,6 +15,20 @@ import java.util.function.Function;
 public class Arria {
 
     private Arria() {
+    }
+
+    /**
+     * Check if the given {@link Collection} is empty
+     */
+    public static boolean isEmpty(Collection<?> collection) {
+        return collection == null || collection.isEmpty();
+    }
+
+    /**
+     * Check if the given {@code array} is empty
+     */
+    public static <T> boolean isEmpty(T[] array) {
+        return array == null || array.length == 0;
     }
 
     /**

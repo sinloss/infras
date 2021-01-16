@@ -8,6 +8,7 @@ import com.sinlo.core.common.util.Strine;
 import com.sinlo.core.common.wraparound.Ordered;
 import com.sinlo.core.http.spec.*;
 import com.sinlo.core.http.util.CredulousTrustManager;
+import com.sinlo.sponte.util.Pool;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
@@ -314,7 +315,7 @@ public class Fetcha<T> {
                 Response response = Next.RETRY.equals(intercept(conn))
                         // retry by build another conn and wait for its response
                         ? this.build().join()
-                        : new Response(conn);
+                        : Response.of(conn);
                 storeCookies(response);
                 future.complete(response);
             } catch (Exception e) {
@@ -350,7 +351,7 @@ public class Fetcha<T> {
         // no storing cookies when the cookie manager is system wide
         if (cookieManager == null) return;
         try {
-            cookieManager.put(uri, response.conn.getHeaderFields());
+            cookieManager.put(uri, response.headers());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -518,7 +519,7 @@ public class Fetcha<T> {
         private static final Course<Response> RAW = identity();
 
         private final List<Ordered<Function<HttpURLConnection, Next>>> interceptors = new LinkedList<>();
-        private final Map<Stage, List<Ordered<BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection>>>> preceptors = new HashMap<>();
+        private final Pool<Stage, List<Ordered<BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection>>>> preceptors = new Pool<>();
         private final String root;
         private final String basic;
 
@@ -716,7 +717,7 @@ public class Fetcha<T> {
         }
 
         private List<Ordered<BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection>>> forStage(Stage stage) {
-            return preceptors.computeIfAbsent(stage, (k) -> new LinkedList<>());
+            return preceptors.get(stage, LinkedList::new);
         }
     }
 
