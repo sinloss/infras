@@ -800,8 +800,9 @@ public class Filia {
          * Get the name of the i-th member of this sequence
          */
         public String name(int i) {
-            return parts.rename(name -> name.concat(
-                    i == 0 ? "" : String.valueOf(seq.get(i))));
+            if (i == 0)
+                return parts.rename(Funny::identity);
+            return parts.rename(name -> name.concat(String.valueOf(seq.get(i))));
         }
 
         /**
@@ -811,14 +812,16 @@ public class Filia {
          * @see Filia#sibling(String)
          */
         public Filia get(int i) {
+            if (i == 0)
+                return root;
             return root.sibling(name(i));
         }
 
         /**
-         * Get the first member of this sequence
+         * Get the first member of this sequence, aka the {@link #root}
          */
-        public Filia first() {
-            return get(0);
+        public Filia root() {
+            return root;
         }
 
         /**
