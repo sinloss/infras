@@ -57,4 +57,19 @@ public class Funny {
     public static <T, E extends Throwable> T leniently(ImpatientSupplier<T, E> supplier) {
         return supplier.get();
     }
+
+    /**
+     * Similar to {@link #leniently(ImpatientSupplier)} but throws the caught exceptions
+     */
+    public static <T, E extends Throwable> T panic(ImpatientSupplier<T, E> supplier) {
+        try {
+            return supplier.get();
+        } catch (Throwable e) {
+            if (e instanceof RuntimeException) {
+                throw e;
+            }
+            throw new RuntimeException(e);
+        }
+    }
+
 }

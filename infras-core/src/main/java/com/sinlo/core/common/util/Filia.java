@@ -1,5 +1,7 @@
 package com.sinlo.core.common.util;
 
+import com.sinlo.core.common.wraparound.Lazy;
+
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
@@ -11,9 +13,12 @@ import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -80,6 +85,15 @@ public class Filia {
     }
 
     /**
+     * Resolve a sibling file identified by the given {@code fileName}
+     *
+     * @see Path#resolveSibling(String)
+     */
+    public Filia sibling(String fileName) {
+        return new Filia(p.resolveSibling(fileName));
+    }
+
+    /**
      * Create a symlink of the current {@link #p}
      *
      * @return the created symlink
@@ -142,6 +156,13 @@ public class Filia {
                     .map(Filia::load);
         }
         return null;
+    }
+
+    /**
+     * @see Sequence#of(Filia)
+     */
+    public Sequence sequence() {
+        return Sequence.of(this);
     }
 
     /**
@@ -252,6 +273,22 @@ public class Filia {
     }
 
     /**
+     * @see #mustRegular(Path)
+     */
+    public Filia mustRegular() {
+        mustRegular(p);
+        return this;
+    }
+
+    /**
+     * @see #mustDirectory(Path)
+     */
+    public Filia mustDirectory() {
+        mustDirectory(p);
+        return this;
+    }
+
+    /**
      * @see #lines(Charset)
      */
     public Stream<String> lines() {
@@ -291,6 +328,23 @@ public class Filia {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Create a {@link Watcher} which will be watching on the {@link #p}
+     *
+     * @see Watcher
+     */
+    public Watcher watch() {
+        return new Watcher();
+    }
+
+    /**
+     * Get a {@link Parts} of the current file
+     */
+    public Parts parts() {
+        mustRegular(p);
+        return Parts.from(p);
     }
 
     /**
@@ -514,10 +568,34 @@ public class Filia {
     }
 
     /**
+     * Panic if the given {@link Path} is not a regular file
+     */
+    public static void mustRegular(Path path) {
+        IllegalPathException.check(Files::isRegularFile, path, "a regular file");
+    }
+
+    /**
+     * Panic if the given {@link Path} is not a directory
+     */
+    public static void mustDirectory(Path path) {
+        IllegalPathException.check(Files::isDirectory, path, "directory");
+    }
+
+    /**
      * Create a locker for the given path
      */
     public static Lock locker(Path path) {
         return new Lock(path);
+    }
+
+    /**
+     * Create a {@link Watcher} targeting at the given {@link Path}
+     *
+     * @see Filia#watch()
+     * @see Watcher
+     */
+    public static Watcher watch(Path path) {
+        return new Filia(path).watch();
     }
 
     /**
@@ -587,6 +665,58 @@ public class Filia {
     }
 
     /**
+     * The two parts of a filename
+     * <ul>
+     *     <li>basename</li>
+     *     <li>extension</li>
+     * </ul>
+     */
+    public static class Parts {
+
+        public final String basename;
+
+        public final String extension;
+
+        private Parts(String basename, String extension) {
+            this.basename = basename;
+            this.extension = extension;
+        }
+
+        /**
+         * Rename
+         */
+        public String rename(Function<String, String> re) {
+            return re.apply(this.basename)
+                    .concat(this.extension.isEmpty() ? "" : ".".concat(this.extension));
+        }
+
+        public String getBasename() {
+            return basename;
+        }
+
+        public String getExtension() {
+            return extension;
+        }
+
+        /**
+         * Create from the a given {@link Path}
+         */
+        public static Parts from(Path path) {
+            return from(path.getFileName().toString());
+        }
+
+        /**
+         * Create from the a given file name
+         */
+        public static Parts from(String fileName) {
+            int delim = fileName.lastIndexOf(".");
+            if (delim == -1)
+                return new Parts(fileName, "");
+            return new Parts(fileName.substring(0, delim), fileName.substring(delim + 1));
+        }
+    }
+
+    /**
      * The file lock
      */
     public static class Lock {
@@ -616,6 +746,203 @@ public class Filia {
                 return true;
             } catch (IOException e) {
                 return false;
+            }
+        }
+    }
+
+    /**
+     * A sequence of files having the same prefix name, and sequential numbers
+     * as their suffixes sharing the same extension
+     */
+    public static class Sequence {
+
+        private final Filia root;
+
+        private final List<Integer> seq;
+
+        private final Parts parts;
+
+        private Sequence(Filia root, Parts parts, List<Integer> seq) {
+            this.root = Objects.requireNonNull(root).mustRegular();
+            this.parts = parts;
+            this.seq = seq;
+        }
+
+        private Sequence(Filia root, Parts parts, int... seq) {
+            this(root, parts, IntStream.of(seq).boxed().collect(Collectors.toList()));
+        }
+
+        public static Sequence of(Filia filia) {
+            try {
+                Parts parts = filia.parts();
+                return new Sequence(filia, parts,
+                        Files.list(filia.path().getParent())
+                                .map(Parts::from)
+                                .filter(p -> p.basename.startsWith(parts.basename))
+                                .filter(p -> p.extension.equals(parts.extension))
+                                .map(Parts::getBasename)
+                                .map(n -> n.substring(parts.basename.length()))
+                                .map(Integer::parseInt)
+                                .collect(Collectors.toList()));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        /**
+         * Create a sequence for the given {@link Path}
+         */
+        public static Sequence of(Path path) {
+            return of(new Filia(path));
+        }
+
+        /**
+         * Get the name of the i-th member of this sequence
+         */
+        public String name(int i) {
+            return parts.rename(name -> name.concat(
+                    i == 0 ? "" : String.valueOf(seq.get(i))));
+        }
+
+        /**
+         * Get a {@link Filia} instance for the i-th member of this sequence
+         *
+         * @see #name(int)
+         * @see Filia#sibling(String)
+         */
+        public Filia get(int i) {
+            return root.sibling(name(i));
+        }
+
+        /**
+         * Get the first member of this sequence
+         */
+        public Filia first() {
+            return get(0);
+        }
+
+        /**
+         * Get the size of this sequence
+         */
+        public int size() {
+            return seq.size();
+        }
+
+        /**
+         * Create a new member file of this sequence
+         */
+        public Filia increase() {
+            int len = size();
+            seq.add(seq.get(len - 1) + 1);
+            return get(len);
+        }
+
+        /**
+         * For each member of the sequence, consume it using the given {@link Consumer}
+         */
+        public void forEach(Consumer<Filia> consumer) {
+            this.seq.stream().map(this::get).forEach(consumer);
+        }
+    }
+
+    /**
+     * The file system watcher
+     */
+    public class Watcher {
+
+        private final Lazy<WatchService>.Default service = new Lazy<>(
+                () -> Funny.panic(() -> FileSystems.getDefault().newWatchService())).asDefault();
+        private final Lazy<ScheduledExecutorService>.Default ex = new Lazy<>(
+                () -> Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors()))
+                .asDefault();
+        private WatchEvent.Kind<?>[] events;
+        private WatchEvent.Modifier[] modifiers = new WatchEvent.Modifier[0];
+        private long interval;
+
+        private Watcher() {
+        }
+
+        /**
+         * On what events. This would replace the previous set events
+         */
+        public Watcher on(WatchEvent.Kind<?>... events) {
+            this.events = events;
+            return this;
+        }
+
+        /**
+         * And other events. This will <b>not</b> replace the previous set events
+         */
+        public Watcher and(WatchEvent.Kind<?>... events) {
+            this.events = Arria.concat(this.events, events);
+            return this;
+        }
+
+        /**
+         * Mod by what modifiers. This would replace the previous set modifiers
+         */
+        public Watcher mod(WatchEvent.Modifier... modifiers) {
+            this.modifiers = modifiers;
+            return this;
+        }
+
+        /**
+         * With other modifiers. This will <b>not</b> replace the previous set modifiers
+         */
+        public Watcher with(WatchEvent.Modifier... modifiers) {
+            this.modifiers = Arria.concat(this.modifiers, modifiers);
+            return this;
+        }
+
+        /**
+         * Poll in every {@code interval} milliseconds
+         */
+        public Watcher every(long interval) {
+            this.interval = interval;
+            return this;
+        }
+
+        /**
+         * Use the given {@link WatchService}
+         */
+        public Watcher service(WatchService service) {
+            this.service.provide(service);
+            return this;
+        }
+
+        /**
+         * Use the given {@link ScheduledExecutorService} to do the scheduling
+         */
+        public Watcher use(ScheduledExecutorService ex) {
+            this.ex.provide(ex);
+            return this;
+        }
+
+        /**
+         * Perform the given {@link Consumer}. This will finally use all provided variables
+         * to register a {@link WatchKey} and start polling
+         */
+        public ScheduledFuture<?> perform(Consumer<WatchEvent<?>> handler) {
+            try {
+                final WatchKey wk = Filia.this.p.register(service.get(), events, modifiers);
+                return this.ex.get().scheduleAtFixedRate(
+                        () -> wk.pollEvents().forEach(handler),
+                        interval, interval, TimeUnit.MILLISECONDS);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public static class IllegalPathException extends RuntimeException {
+
+        public IllegalPathException(Path path, String expected) {
+            super(String.format("The path %s is not a %s", path, expected));
+        }
+
+        public static void check(Predicate<Path> predicate, Path path, String expected) {
+            if (!predicate.test(path)) {
+                throw new IllegalPathException(path, expected);
             }
         }
     }
