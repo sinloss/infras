@@ -14,10 +14,10 @@ import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -122,43 +122,6 @@ public class Filia {
     }
 
     /**
-     * Save the given InputStream to the current {@link Filia#p}
-     *
-     * @param in the InputStream whose underlying content could be a file most of the time
-     * @return the number of bytes read or written
-     */
-    public long save(InputStream in) {
-        try (InputStream is = in) {
-            Files.copy(in, this.p);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return -1L;
-    }
-
-    /**
-     * Load the current {@link Filia#p}
-     */
-    public Item load() {
-        return new Item(this.p);
-    }
-
-    /**
-     * Load many files inside the current {@link Filia#p}, in this case the
-     * {@link Filia#p} must be a folder
-     *
-     * @see #load()
-     */
-    public Stream<Item> load(String... fn) {
-        if (fn != null) {
-            return Arrays.stream(fn)
-                    .map(this::resolve)
-                    .map(Filia::load);
-        }
-        return null;
-    }
-
-    /**
      * @see Sequence#of(Filia)
      */
     public Sequence sequence() {
@@ -228,6 +191,110 @@ public class Filia {
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Equivalent to <pre>{@code
+     *      Filia.read(this.p, start, bufSize, consumer);
+     * }</pre>
+     *
+     * @see #read(Path, int, int, Consumer)
+     */
+    public CompletableFuture<Integer> read(int start, int bufSize, Consumer<byte[]> consumer) {
+        return read(this.p, start, bufSize, consumer);
+    }
+
+    /**
+     * Equivalent to <pre>{@code
+     *      this.read(0, 4096, consumer);
+     * }</pre>
+     *
+     * @see #read(int, int, Consumer)
+     * @see #read(Path, int, int, Consumer)
+     */
+    public CompletableFuture<Integer> read(Consumer<byte[]> consumer) {
+        return this.read(0, 4096, consumer);
+    }
+
+    /**
+     * Equivalent to <pre>{@code
+     *      Filia.write(this.p, start, supplier, overwrite);
+     * }</pre>
+     *
+     * @see #write(Path, int, Function, boolean)
+     */
+    public CompletableFuture<Integer> write(int start, Function<Integer, byte[]> supplier, boolean overwrite) {
+        return write(this.p, start, supplier, overwrite);
+    }
+
+    /**
+     * Equivalent to <pre>{@code
+     *      this.write(0, supplier, overwrite);
+     * }</pre>
+     *
+     * @see #write(Path, int, Function, boolean)
+     * @see #write(int, Function, boolean)
+     */
+    public CompletableFuture<Integer> write(Function<Integer, byte[]> supplier, boolean overwrite) {
+        return this.write(0, supplier, overwrite);
+    }
+
+    /**
+     * Apply {@link AsynchronousFileChannel#open(Path, OpenOption...)} on the {@link #p}
+     *
+     * @see AsynchronousFileChannel#open(Path, OpenOption...)
+     */
+    public AsynchronousFileChannel channel(OpenOption... options) {
+        try {
+            return AsynchronousFileChannel.open(this.p, options);
+        } catch (IOException e) {
+            return Try.tolerate(e);
+        }
+    }
+
+    /**
+     * Equivalent to <pre>{@code
+     *      this.channel(StandardOpenOption.READ);
+     * }</pre>
+     */
+    public AsynchronousFileChannel channelRead() {
+        return channel(StandardOpenOption.READ);
+    }
+
+    /**
+     * Equivalent to <pre>{@code
+     *      this.channel(StandardOpenOption.WRITE);
+     * }</pre>
+     */
+    public AsynchronousFileChannel channelWrite() {
+        return channel(StandardOpenOption.WRITE);
+    }
+
+    /**
+     * Equivalent to <pre>{@code
+     *      this.channel(StandardOpenOption.WRITE, StandardOpenOption.APPEND);
+     * }</pre>
+     */
+    public AsynchronousFileChannel channelAppend() {
+        return channel(StandardOpenOption.WRITE, StandardOpenOption.APPEND);
+    }
+
+    /**
+     * Copy the given InputStream to the current {@link Filia#p}
+     *
+     * @param in        the InputStream whose underlying content could be a file most of the time
+     * @param overwrite should overwrite the existing file or not
+     * @return the number of bytes read or written
+     */
+    public long copy(InputStream in, boolean overwrite) {
+        try (InputStream is = in) {
+            return overwrite
+                    ? Files.copy(in, this.p, StandardCopyOption.REPLACE_EXISTING)
+                    : Files.copy(in, this.p);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return -1L;
     }
 
     /**
@@ -316,6 +383,13 @@ public class Filia {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Select specific files under the {@link #p}
+     */
+    public Stream<Filia> select(String... names) {
+        return Arrays.stream(names).map(this::resolve);
     }
 
     /**
@@ -599,69 +673,102 @@ public class Filia {
     }
 
     /**
-     * retrieve the content of the file pointed by the given path and output it
-     * to the given OutputStream
+     * Asynchronously read the all the content of the file identified by the given path
+     *
+     * @param path     the file path
+     * @param start    starting from this given position of the file
+     * @param bufSize  allocate a {@link ByteBuffer} of this size
+     * @param consumer consumes the read bytes in the buffer
+     * @return the final size <b>starting from 0</b>
      */
-    public static void retrieve(OutputStream os, Path path) {
-        if (os != null && path != null) {
-            CountDownLatch latch = new CountDownLatch(1);
-            try (OutputStream out = os) {
-                ByteBuffer buffer = ByteBuffer.allocate(1024);
-                AsynchronousFileChannel channel = AsynchronousFileChannel
-                        .open(path, StandardOpenOption.READ);
-                channel.read(buffer, 0, channel, new CompletionHandler<Integer, AsynchronousFileChannel>() {
-                    int pos = 0;
+    public static CompletableFuture<Integer> read(
+            Path path, int start, int bufSize, Consumer<byte[]> consumer) {
+        mustRegular(path);
+        CompletableFuture<Integer> future = new CompletableFuture<>();
+        CompletableFuture.runAsync(() -> {
+            try {
+                ByteBuffer buffer = ByteBuffer.allocate(bufSize);
+                AsynchronousFileChannel chan =
+                        AsynchronousFileChannel.open(path, StandardOpenOption.READ);
+                chan.read(buffer, start, buffer, new CompletionHandler<Integer, ByteBuffer>() {
+
+                    private int pos = start;
 
                     @Override
-                    public void completed(Integer result, AsynchronousFileChannel attachment) {
-                        try {
-                            if (result != -1) {
-                                out.write(buffer.array()); // output
-                                buffer.clear(); // clear
-                                attachment.read(buffer, (pos += result), channel, this);
-                            } else {
-                                out.flush();
-                                latch.countDown();
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                    public void completed(Integer result, ByteBuffer attachment) {
+                        if (result != -1) {
+                            attachment.flip();
+                            consumer.accept(attachment.array());
+                            attachment.clear();
+                            chan.read(buffer, (pos += result), buffer, this);
+                        } else {
+                            future.complete(pos);
                         }
                     }
 
                     @Override
-                    public void failed(Throwable exc, AsynchronousFileChannel attachment) {
-                        latch.countDown();
-                        throw new RuntimeException(exc);
+                    public void failed(Throwable e, ByteBuffer attachment) {
+                        future.completeExceptionally(e);
                     }
                 });
-                latch.await();
-            } catch (IOException | InterruptedException e) {
-                e.printStackTrace();
+            } catch (IOException e) {
+                future.completeExceptionally(e);
             }
-        }
+        });
+        return future;
     }
 
     /**
-     * The file item that {@link #load()} produces
+     * Asynchronously write the content supplied by the given {@code supplier} to the file
+     * identified by the given path. The {@code supplier} accepts a Integer parameter with
+     * represents the number of wrote bytes of the last writing, and a null represents the
+     * first time of writing at which none byte has been written. If the {@code supplier}
+     * wants to stop the writing process, it could simply return a null.
+     *
+     * @param path      the file path
+     * @param start     starting from this given position of the file
+     * @param supplier  supplies the byte[] to be wrote
+     * @param overwrite should overwrite the existing contents or not
+     * @return the final size <b>starting from 0</b>
      */
-    public static class Item {
-        public final Path path;
-
-        public Item(Path path) {
-            this.path = path;
-        }
-
-        public void to(OutputStream out) {
-            retrieve(out, path);
-        }
-
-        public <T> T read(Function<AsynchronousFileChannel, T> reader) {
+    public static CompletableFuture<Integer> write(Path path, int start, Function<Integer, byte[]> supplier, boolean overwrite) {
+        CompletableFuture<Integer> future = new CompletableFuture<>();
+        OpenOption[] options = overwrite
+                ? new OpenOption[]{StandardOpenOption.WRITE}
+                : new OpenOption[]{StandardOpenOption.WRITE, StandardOpenOption.APPEND};
+        CompletableFuture.runAsync(() -> {
             try {
-                return reader.apply(AsynchronousFileChannel.open(path, StandardOpenOption.READ));
+                ByteBuffer buffer = ByteBuffer.wrap(supplier.apply(null));
+                AsynchronousFileChannel chan = AsynchronousFileChannel.open(path, options);
+                chan.write(buffer, start, null, new CompletionHandler<Integer, Void>() {
+
+                    private int pos = start;
+
+                    @Override
+                    public void completed(Integer result, Void attachment) {
+                        buffer.clear();
+                        // if wrote 0 bytes or supplier supplies nothing, then complete the future
+                        // with the current pos
+                        if (result == 0 ||
+                                Funny.maybe(supplier.apply(result), buffer::put) == null) {
+                            future.complete(pos);
+                            return;
+                        }
+                        // otherwise do the writing
+                        buffer.put(supplier.apply(result));
+                        chan.write(buffer, (pos += result), null, this);
+                    }
+
+                    @Override
+                    public void failed(Throwable e, Void attachment) {
+                        future.completeExceptionally(e);
+                    }
+                });
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                future.completeExceptionally(e);
             }
-        }
+        });
+        return future;
     }
 
     /**
@@ -758,32 +865,55 @@ public class Filia {
 
         private final Filia root;
 
-        private final List<Integer> seq;
+        private final NavigableSet<Integer> seq;
 
         private final Parts parts;
 
-        private Sequence(Filia root, Parts parts, List<Integer> seq) {
+        private final AtomicInteger size;
+
+        private Sequence(Filia root, Parts parts, NavigableSet<Integer> seq) {
             this.root = Objects.requireNonNull(root).mustRegular();
             this.parts = parts;
-            this.seq = seq;
+            this.seq = Objects.requireNonNull(seq);
+            this.size = new AtomicInteger(seq.size());
         }
 
         private Sequence(Filia root, Parts parts, int... seq) {
-            this(root, parts, IntStream.of(seq).boxed().collect(Collectors.toList()));
+            this(root, parts, IntStream.of(seq).boxed().collect(Collin.toSkipList()));
         }
 
-        public static Sequence of(Filia filia) {
+        /**
+         * Create a sequence for the given {@link Filia}
+         */
+        public static Sequence of(Filia root) {
             try {
-                Parts parts = filia.parts();
-                return new Sequence(filia, parts,
-                        Files.list(filia.path().getParent())
+                Parts parts = root.parts();
+                return new Sequence(root, parts,
+                        // Prepend a 0 to the stream as the root must be in the seq no matter the
+                        // file exists or not.
+                        Stream.concat(Stream.of(0), Files.list(root.path().getParent())
                                 .map(Parts::from)
-                                .filter(p -> p.basename.startsWith(parts.basename))
-                                .filter(p -> p.extension.equals(parts.extension))
+                                .filter(p -> p.basename.startsWith(parts.basename)
+                                        && p.extension.equals(parts.extension))
                                 .map(Parts::getBasename)
                                 .map(n -> n.substring(parts.basename.length()))
-                                .map(Integer::parseInt)
-                                .collect(Collectors.toList()));
+                                // Non empty, meaning the root file is excluded here as a stream of 0
+                                // will be prepended at be beginning of the stream. The 0 represents
+                                // the root file in the context of sequence
+                                .filter(Strine::nonEmpty)
+                                // Parse to int, and all the non-numeric values who would throw a
+                                // NumberFormatException will be turned into nulls and be filtered
+                                // off in the next operation
+                                .map(n -> Try.of(() -> Integer.parseInt(n))
+                                        .caught(NumberFormatException.class)
+                                        .thenNull()
+                                        .otherwiseNull()
+                                        .exert())
+                                .filter(Objects::nonNull)
+                                // Only accepts positive values. Since the 0 has already been prepended
+                                // ignore the file that has a 0 as it's suffix
+                                .filter(i -> i > 0))
+                                .collect(Collin.toSkipList()));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -792,26 +922,26 @@ public class Filia {
         /**
          * Create a sequence for the given {@link Path}
          */
-        public static Sequence of(Path path) {
-            return of(new Filia(path));
+        public static Sequence of(Path root) {
+            return of(new Filia(root));
         }
 
         /**
-         * Get the name of the i-th member of this sequence
+         * Get the name having the number {@code i} as its suffix in this sequence
          */
         public String name(int i) {
             if (i == 0)
                 return parts.rename(Funny::identity);
-            return parts.rename(name -> name.concat(String.valueOf(seq.get(i))));
+            return parts.rename(name -> name.concat(String.valueOf(i)));
         }
 
         /**
-         * Get a {@link Filia} instance for the i-th member of this sequence
+         * Get a {@link Filia} instance having the number {@code i} as its suffix in this sequence
          *
          * @see #name(int)
          * @see Filia#sibling(String)
          */
-        public Filia get(int i) {
+        public Filia of(int i) {
             if (i == 0)
                 return root;
             return root.sibling(name(i));
@@ -828,23 +958,48 @@ public class Filia {
          * Get the size of this sequence
          */
         public int size() {
-            return seq.size();
+            return size.get();
         }
 
         /**
-         * Create a new member file of this sequence
+         * Create a new member file of this sequence having a greater serial
+         * than the last one
          */
-        public Filia increase() {
-            int len = size();
-            seq.add(seq.get(len - 1) + 1);
-            return get(len);
+        public Filia next() {
+            if (seq.isEmpty()) {
+                // init the root member if empty
+                seq.add(0);
+                return root;
+            }
+            // calculate the next
+            int next = seq.last() + 1;
+            // add
+            seq.add(next);
+            // and get
+            return of(next);
         }
 
         /**
-         * For each member of the sequence, consume it using the given {@link Consumer}
+         * Equivalent to {@code this.all(true)} which means only get all the practically existing
+         * members
+         *
+         * @see #all(boolean)
          */
-        public void forEach(Consumer<Filia> consumer) {
-            this.seq.stream().map(this::get).forEach(consumer);
+        public Stream<Filia> all() {
+            return all(true);
+        }
+
+        /**
+         * Get all the files in the sequence
+         *
+         * @param practical the file should be practically on the disk or not
+         */
+        public Stream<Filia> all(boolean practical) {
+            Stream<Filia> all = seq.stream().map(this::of);
+            if (!practical) {
+                return all;
+            }
+            return all.filter(Filia::exists);
         }
     }
 
@@ -854,7 +1009,7 @@ public class Filia {
     public class Watcher {
 
         private final Lazy<WatchService>.Default service = new Lazy<>(
-                () -> Funny.panic(() -> FileSystems.getDefault().newWatchService())).asDefault();
+                () -> Try.panic(() -> FileSystems.getDefault().newWatchService())).asDefault();
         private final Lazy<ScheduledExecutorService>.Default ex = new Lazy<>(
                 () -> Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors()))
                 .asDefault();
