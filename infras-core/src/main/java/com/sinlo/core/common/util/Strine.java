@@ -15,6 +15,13 @@ public class Strine {
     }
 
     /**
+     * Check if the string is not empty
+     */
+    public static boolean nonEmpty(String s) {
+        return !isEmpty(s);
+    }
+
+    /**
      * Turn the possible null value to an empty string
      */
     public static String blankIfNull(String s) {
