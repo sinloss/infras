@@ -1,11 +1,11 @@
 package com.sinlo.core.common.util;
 
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 
 /**
  * Arria the array util
@@ -60,6 +60,34 @@ public class Arria {
     }
 
     /**
+     * Check if the {@code e} is contained in the {@code es}
+     */
+    public static <T> boolean contains(T[] es, T e) {
+        return indexOf(es, e) != -1;
+    }
+
+    /**
+     * Get the index of {@code e} in the {@code es}
+     */
+    public static <T> int indexOf(T[] es, T e) {
+        int end = es.length;
+        if (e == null) {
+            for (int i = 0; i < end; i++) {
+                if (es[i] == null) {
+                    return i;
+                }
+            }
+        } else {
+            for (int i = 0; i < end; i++) {
+                if (e.equals(es[i])) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
      * Get the total length of all given arrays
      */
     @SafeVarargs
@@ -72,25 +100,22 @@ public class Arria {
     }
 
     /**
-     * Restore an array object to a typed array
+     * Refactor an array
      *
-     * @param arr arr object
-     * @param clz restored typed array
+     * @param original  the original array
+     * @param generator the new array generator
+     * @param mapper    the element mapper
+     * @param <T>       the original type of elements
+     * @param <R>       the new type of elements
+     * @return the new array
      */
-    @SuppressWarnings("unchecked")
-    public static <T> T[] restore(Object arr, Class<T> clz) {
-        if (arr.getClass().isArray()) {
-            int length = Array.getLength(arr);
-            T[] restore = (T[]) Array.newInstance(clz, length);
-            for (int i = 0; i < length; i++) {//String类特殊处理
-                Object e = Array.get(arr, i);
-                if (e != null && clz.isAssignableFrom(e.getClass())) {
-                    restore[i] = (T) ((clz == String.class) ? String.valueOf(e) : e);
-                }
-            }
-            return restore;
+    public static <T, R> R[] refactor(T[] original, IntFunction<R[]> generator, Function<T, R> mapper) {
+        int len = original.length;
+        R[] rs = generator.apply(len);
+        for (int i = 0; i < len; i++) {
+            rs[i] = mapper.apply(original[i]);
         }
-        return null;
+        return rs;
     }
 
     /**
