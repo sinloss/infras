@@ -1,4 +1,6 @@
-package com.sinlo.core.common.spec;
+package com.sinlo.core.common.functional;
+
+import com.sinlo.core.common.util.Try;
 
 import java.util.function.BiFunction;
 
@@ -16,11 +18,8 @@ public interface ImpatientBiFunction<T, U, R, E extends Throwable> extends BiFun
         try {
             return employ(t, u);
         } catch (Throwable e) {
-            if (e instanceof RuntimeException)
-                throw (RuntimeException) e;
-            e.printStackTrace();
+            return Try.tolerate(e);
         }
-        return null;
     }
 
 }

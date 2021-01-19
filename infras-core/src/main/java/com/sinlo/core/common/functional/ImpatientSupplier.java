@@ -1,4 +1,6 @@
-package com.sinlo.core.common.spec;
+package com.sinlo.core.common.functional;
+
+import com.sinlo.core.common.util.Try;
 
 import java.util.function.Supplier;
 
@@ -16,10 +18,7 @@ public interface ImpatientSupplier<T, E extends Throwable> extends Supplier<T> {
         try {
             return supply();
         } catch (Throwable e) {
-            if (e instanceof RuntimeException)
-                throw (RuntimeException) e;
-            e.printStackTrace();
+            return Try.tolerate(e);
         }
-        return null;
     }
 }

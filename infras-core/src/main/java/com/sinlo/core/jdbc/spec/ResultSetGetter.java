@@ -1,6 +1,6 @@
 package com.sinlo.core.jdbc.spec;
 
-import com.sinlo.core.common.spec.ImpatientBiFunction;
+import com.sinlo.core.common.functional.ImpatientBiFunction;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

@@ -1,4 +1,4 @@
-package com.sinlo.core.common.spec;
+package com.sinlo.core.common.functional;
 
 import java.util.Objects;
 

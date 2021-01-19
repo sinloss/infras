@@ -1,6 +1,6 @@
 package com.sinlo.core.jdbc.spec;
 
-import com.sinlo.core.common.spec.ImpatientTriConsumer;
+import com.sinlo.core.common.functional.ImpatientTriConsumer;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;

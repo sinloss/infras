@@ -1,6 +1,6 @@
 package com.sinlo.core.jdbc.spec;
 
-import com.sinlo.core.common.spec.ImpatientFunction;
+import com.sinlo.core.common.functional.ImpatientFunction;
 
 import java.sql.SQLException;
 

@@ -1,4 +1,6 @@
-package com.sinlo.core.common.spec;
+package com.sinlo.core.common.functional;
+
+import com.sinlo.core.common.util.Try;
 
 import java.util.function.Function;
 
@@ -16,10 +18,7 @@ public interface ImpatientFunction<T, R, E extends Throwable> extends Function<T
         try {
             return employ(t);
         } catch (Throwable e) {
-            if (e instanceof RuntimeException)
-                throw (RuntimeException) e;
-            e.printStackTrace();
+            return Try.tolerate(e);
         }
-        return null;
     }
 }

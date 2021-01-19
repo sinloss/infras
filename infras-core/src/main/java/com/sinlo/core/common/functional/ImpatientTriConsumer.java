@@ -1,4 +1,6 @@
-package com.sinlo.core.common.spec;
+package com.sinlo.core.common.functional;
+
+import com.sinlo.core.common.util.Try;
 
 /**
  * The impatient tri-consumer who throws the specific exception ASAP
@@ -13,9 +15,7 @@ public interface ImpatientTriConsumer<T, U, V, E extends Throwable> extends TriC
         try {
             consume(t, u, v);
         } catch (Throwable e) {
-            if (e instanceof RuntimeException)
-                throw (RuntimeException) e;
-            e.printStackTrace();
+            Try.tolerate(e);
         }
     }
 }
