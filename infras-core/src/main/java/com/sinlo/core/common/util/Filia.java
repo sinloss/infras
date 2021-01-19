@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 /**
  * Filia the file util
  * <br/><strike>Filia wants to manipulate fire, so that she can burn files!</strike>
+ *
  * @author sinlo
  */
 public class Filia {
@@ -119,6 +120,13 @@ public class Filia {
      */
     public Path path() {
         return this.p;
+    }
+
+    /**
+     * Get the absolute path of the {@link #p}
+     */
+    public Path absolute() {
+        return this.p.toAbsolutePath();
     }
 
     /**
