@@ -45,6 +45,13 @@ public class It<T, Sidecar> {
     }
 
     /**
+     * Create it without any {@link #sidecar}
+     */
+    public static <T> It<T, Void> just(T t) {
+        return self(t).without();
+    }
+
+    /**
      * The fluent builder
      */
     public static class Self<T> {
@@ -56,13 +63,16 @@ public class It<T, Sidecar> {
         }
 
         /**
-         * Build a {@link It} with the given {@link Sidecar}
+         * Build {@link It} with the given {@link Sidecar}
          */
         public <Sidecar> It<T, Sidecar> with(Sidecar sidecar) {
             return new It<>(t, sidecar);
         }
 
-        public <Sidecar> It<T, Sidecar> withNothing() {
+        /**
+         * Build {@link It} with anything
+         */
+        public It<T, Void> without() {
             return new It<>(t, null);
         }
     }
