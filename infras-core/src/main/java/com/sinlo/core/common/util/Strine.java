@@ -2,7 +2,7 @@ package com.sinlo.core.common.util;
 
 /**
  * Strine the string util
- *
+ * <br/><strike>Oh, Do australians love string?</strike>
  * @author sinlo
  */
 public class Strine {

@@ -4,6 +4,7 @@ import java.util.UUID;
 
 /**
  * Edi the id util
+ * <br/><strike>Edi<u>son</u> always invents new UUIDs</strike>
  *
  * @author sinlo
  */

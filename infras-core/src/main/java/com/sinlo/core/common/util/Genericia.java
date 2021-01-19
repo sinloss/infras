@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 /**
  * Genericia the generic util
- *
+ * <br/><strike>Genericia generally generously generate generic genealogy of types</strike>
  * @author sinlo
  */
 public class Genericia {

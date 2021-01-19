@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 
 /**
  * Funny the function util
+ * <br/><strike>Funny is the most funny and functional name, ever!</strike>
  *
  * @author sinlo
  */

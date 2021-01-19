@@ -9,6 +9,7 @@ import java.util.function.IntFunction;
 
 /**
  * Arria the array util
+ * <br/><strike>Ar<u>ria</u>(ya) Stark is the one who killed the Night King, and saved us all</strike>
  *
  * @author sinlo
  */

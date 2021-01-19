@@ -14,6 +14,8 @@ import java.util.HashMap;
 
 /**
  * Jason the json util
+ * <br/><strike>Jason boarded Argo, went for the Golden fleece ...</strike>
+ * <br/><strike>yet finally ended up just parsing json objects for days</strike>
  *
  * @author sinlo
  */

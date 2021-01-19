@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 
 /**
  * Loki the lock util
+ * <br/><strike>Loki find it more interesting here locking objects than fighting against Thor </strike>
  *
  * @author sinlo
  */

@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 
 /**
  * Filia the file util
- *
+ * <br/><strike>Filia wants to manipulate fire, so that she can burn files!</strike>
  * @author sinlo
  */
 public class Filia {

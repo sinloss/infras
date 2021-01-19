@@ -9,6 +9,7 @@ import java.util.function.Consumer;
 
 /**
  * Eveny the event model
+ * <br/><strike>Eveny is truly curious, sweet, caring...especially curious, curious about EVENTS</strike>
  *
  * @param <K> the event key type
  * @param <V> the event payload type

@@ -10,6 +10,7 @@ import java.util.TimeZone;
 
 /**
  * Daty the date util
+ * <br/><strike>Daty wants to date with the date</strike>
  *
  * @author sinlo
  */

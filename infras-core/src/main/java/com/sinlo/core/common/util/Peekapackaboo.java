@@ -14,6 +14,7 @@ import java.util.stream.Stream;
 
 /**
  * Peek into a package for classes
+ * <br/><strike>Do you want to play peekaboo inside the package?</strike>
  *
  * @author sinlo
  */
