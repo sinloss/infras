@@ -1,7 +1,5 @@
 package com.sinlo.core.common.util;
 
-import com.sinlo.core.common.spec.ImpatientSupplier;
-
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -18,6 +16,13 @@ public class Funny {
      */
     public static <T> T identity(T t) {
         return t;
+    }
+
+    /**
+     * A function that returns null
+     */
+    public static <T, R> R nil(T t) {
+        return null;
     }
 
     /**
@@ -46,30 +51,6 @@ public class Funny {
      */
     public static <T> T nvl(T nullable, Supplier<T> ifNull) {
         return nullable == null ? ifNull.get() : nullable;
-    }
-
-    /**
-     * Leniently get supplies from the supplier that throws exceptions, meaning suppress the
-     * underlying exceptions
-     *
-     * @see ImpatientSupplier#get()
-     */
-    public static <T, E extends Throwable> T leniently(ImpatientSupplier<T, E> supplier) {
-        return supplier.get();
-    }
-
-    /**
-     * Similar to {@link #leniently(ImpatientSupplier)} but throws the caught exceptions
-     */
-    public static <T, E extends Throwable> T panic(ImpatientSupplier<T, E> supplier) {
-        try {
-            return supplier.get();
-        } catch (Throwable e) {
-            if (e instanceof RuntimeException) {
-                throw e;
-            }
-            throw new RuntimeException(e);
-        }
     }
 
 }
