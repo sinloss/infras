@@ -83,7 +83,7 @@ public class Try<R, E extends Throwable> {
      */
     public R exert() {
         try {
-            return this.closure.get();
+            return this.closure.supply();
         } catch (Throwable e) {
             // try to get a fallback matching the type of the caught throwable
             return match(e.getClass()).apply(e);
@@ -121,7 +121,11 @@ public class Try<R, E extends Throwable> {
      * @see ImpatientSupplier#get()
      */
     public static <T, E extends Throwable> T tolerate(ImpatientSupplier<T, E> supplier) {
-        return supplier.get();
+        try {
+            return supplier.supply();
+        } catch (Throwable e) {
+            return tolerate(e);
+        }
     }
 
     /**
@@ -131,7 +135,11 @@ public class Try<R, E extends Throwable> {
      * @see ImpatientSupplier#get()
      */
     public static <E extends Throwable> void tolerate(ImpatientRunnable<E> runnable) {
-        runnable.run();
+        try {
+            runnable.runs();
+        } catch (Throwable e) {
+            tolerate(e);
+        }
     }
 
     /**
@@ -155,7 +163,7 @@ public class Try<R, E extends Throwable> {
      */
     public static <T, E extends Throwable> T panic(ImpatientSupplier<T, E> supplier) {
         try {
-            return supplier.get();
+            return supplier.supply();
         } catch (Throwable e) {
             return toss(e);
         }
