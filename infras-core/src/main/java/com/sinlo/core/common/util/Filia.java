@@ -868,8 +868,8 @@ public class Filia {
             return Try.panic(() -> new Sequence(root, parts,
                     // Prepend a 0 to the stream as the root must be in the seq no matter the
                     // file exists or not.
-                    Stream.concat(Stream.of(0), Files.list(root.path().getParent())
-                            .map(Parts::from)
+                    Stream.concat(Stream.of(0), root.parent().mustExist().list()
+                            .map(Filia::parts)
                             .filter(p -> p.basename.startsWith(parts.basename)
                                     && p.extension.equals(parts.extension))
                             .map(Parts::getBasename)
