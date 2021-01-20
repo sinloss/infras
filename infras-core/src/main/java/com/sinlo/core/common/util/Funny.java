@@ -1,8 +1,6 @@
 package com.sinlo.core.common.util;
 
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 
 /**
  * Funny the function util
@@ -44,6 +42,20 @@ public class Funny {
         return (t) -> {
             proc.accept(t);
             return null;
+        };
+    }
+
+    /**
+     * Opposite to the {@link #voided(Consumer)}, this will convert the given
+     * {@link BiConsumer} to a valid {@link BiFunction} that returns the first
+     * parameter. In some scenarios the given {@code voided} is a setter with
+     * no return value, then the first parameter will be the instance to which
+     * the setter belongs
+     */
+    public static <T, A> BiFunction<T, A, T> cascade(BiConsumer<T, A> voided) {
+        return (t, a) -> {
+            voided.accept(t, a);
+            return t;
         };
     }
 
