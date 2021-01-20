@@ -348,6 +348,14 @@ public class Filia {
     }
 
     /**
+     * @see #mustExist(Path)
+     */
+    public Filia mustExist() {
+        mustExist(p);
+        return this;
+    }
+
+    /**
      * @see #mustRegular(Path)
      */
     public Filia mustRegular() {
@@ -425,7 +433,6 @@ public class Filia {
      * Get a {@link Parts} of the current file
      */
     public Parts parts() {
-        mustRegular(p);
         return Parts.from(p);
     }
 
@@ -664,6 +671,13 @@ public class Filia {
     }
 
     /**
+     * Panic if the given {@link Path} is not present
+     */
+    public static void mustExist(Path path) {
+        IllegalPathException.check(Files::exists, path, "present");
+    }
+
+    /**
      * Create a locker for the given path
      */
     public static Lock locker(Path path) {
@@ -880,7 +894,7 @@ public class Filia {
         private final AtomicInteger size;
 
         private Sequence(Filia root, Parts parts, NavigableSet<Integer> seq) {
-            this.root = Objects.requireNonNull(root).mustRegular();
+            this.root = Objects.requireNonNull(root);
             this.parts = parts;
             this.seq = Objects.requireNonNull(seq);
             this.size = new AtomicInteger(seq.size());
