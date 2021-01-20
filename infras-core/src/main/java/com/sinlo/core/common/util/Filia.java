@@ -523,6 +523,45 @@ public class Filia {
         return resolve(name).map(Filia::rm).orElse(false);
     }
 
+    /**
+     * Just rename
+     *
+     * @param name new filename
+     */
+    public Filia rename(String name, CopyOption... options) {
+        if (Objects.requireNonNull(name).contains(File.pathSeparator)) {
+            throw new InvalidPathException(name,
+                    String.format("The filename must not contains %s", File.pathSeparator));
+        }
+        return mv(name, options);
+    }
+
+    /**
+     * Rename with a function that accepts the current filename represented by
+     * a {@link Parts}
+     */
+    public Filia rename(Function<Parts, String> resolver, CopyOption... options) {
+        return rename(resolver.apply(parts()), options);
+    }
+
+    /**
+     * Move to the target location where the {@code to} is resolved by the {@link #p}
+     *
+     * @return the {@link Filia} to the target location {@code to}
+     */
+    public Filia mv(String to, CopyOption... options) {
+        return new Filia(Try.panic(() -> Files.move(p, p.resolve(to), options)));
+    }
+
+    /**
+     * Copy to the target location where the {@code to} is resolved by the {@link #p}
+     *
+     * @return the {@link Filia} to the target location {@code to}
+     */
+    public Filia cp(String to, CopyOption... options) {
+        return new Filia(Try.panic(() -> Files.copy(p, p.resolve(to), options)));
+    }
+
     @Override
     public String toString() {
         return this.p.toString();
@@ -1065,10 +1104,11 @@ public class Filia {
         }
     }
 
-    public static class IllegalPathException extends RuntimeException {
+    public static class IllegalPathException extends InvalidPathException {
 
         public IllegalPathException(Path path, String expected) {
-            super(String.format("The path %s is not a %s", path, expected));
+            super(path.toString(), String.format(
+                    "The path %s is not a %s", path, expected));
         }
 
         public static void check(Predicate<Path> predicate, Path path, String expected) {
