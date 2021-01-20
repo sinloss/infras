@@ -54,11 +54,7 @@ public class Filia {
      * @see Files#createTempDirectory(String, FileAttribute[])
      */
     public static Filia temp(String prefix, FileAttribute<?>... attrs) {
-        try {
-            return new Filia(Files.createTempDirectory(prefix, attrs));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return Try.panic(() -> new Filia(Files.createTempDirectory(prefix, attrs)));
     }
 
     private Filia(Path path) {
@@ -67,12 +63,8 @@ public class Filia {
 
     private Filia(Path path, boolean ensure) {
         this.p = Objects.requireNonNull(path);
-        if (ensure && !Files.exists(this.p)) try {
-            // create if not exist
-            Files.createDirectories(this.p);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        if (ensure && !Files.exists(this.p))
+            Try.tolerate(() -> Files.createDirectories(this.p));
     }
 
     /**
@@ -101,11 +93,8 @@ public class Filia {
      * @see Files#createSymbolicLink(Path, Path, FileAttribute[])
      */
     public Filia ln(Path link, FileAttribute<?>... attrs) {
-        try {
-            return new Filia(Files.createSymbolicLink(link, this.p, attrs));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return Try.panic(() ->
+                new Filia(Files.createSymbolicLink(link, this.p, attrs)));
     }
 
     /**
@@ -194,11 +183,8 @@ public class Filia {
      * Get a {@link FileOutputStream} targeting to the {@link #p}
      */
     public FileOutputStream fos(boolean append) {
-        try {
-            return new FileOutputStream(this.p.toFile(), append);
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+        return Try.panic(() ->
+                new FileOutputStream(this.p.toFile(), append));
     }
 
     /**
@@ -382,11 +368,7 @@ public class Filia {
      * @see Files#lines(Path, Charset)
      */
     public Stream<String> lines(Charset charset) {
-        try {
-            return Files.lines(p, charset);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return Try.panic(() -> Files.lines(p, charset));
     }
 
     /**
@@ -394,11 +376,7 @@ public class Filia {
      * the paths to {@link Filia} instances
      */
     public Stream<Filia> walk(int depth, FileVisitOption... options) {
-        try {
-            return Files.walk(p, depth, options).map(Filia::new);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return Try.panic(() -> Files.walk(p, depth, options).map(Filia::new));
     }
 
     /**
@@ -413,11 +391,7 @@ public class Filia {
      * instances
      */
     public Stream<Filia> list() {
-        try {
-            return Files.list(p).map(Filia::new);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return Try.panic(() -> Files.list(p).map(Filia::new));
     }
 
     /**
@@ -440,22 +414,14 @@ public class Filia {
      * @see Files#getLastModifiedTime(Path, LinkOption...)
      */
     public FileTime getLastModifiedTime(LinkOption... options) {
-        try {
-            return Files.getLastModifiedTime(p, options);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return Try.panic(() -> Files.getLastModifiedTime(p, options));
     }
 
     /**
      * @see Files#probeContentType(Path)
      */
     public String probeContentType() {
-        try {
-            return Files.probeContentType(this.p);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return Try.panic(() -> Files.probeContentType(this.p));
     }
 
     /**
@@ -497,11 +463,7 @@ public class Filia {
      * @see Files#isHidden(Path)
      */
     public boolean isHidden() {
-        try {
-            return Files.isHidden(p);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return Try.panic(() -> Files.isHidden(p));
     }
 
     /**
@@ -515,11 +477,7 @@ public class Filia {
      * @see Files#isSameFile(Path, Path)
      */
     public boolean isSameWith(Path other) {
-        try {
-            return Files.isSameFile(p, other);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return Try.panic(() -> Files.isSameFile(p, other));
     }
 
     /**
@@ -574,11 +532,8 @@ public class Filia {
      * Get the corresponding {@link PrintWriter} of the given path
      */
     public static PrintWriter printer(Path path, boolean append) {
-        try {
-            return new PrintWriter(new FileOutputStream(path.toFile(), append));
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+        return Try.panic(() ->
+                new PrintWriter(new FileOutputStream(path.toFile(), append)));
     }
 
     /**
@@ -600,8 +555,9 @@ public class Filia {
             while ((len = is.read(buf)) != -1) baos.write(buf, 0, len);
             return baos.toByteArray();
         } catch (IOException e) {
-            if (panic) throw new RuntimeException(e);
-            e.printStackTrace();
+            if (panic)
+                return Try.toss(e);
+            Try.tolerate(e);
             return new byte[0];
         }
     }
@@ -908,39 +864,35 @@ public class Filia {
          * Create a sequence for the given {@link Filia}
          */
         public static Sequence of(Filia root) {
-            try {
-                Parts parts = root.parts();
-                return new Sequence(root, parts,
-                        // Prepend a 0 to the stream as the root must be in the seq no matter the
-                        // file exists or not.
-                        Stream.concat(Stream.of(0), Files.list(root.path().getParent())
-                                .map(Parts::from)
-                                .filter(p -> p.basename.startsWith(parts.basename)
-                                        && p.extension.equals(parts.extension))
-                                .map(Parts::getBasename)
-                                .map(n -> n.substring(parts.basename.length()))
-                                // Non empty, meaning the root file is excluded here as a stream of 0
-                                // will be prepended at be beginning of the stream. The 0 represents
-                                // the root file in the context of sequence
-                                .filter(Strine::nonEmpty)
-                                // Parse to int, and all the non-numeric values who would throw a
-                                // NumberFormatException will be turned into nulls and be filtered
-                                // off in the next operation
-                                .map(n -> Try.of(() -> Integer.parseInt(n))
-                                        .caught(NumberFormatException.class)
-                                        .thenNull()
-                                        .otherwiseNull()
-                                        .exert())
-                                .filter(Objects::nonNull)
-                                // Only accepts positive values. Since the 0 has already been prepended
-                                // ignore the file that has a 0 as it's suffix
-                                .filter(i -> i > 0))
-                                // ascending
-                                .sorted()
-                                .collect(Collin.toSkipList()));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            Parts parts = root.parts();
+            return Try.panic(() -> new Sequence(root, parts,
+                    // Prepend a 0 to the stream as the root must be in the seq no matter the
+                    // file exists or not.
+                    Stream.concat(Stream.of(0), Files.list(root.path().getParent())
+                            .map(Parts::from)
+                            .filter(p -> p.basename.startsWith(parts.basename)
+                                    && p.extension.equals(parts.extension))
+                            .map(Parts::getBasename)
+                            .map(n -> n.substring(parts.basename.length()))
+                            // Non empty, meaning the root file is excluded here as a stream of 0
+                            // will be prepended at be beginning of the stream. The 0 represents
+                            // the root file in the context of sequence
+                            .filter(Strine::nonEmpty)
+                            // Parse to int, and all the non-numeric values who would throw a
+                            // NumberFormatException will be turned into nulls and be filtered
+                            // off in the next operation
+                            .map(n -> Try.of(() -> Integer.parseInt(n))
+                                    .caught(NumberFormatException.class)
+                                    .thenNull()
+                                    .otherwiseNull()
+                                    .exert())
+                            .filter(Objects::nonNull)
+                            // Only accepts positive values. Since the 0 has already been prepended
+                            // ignore the file that has a 0 as it's suffix
+                            .filter(i -> i > 0))
+                            // ascending
+                            .sorted()
+                            .collect(Collin.toSkipList())));
         }
 
         /**
@@ -1105,14 +1057,11 @@ public class Filia {
          * to register a {@link WatchKey} and start polling
          */
         public ScheduledFuture<?> perform(Consumer<WatchEvent<?>> handler) {
-            try {
-                final WatchKey wk = Filia.this.p.register(service.get(), events, modifiers);
-                return this.ex.get().scheduleAtFixedRate(
-                        () -> wk.pollEvents().forEach(handler),
-                        interval, interval, TimeUnit.MILLISECONDS);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            final WatchKey wk = Try.panic(() ->
+                    Filia.this.p.register(service.get(), events, modifiers));
+            return this.ex.get().scheduleAtFixedRate(
+                    () -> wk.pollEvents().forEach(handler),
+                    interval, interval, TimeUnit.MILLISECONDS);
         }
     }
 
