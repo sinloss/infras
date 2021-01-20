@@ -1,5 +1,8 @@
 package com.sinlo.core.common.wraparound;
 
+import com.sinlo.core.common.functional.ImpatientSupplier;
+import com.sinlo.core.common.util.Try;
+
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -16,6 +19,21 @@ public class Lazy<T> {
 
     public Lazy(Supplier<T> initializer) {
         this.initializer = initializer;
+    }
+
+    public <E extends Throwable> Lazy(ImpatientSupplier<T, E> initializer) {
+        this(Try.panicked(initializer));
+    }
+
+    public static <T> Lazy<T> of(Supplier<T> initializer) {
+        return new Lazy<>(initializer);
+    }
+
+    /**
+     * Accept an initializer that may throws exceptions
+     */
+    public static <T, E extends Throwable> Lazy<T> of(ImpatientSupplier<T, E> initializer) {
+        return new Lazy<>(initializer);
     }
 
     public T get() {

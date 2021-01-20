@@ -1,5 +1,8 @@
 package com.sinlo.core.common.wraparound;
 
+import com.sinlo.core.common.functional.ImpatientSupplier;
+
+import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
@@ -13,12 +16,18 @@ public class SureThreadLocal<T> {
     private final Supplier<T> supplier;
 
     private SureThreadLocal(Supplier<T> supplier) {
-        local.set((this.supplier = supplier).get());
+        local.set((this.supplier =
+                Objects.requireNonNull(supplier)).get());
     }
 
     public static <T> SureThreadLocal<T> of(Supplier<T> supplier) {
-        if (supplier == null)
-            throw new IllegalArgumentException("The [ supplier ] is mandatory");
+        return new SureThreadLocal<>(supplier);
+    }
+
+    /**
+     * Accept an initializer that may throws exceptions
+     */
+    public static <T, E extends Throwable> SureThreadLocal<T> of(ImpatientSupplier<T, E> supplier) {
         return new SureThreadLocal<>(supplier);
     }
 
