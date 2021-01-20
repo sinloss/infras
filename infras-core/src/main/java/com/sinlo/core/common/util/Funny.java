@@ -66,4 +66,11 @@ public class Funny {
         return nullable == null ? ifNull.get() : nullable;
     }
 
+    /**
+     * Similar to {@link #nvl(Object, Supplier)} but directly accept the fallback
+     * value
+     */
+    public static <T> T nvl(T nullable, T fallback) {
+        return nullable == null ? fallback : nullable;
+    }
 }
