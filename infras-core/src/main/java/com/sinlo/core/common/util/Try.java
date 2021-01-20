@@ -1,5 +1,6 @@
 package com.sinlo.core.common.util;
 
+import com.sinlo.core.common.functional.ImpatientRunnable;
 import com.sinlo.core.common.functional.ImpatientSupplier;
 
 import java.util.Arrays;
@@ -7,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * The fluent style try
@@ -123,6 +125,32 @@ public class Try<R, E extends Throwable> {
     }
 
     /**
+     * Leniently run the runnable that throws exceptions, meaning suppress the underlying
+     * exceptions
+     *
+     * @see ImpatientSupplier#get()
+     */
+    public static <E extends Throwable> void tolerate(ImpatientRunnable<E> runnable) {
+        runnable.run();
+    }
+
+    /**
+     * Similar to {@link #tolerate(ImpatientSupplier)} but returns a {@link Supplier}
+     * instead of getting a supply from it
+     */
+    public static <T, E extends Throwable> Supplier<T> tolerated(ImpatientSupplier<T, E> supplier) {
+        return supplier;
+    }
+
+    /**
+     * Similar to {@link #tolerate(ImpatientRunnable)} but returns a {@link Runnable}
+     * instead of running it
+     */
+    public static <E extends Throwable> Runnable tolerated(ImpatientRunnable<E> runnable) {
+        return runnable;
+    }
+
+    /**
      * Similar to {@link #tolerate(ImpatientSupplier)} but throws the caught exceptions
      */
     public static <T, E extends Throwable> T panic(ImpatientSupplier<T, E> supplier) {
@@ -131,6 +159,33 @@ public class Try<R, E extends Throwable> {
         } catch (Throwable e) {
             return toss(e);
         }
+    }
+
+    /**
+     * Similar to {@link #tolerate(ImpatientRunnable)} but throws the caught exceptions
+     *
+     * @see ImpatientSupplier#get()
+     */
+    public static <E extends Throwable> void panic(ImpatientRunnable<E> runnable) {
+        try {
+            runnable.runs();
+        } catch (Throwable e) {
+            toss(e);
+        }
+    }
+
+    /**
+     * Similar to {@link #tolerated(ImpatientSupplier)} but throws the caught exceptions
+     */
+    public static <T, E extends Throwable> Supplier<T> panicked(ImpatientSupplier<T, E> supplier) {
+        return () -> panic(supplier);
+    }
+
+    /**
+     * Similar to {@link #tolerated(ImpatientRunnable)} but throws the caught exceptions
+     */
+    public static <E extends Throwable> Runnable panicked(ImpatientRunnable<E> runnable) {
+        return () -> panic(runnable);
     }
 
     /**
