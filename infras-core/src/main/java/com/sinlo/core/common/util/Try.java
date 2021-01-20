@@ -55,6 +55,13 @@ public class Try<R, E extends Throwable> {
     }
 
     /**
+     * Easily set the direct value
+     */
+    public Try<R, E> otherwise(R value) {
+        return this.otherwise(e -> value);
+    }
+
+    /**
      * Equivalent to <pre>{@code
      *      this.otherwise(Funny::toss);
      * }</pre>
@@ -94,6 +101,55 @@ public class Try<R, E extends Throwable> {
         return fallbacks.entrySet().stream()
                 .filter(entry -> entry.getKey().isAssignableFrom(type))
                 .findFirst().map(Map.Entry::getValue).orElse(otherwise);
+    }
+
+    /**
+     * A caught fallback builder
+     */
+    public class Caught {
+
+        private final Class<? extends Throwable>[] types;
+
+        private Caught(Class<? extends Throwable>[] types) {
+            this.types = types;
+        }
+
+        /**
+         * Associate the given {@code fallback} with the {@link #types} by putting them
+         * into the {@link #fallbacks}
+         */
+        public Try<R, E> then(Function<Throwable, R> fallback) {
+            Arrays.stream(types).forEach(t -> Try.this.fallbacks.put(t, fallback));
+            return Try.this;
+        }
+
+        public Try<R, E> then(R value) {
+            return then(e -> value);
+        }
+
+        /**
+         * Equivalent to <pre>{@code
+         *      this.then(Funny::toss);
+         * }</pre>
+         *
+         * @see #then(Function)
+         * @see #toss(Throwable)
+         */
+        public Try<R, E> thenThrow() {
+            return then(Try::toss);
+        }
+
+        /**
+         * Equivalent to <pre>{@code
+         *      this.then(Funny::nil);
+         * }</pre>
+         *
+         * @see #then(Function)
+         * @see #toss(Throwable)
+         */
+        public Try<R, E> thenNull() {
+            return then(Funny::nil);
+        }
     }
 
     /**
@@ -196,48 +252,4 @@ public class Try<R, E extends Throwable> {
         return () -> panic(runnable);
     }
 
-    /**
-     * A caught fallback builder
-     */
-    public class Caught {
-
-        private final Class<? extends Throwable>[] types;
-
-        private Caught(Class<? extends Throwable>[] types) {
-            this.types = types;
-        }
-
-        /**
-         * Associate the given {@code fallback} with the {@link #types} by putting them
-         * into the {@link #fallbacks}
-         */
-        public Try<R, E> then(Function<Throwable, R> fallback) {
-            Arrays.stream(types).forEach(t -> Try.this.fallbacks.put(t, fallback));
-            return Try.this;
-        }
-
-        /**
-         * Equivalent to <pre>{@code
-         *      this.then(Funny::toss);
-         * }</pre>
-         *
-         * @see #then(Function)
-         * @see #toss(Throwable)
-         */
-        public Try<R, E> thenThrow() {
-            return then(Try::toss);
-        }
-
-        /**
-         * Equivalent to <pre>{@code
-         *      this.then(Funny::nil);
-         * }</pre>
-         *
-         * @see #then(Function)
-         * @see #toss(Throwable)
-         */
-        public Try<R, E> thenNull() {
-            return then(Funny::nil);
-        }
-    }
 }
