@@ -921,6 +921,8 @@ public class Filia {
                                 // Only accepts positive values. Since the 0 has already been prepended
                                 // ignore the file that has a 0 as it's suffix
                                 .filter(i -> i > 0))
+                                // ascending
+                                .sorted()
                                 .collect(Collin.toSkipList()));
             } catch (IOException e) {
                 throw new RuntimeException(e);
