@@ -1,5 +1,6 @@
 package com.sinlo.core.common.wraparound;
 
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -11,9 +12,9 @@ import java.util.function.Function;
  */
 public class Two<O, A> {
 
-    public final O one;
+    private final O one;
 
-    public final A another;
+    private final A another;
 
     public final Case c;
 
@@ -77,6 +78,14 @@ public class Two<O, A> {
             default:
                 throw new NeitherException();
         }
+    }
+
+    public Optional<O> one() {
+        return Optional.ofNullable(one);
+    }
+
+    public Optional<A> another() {
+        return Optional.ofNullable(another);
     }
 
     public enum Case {
