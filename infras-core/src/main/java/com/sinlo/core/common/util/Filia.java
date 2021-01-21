@@ -558,10 +558,11 @@ public class Filia {
     /**
      * Copy to the target location where the {@code to} is resolved by the {@link #p}
      *
-     * @return the {@link Filia} to the target location {@code to}
+     * @return a {@link Two} whose {@code two.one} is the source {@link Filia} and {@code two.another}
+     * the {@link Filia} of the target location {@code to}
      */
-    public Filia cp(String to, CopyOption... options) {
-        return new Filia(Try.panic(() -> Files.copy(p, p.resolve(to), options)));
+    public Two<Filia, Filia> cp(String to, CopyOption... options) {
+        return Two.two(this, new Filia(Try.panic(() -> Files.copy(p, p.resolve(to), options))));
     }
 
     @Override
