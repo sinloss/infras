@@ -26,6 +26,6 @@ class FetchaTest extends Specification {
         expect:
         course.get("").fetch()
                 .thenApply({ it -> it.text() })
-                .join() != ""
+                .join().isPresent()
     }
 }

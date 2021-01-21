@@ -1,9 +1,7 @@
 package com.sinlo.core.http.spec;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.sinlo.core.common.util.Arria;
-import com.sinlo.core.common.util.Filia;
-import com.sinlo.core.common.util.Jason;
+import com.sinlo.core.common.util.*;
 import com.sinlo.core.common.wraparound.Lazy;
 
 import java.io.IOException;
@@ -11,9 +9,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -27,9 +23,17 @@ public class Response {
     private final Lazy<Map<String, List<String>>> headers;
     private final HttpURLConnection conn;
     private Charset charset = StandardCharsets.UTF_8;
+    private final Lazy<Status> status;
+
+    /**
+     * Whens holds handlers for some specific http statuses. Any handler can abort the
+     * following handling processes by returning {@code false}
+     */
+    private final Map<Status, Function<Response, Boolean>> whens = new HashMap<>();
 
     private Response(HttpURLConnection conn) {
         this.headers = new Lazy<>(conn::getHeaderFields);
+        this.status = new Lazy<>(() -> Status.resolve(Try.panic(conn::getResponseCode)));
         this.conn = conn;
     }
 
@@ -46,6 +50,13 @@ public class Response {
     public Response with(Charset charset) {
         this.charset = charset == null ? StandardCharsets.UTF_8 : charset;
         return this;
+    }
+
+    /**
+     * Get the {@link Status} of the current response
+     */
+    public Status status() {
+        return status.get();
     }
 
     /**
@@ -82,11 +93,24 @@ public class Response {
     }
 
     /**
+     * Create a {@link When} builder to build status code handlers
+     */
+    public When when(Status... statuses) {
+        return new When(statuses);
+    }
+
+    /**
      * Get the content {@link InputStream} and map it to a {@link T}
      */
-    public <T> T map(Function<InputStream, T> mapper) {
+    public <T> Optional<T> map(Function<InputStream, T> mapper) {
+        Status sta = status.get();
+        if (!Funny.nvl(Funny.maybe(
+                whens.get(sta), h -> h.apply(this)), true)) {
+            // abort by the handler
+            return Optional.empty();
+        }
         try (InputStream is = this.conn.getInputStream()) {
-            return mapper.apply(is);
+            return Optional.ofNullable(mapper.apply(is));
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
@@ -97,22 +121,70 @@ public class Response {
     /**
      * Get the text content
      */
-    public String text() {
+    public Optional<String> text() {
         return map(is -> new String(Filia.drain(is), charset));
     }
 
     /**
      * Parse the text content to {@link T}
      */
-    public <T> T json(Class<T> clz) {
-        return Jason.parse(text(), clz);
+    public <T> Optional<T> json(Class<T> clz) {
+        return text().map(t -> Jason.parse(t, clz));
     }
 
     /**
      * Parse the text content to {@link T} using {@link TypeReference}
      */
-    public <T> T json(TypeReference<T> typeReference) {
-        return Jason.parse(text(), typeReference);
+    public <T> Optional<T> json(TypeReference<T> typeReference) {
+        return text().map(t -> Jason.parse(t, typeReference));
     }
 
+    /**
+     * The status code handler builder
+     */
+    public class When {
+
+        private final Status[] statuses;
+
+        private When(Status[] statuses) {
+            this.statuses = statuses;
+        }
+
+        /**
+         * Then apply the given {@code handle}
+         */
+        public Response then(Function<Response, Boolean> handle) {
+            Arrays.stream(statuses).forEach(s -> Response.this.whens.put(s, handle));
+            return Response.this;
+        }
+
+        /**
+         * Then throw an {@link UnresolvableStatusException}
+         */
+        public Response thenThrow() {
+            return then(UnresolvableStatusException::toss);
+        }
+
+        /**
+         * Then abort following processes
+         */
+        public Response thenAbort() {
+            return then(r -> false);
+        }
+    }
+
+    /**
+     * The unexpected status code
+     */
+    public static class UnresolvableStatusException extends RuntimeException {
+
+        private UnresolvableStatusException(Response response) {
+            super(String.format(
+                    "Got an unresolvable status code %s", response.status));
+        }
+
+        public static boolean toss(Response response) {
+            throw new UnresolvableStatusException(response);
+        }
+    }
 }
