@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -1115,14 +1116,14 @@ public class Filia {
         }
 
         /**
-         * Perform the given {@link Consumer}. This will finally use all provided variables
+         * Perform the given {@link BiConsumer}. This will finally use all provided variables
          * to register a {@link WatchKey} and start polling
          */
-        public Scheduled perform(Consumer<List<WatchEvent<?>>> handler) {
+        public Scheduled perform(BiConsumer<Filia, List<WatchEvent<?>>> handler) {
             final WatchKey wk = Try.panic(() ->
                     Filia.this.p.register(service.get(), events, modifiers));
             return new Scheduled(this.ex.get().scheduleAtFixedRate(
-                    () -> handler.accept(wk.pollEvents()),
+                    () -> handler.accept(Filia.this, wk.pollEvents()),
                     delay, interval, TimeUnit.MILLISECONDS), wk);
         }
 
