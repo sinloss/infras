@@ -1001,18 +1001,15 @@ public class Filia {
             if (seq.isEmpty()) {
                 // init the root member if empty
                 seq.add(0);
+                return root;
             }
             int last = seq.last();
-            Filia lastMember = of(last);
-            if (practical && !lastMember.exists()) {
-                return lastMember;
+            if (practical) {
+                Filia m = of(last);
+                if (!m.exists()) return m;
             }
-            // calculate the next
-            int next = last + 1;
-            // add
-            seq.add(next);
-            // and get
-            return of(next);
+            seq.add(++last);
+            return of(last);
         }
 
         /**
