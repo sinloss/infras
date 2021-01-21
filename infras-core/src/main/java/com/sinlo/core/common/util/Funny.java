@@ -47,15 +47,13 @@ public class Funny {
 
     /**
      * Opposite to the {@link #voided(Consumer)}, this will convert the given
-     * {@link BiConsumer} to a valid {@link BiFunction} that returns the first
-     * parameter. In some scenarios the given {@code voided} is a setter with
-     * no return value, then the first parameter will be the instance to which
-     * the setter belongs
+     * {@link Consumer} to a valid {@link Function} that returns the given
+     * {@code next}
      */
-    public static <T, A> BiFunction<T, A, T> cascade(BiConsumer<T, A> voided) {
-        return (t, a) -> {
-            voided.accept(t, a);
-            return t;
+    public static <T, A> Function<A, T> cascade(Consumer<A> voided, T next) {
+        return a -> {
+            voided.accept(a);
+            return next;
         };
     }
 
