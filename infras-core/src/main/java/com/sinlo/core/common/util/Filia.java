@@ -1030,7 +1030,8 @@ public class Filia {
                 .asDefault();
         private WatchEvent.Kind<?>[] events;
         private WatchEvent.Modifier[] modifiers = new WatchEvent.Modifier[0];
-        private long interval;
+        private long interval = 1L;
+        private long delay = 0L;
 
         private Watcher() {
         }
@@ -1068,11 +1069,33 @@ public class Filia {
         }
 
         /**
-         * Poll in every {@code interval} milliseconds
+         * Start after {@code delay} milliseconds, it is 0 milliseconds by default
+         */
+        public Watcher after(long delay) {
+            this.delay = delay;
+            return this;
+        }
+
+        /**
+         * Start after {@code delay} {@link TimeUnit}, it is 0 milliseconds by default
+         */
+        public Watcher after(long delay, TimeUnit tu) {
+            return after(tu.toMillis(delay));
+        }
+
+        /**
+         * Poll in every {@code interval} milliseconds, it is 1 milliseconds by default
          */
         public Watcher every(long interval) {
             this.interval = interval;
             return this;
+        }
+
+        /**
+         * Poll in every {@code interval} {@link TimeUnit}, it is 1 milliseconds by default
+         */
+        public Watcher every(long interval, TimeUnit tu) {
+            return every(tu.toMillis(interval));
         }
 
         /**
@@ -1100,7 +1123,7 @@ public class Filia {
                     Filia.this.p.register(service.get(), events, modifiers));
             return new Scheduled(this.ex.get().scheduleAtFixedRate(
                     () -> handler.accept(wk.pollEvents()),
-                    interval, interval, TimeUnit.MILLISECONDS), wk);
+                    delay, interval, TimeUnit.MILLISECONDS), wk);
         }
 
         /**
