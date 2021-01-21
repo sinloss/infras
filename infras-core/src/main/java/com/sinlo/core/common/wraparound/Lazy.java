@@ -36,6 +36,9 @@ public class Lazy<T> {
         return new Lazy<>(initializer);
     }
 
+    /**
+     * Get the item
+     */
     public T get() {
         T t = atomic.get();
         if (t == null) {
@@ -47,8 +50,20 @@ public class Lazy<T> {
         return t;
     }
 
+    /**
+     * Make the current {@link Lazy} as a {@link Default} which could mutate the
+     * underlying item
+     */
     public Default asDefault() {
         return new Default();
+    }
+
+    /**
+     * Create a new {@link Default} out of the current {@link Lazy} using the same
+     * {@link #initializer}
+     */
+    public Default newDefault() {
+        return of(initializer).new Default();
     }
 
     /**
