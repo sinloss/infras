@@ -1,5 +1,6 @@
 package com.sinlo.sponte.util;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -71,6 +72,27 @@ public class Pool<K, T> {
         }
         // this should never happen
         return null;
+    }
+
+    /**
+     * Get a {@link Collection} of entries in this pool
+     */
+    public Collection<Map.Entry<K, T>> entries() {
+        return pool.entrySet();
+    }
+
+    /**
+     * Get a {@link Collection} of keys in this pool
+     */
+    public Collection<K> keys() {
+        return pool.keySet();
+    }
+
+    /**
+     * Get a {@link Collection} of values in this pool
+     */
+    public Collection<T> values() {
+        return pool.values();
     }
 
     /**
