@@ -1095,12 +1095,50 @@ public class Filia {
          * Perform the given {@link Consumer}. This will finally use all provided variables
          * to register a {@link WatchKey} and start polling
          */
-        public ScheduledFuture<?> perform(Consumer<WatchEvent<?>> handler) {
+        public Scheduled perform(Consumer<List<WatchEvent<?>>> handler) {
             final WatchKey wk = Try.panic(() ->
                     Filia.this.p.register(service.get(), events, modifiers));
-            return this.ex.get().scheduleAtFixedRate(
-                    () -> wk.pollEvents().forEach(handler),
-                    interval, interval, TimeUnit.MILLISECONDS);
+            return new Scheduled(this.ex.get().scheduleAtFixedRate(
+                    () -> handler.accept(wk.pollEvents()),
+                    interval, interval, TimeUnit.MILLISECONDS), wk);
+        }
+
+        /**
+         * A container consisting of a {@link ScheduledFuture} and a {@link WatchKey}
+         */
+        public class Scheduled {
+            /**
+             * The future produced by scheduling
+             */
+            public final ScheduledFuture<?> future;
+            /**
+             * The watch key of the current watcher
+             */
+            public final WatchKey wk;
+
+            private Scheduled(ScheduledFuture<?> future, WatchKey wk) {
+                this.future = future;
+                this.wk = wk;
+            }
+
+            private boolean stop(boolean interrupt) {
+                wk.cancel();
+                return future.cancel(interrupt);
+            }
+
+            /**
+             * Cancel the {@link #wk} and {@link #future} leniently
+             */
+            public boolean cancel() {
+                return stop(false);
+            }
+
+            /**
+             * Kill the {@link #wk} and {@link #future} forcefully
+             */
+            public boolean kill() {
+                return stop(true);
+            }
         }
     }
 
