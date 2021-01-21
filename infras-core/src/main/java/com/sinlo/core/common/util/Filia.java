@@ -1078,7 +1078,9 @@ public class Filia {
              * Get the next member
              */
             public Member next() {
-                return sibling(serial + 1);
+                int next = serial + 1;
+                Sequence.this.seq.add(next);
+                return sibling(next);
             }
 
             /**
