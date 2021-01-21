@@ -25,6 +25,20 @@ public class Funny {
     }
 
     /**
+     * A function that returns true
+     */
+    public static <T> boolean aye(T t) {
+        return true;
+    }
+
+    /**
+     * A function that returns false
+     */
+    public static <T> boolean nay(T t) {
+        return false;
+    }
+
+    /**
      * A maybe that treat null like an identity function does and treat presented
      * value with the given custom function
      */
