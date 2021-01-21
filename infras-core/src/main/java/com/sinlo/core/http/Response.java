@@ -1,8 +1,9 @@
-package com.sinlo.core.http.spec;
+package com.sinlo.core.http;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.sinlo.core.common.util.*;
 import com.sinlo.core.common.wraparound.Lazy;
+import com.sinlo.core.http.spec.Status;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,6 +31,11 @@ public class Response {
      * following handling processes by returning {@code false}
      */
     private final Map<Status, Function<Response, Boolean>> whens = new HashMap<>();
+
+    /**
+     * Otherwise and, if the {@link #status} if not 2xx successful
+     */
+    private Function<Response, Boolean> otherwise;
 
     private Response(HttpURLConnection conn) {
         this.headers = new Lazy<>(conn::getHeaderFields);
@@ -100,15 +106,42 @@ public class Response {
     }
 
     /**
+     * Otherwise apply the given {@code handle}
+     */
+    public Response otherwise(Function<Response, Boolean> handle) {
+        this.otherwise = handle;
+        return this;
+    }
+
+    /**
+     * Otherwise throw an {@link UnresolvableStatusException}
+     */
+    public Response otherwiseThrow() {
+        return otherwise(UnresolvableStatusException::toss);
+    }
+
+    /**
+     * Otherwise abort following processes
+     */
+    public Response otherwiseAbort() {
+        return otherwise(r -> false);
+    }
+
+    /**
      * Get the content {@link InputStream} and map it to a {@link T}
      */
     public <T> Optional<T> map(Function<InputStream, T> mapper) {
         Status sta = status.get();
-        if (!Funny.nvl(Funny.maybe(
-                whens.get(sta), h -> h.apply(this)), true)) {
-            // abort by the handler
+        Function<Response, Boolean> h = whens.get(sta);
+        // if the handler returns false
+        if ((h != null && !Funny.nvl(h.apply(this), false))
+                // or "otherwise" returns false when it is not 2xx successful
+                || (otherwise != null && !sta.is2xxSuccessful()
+                && !Funny.nvl(otherwise.apply(this), false))) {
+            // then abort
             return Optional.empty();
         }
+
         try (InputStream is = this.conn.getInputStream()) {
             return Optional.ofNullable(mapper.apply(is));
         } catch (IOException e) {
