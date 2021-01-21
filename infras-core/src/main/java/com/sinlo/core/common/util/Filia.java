@@ -1066,6 +1066,14 @@ public class Filia {
                 return new Member(i, Sequence.this.root.self.sibling(name(i)));
             }
 
+            public int serial() {
+                return serial;
+            }
+
+            public Filia self() {
+                return self;
+            }
+
             /**
              * Get the next member
              */
