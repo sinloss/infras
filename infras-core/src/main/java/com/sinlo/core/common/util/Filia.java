@@ -151,6 +151,14 @@ public class Filia {
     }
 
     /**
+     * Apply {@link #rm(Path, Predicate)} on {@link #p}
+     */
+    public Filia rm(Predicate<Path> predicate) {
+        rm(p, predicate);
+        return this;
+    }
+
+    /**
      * Apply {@link #touch(Path)} on {@link #p}
      */
     public Filia touch() {
@@ -637,13 +645,23 @@ public class Filia {
     }
 
     /**
+     * <pre>{@code rm(path, Funny::aye)}</pre>
+     *
+     * @see #rm(Path, Predicate)
+     */
+    public static boolean rm(Path path) {
+        return rm(path, Funny::aye);
+    }
+
+    /**
      * Clear the given directory or file
      */
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    public static boolean rm(Path path) {
+    public static boolean rm(Path path, Predicate<Path> predicate) {
         try {
             if (Files.isDirectory(path)) {
-                Files.walk(path).map(Path::toFile).forEach(File::delete);
+                Files.walk(path).filter(predicate)
+                        .map(Path::toFile).forEach(File::delete);
                 return true;
             }
             Files.deleteIfExists(path);
