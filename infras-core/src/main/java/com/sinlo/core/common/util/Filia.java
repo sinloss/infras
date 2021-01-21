@@ -1,6 +1,7 @@
 package com.sinlo.core.common.util;
 
 import com.sinlo.core.common.wraparound.Lazy;
+import com.sinlo.core.common.wraparound.Two;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -881,7 +882,7 @@ public class Filia {
      */
     public static class Sequence {
 
-        private final Filia root;
+        private final Member root;
 
         private final NavigableSet<Integer> seq;
 
@@ -890,7 +891,7 @@ public class Filia {
         private final AtomicInteger size;
 
         private Sequence(Filia root, Parts parts, NavigableSet<Integer> seq) {
-            this.root = Objects.requireNonNull(root);
+            this.root = new Member(0, Objects.requireNonNull(root));
             this.parts = parts;
             this.seq = Objects.requireNonNull(seq);
             this.size = new AtomicInteger(seq.size());
@@ -957,23 +958,23 @@ public class Filia {
          * @see #name(int)
          * @see Filia#sibling(String)
          */
-        public Filia of(int i) {
+        public Member of(int i) {
             if (i == 0)
                 return root;
-            return root.sibling(name(i));
+            return root.sibling(i);
         }
 
         /**
          * Get the first member of this sequence, aka the {@link #root}
          */
-        public Filia root() {
+        public Member root() {
             return root;
         }
 
         /**
          * Get the last member of this sequence
          */
-        public Filia last() {
+        public Member last() {
             return of(seq.last());
         }
 
@@ -988,7 +989,7 @@ public class Filia {
          * Equivalent to {@code this.all(true)} which means only get the next when the last one
          * practically exists
          */
-        public Filia next() {
+        public Member next() {
             return next(true);
         }
 
@@ -997,19 +998,14 @@ public class Filia {
          * which must exist, otherwise return the {@link #last()}. If the {@code practical} is
          * given false, then just produce the a new member no matter what
          */
-        public Filia next(boolean practical) {
+        public Member next(boolean practical) {
             if (seq.isEmpty()) {
                 // init the root member if empty
                 seq.add(0);
                 return root;
             }
-            int last = seq.last();
-            if (practical) {
-                Filia m = of(last);
-                if (!m.exists()) return m;
-            }
-            seq.add(++last);
-            return of(last);
+            return Funny.maybe(last(),
+                    m -> (practical && !m.self.exists()) ? m : m.next());
         }
 
         /**
@@ -1018,7 +1014,7 @@ public class Filia {
          *
          * @see #all(boolean)
          */
-        public Stream<Filia> all() {
+        public Stream<Member> all() {
             return all(true);
         }
 
@@ -1027,12 +1023,68 @@ public class Filia {
          *
          * @param practical the file should be practically on the disk or not
          */
-        public Stream<Filia> all(boolean practical) {
-            Stream<Filia> all = seq.stream().map(this::of);
+        public Stream<Member> all(boolean practical) {
+            Stream<Member> all = seq.stream().map(this::of);
             if (!practical) {
                 return all;
             }
-            return all.filter(Filia::exists);
+            return all.filter(m -> m.self.exists());
+        }
+
+        /**
+         * The member of {@link Sequence}
+         */
+        public class Member {
+
+            /**
+             * The serial
+             */
+            public final int serial;
+
+            /**
+             * The underlying {@link Filia}
+             */
+            public final Filia self;
+
+            public Member(int serial, Filia self) {
+                this.serial = serial;
+                this.self = self;
+            }
+
+            /**
+             * The backing {@link Sequence}
+             */
+            public Sequence sequence() {
+                return Sequence.this;
+            }
+
+            /**
+             * Get a sibling of suffix {@code i}
+             */
+            public Member sibling(int i) {
+                return new Member(i, Sequence.this.root.self.sibling(name(i)));
+            }
+
+            /**
+             * Get the next member
+             */
+            public Member next() {
+                return sibling(serial + 1);
+            }
+
+            /**
+             * Get the previous member
+             */
+            public Member prev() {
+                return sibling(serial - 1);
+            }
+
+            /**
+             * Check if this member is the root member
+             */
+            public boolean isRoot() {
+                return serial == 0;
+            }
         }
     }
 
