@@ -971,6 +971,13 @@ public class Filia {
         }
 
         /**
+         * Get the last member of this sequence
+         */
+        public Filia last() {
+            return of(seq.last());
+        }
+
+        /**
          * Get the size of this sequence
          */
         public int size() {
@@ -978,17 +985,30 @@ public class Filia {
         }
 
         /**
-         * Create a new member file of this sequence having a greater serial
-         * than the last one
+         * Equivalent to {@code this.all(true)} which means only get the next when the last one
+         * practically exists
          */
         public Filia next() {
+            return next(true);
+        }
+
+        /**
+         * Create a new member file of this sequence having a greater serial than the last one
+         * which must exist, otherwise return the {@link #last()}. If the {@code practical} is
+         * given false, then just produce the a new member no matter what
+         */
+        public Filia next(boolean practical) {
             if (seq.isEmpty()) {
                 // init the root member if empty
                 seq.add(0);
-                return root;
+            }
+            int last = seq.last();
+            Filia lastMember = of(last);
+            if (practical && !lastMember.exists()) {
+                return lastMember;
             }
             // calculate the next
-            int next = seq.last() + 1;
+            int next = last + 1;
             // add
             seq.add(next);
             // and get
