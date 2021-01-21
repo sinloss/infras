@@ -72,7 +72,7 @@ public class Pools {
                                                         Consumer<V> onExpired) {
             return new Expiring<>(Objects.requireNonNull(onExpired), delay, fixed);
         }
-        
+
         @Override
         public V get(K key) {
             return derive(underlying.get(key));
@@ -106,11 +106,10 @@ public class Pools {
                         // then, fresh the delay
                         it.sidecar().ifPresent(this::refresh);
                     }
-                    return it.self().with(it.sidecar);
-                } catch (AsIs a) {
-                    // keep it as is
-                    return it;
+                } catch (AsIs ignored) {
+                    // skip to here to keep "it" as is
                 }
+                return it;
             }));
         }
 

@@ -2,14 +2,15 @@ package com.sinlo.core.common.wraparound;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * A simple container of the target object itself with a sidecar
  */
 public class It<T, Sidecar> {
 
-    public final T t;
-    public final Sidecar sidecar;
+    private T t;
+    private Sidecar sidecar;
 
     private It(T t, Sidecar sidecar) {
         this.t = t;
@@ -28,6 +29,26 @@ public class It<T, Sidecar> {
      */
     public Optional<Sidecar> sidecar() {
         return Optional.ofNullable(sidecar);
+    }
+
+    /**
+     * Mutate the item
+     *
+     * @param selfMutation the mutate function
+     */
+    public It<T, Sidecar> mutate(Function<T, T> selfMutation) {
+        this.t = Objects.requireNonNull(selfMutation.apply(this.t));
+        return this;
+    }
+
+    /**
+     * Mutate the sidecar
+     *
+     * @param sidecarMutation the mutate function
+     */
+    public It<T, Sidecar> sidecarMutate(Function<Sidecar, Sidecar> sidecarMutation) {
+        this.sidecar = sidecarMutation.apply(sidecar);
+        return this;
     }
 
     /**
