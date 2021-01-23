@@ -1,5 +1,6 @@
 package com.sinlo.core.common.util;
 
+import com.sinlo.core.common.wraparound.It;
 import com.sinlo.core.common.wraparound.Lazy;
 import com.sinlo.core.common.wraparound.Two;
 
@@ -645,6 +646,8 @@ public class Filia {
 
     /**
      * <pre>{@code rm(path, Funny::aye)}</pre>
+     * A double sequential call on the same folder will remove the directory according to
+     * the behavior of the {@link #rm(Path, Predicate)}
      *
      * @see #rm(Path, Predicate)
      */
@@ -653,15 +656,20 @@ public class Filia {
     }
 
     /**
-     * Clear the given directory or file
+     * Clear the given directory or delete the file, and the folder itself if
+     * it is empty
      */
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static boolean rm(Path path, Predicate<Path> predicate) {
+        if (!Files.exists(path)) return true;
         try {
             if (Files.isDirectory(path)) {
-                Files.walk(path).filter(predicate)
+                // indicates if the folder is initially empty before this call
+                It<Boolean, Void> empty = It.just(true);
+                Files.walk(path).peek(__ -> empty.mutate(false)).filter(predicate)
                         .map(Path::toFile).forEach(File::delete);
-                return true;
+                // as long as it is not empty before this call, do not delete the folder
+                if (!empty.get()) return true;
             }
             Files.deleteIfExists(path);
             return true;
