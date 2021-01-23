@@ -2,6 +2,7 @@ package com.sinlo.core.common.wraparound;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -42,17 +43,32 @@ public class Two<O, A> {
     /**
      * Map
      *
-     * @param oneMap     function to map {@link #one}
-     * @param anotherMap function to map {@link #another}
-     * @param <Ro>       the type of mapped {@link #one}
-     * @param <Ra>       the type of mapped {@link #another}
+     * @param oneMap     Function to map {@link #one}
+     * @param anotherMap Function to map {@link #another}
+     * @param <Ro>       The type of mapped {@link #one}
+     * @param <Ra>       The type of mapped {@link #another}
      * @return mapped {@link Two}
      */
     public <Ro, Ra> Two<Ro, Ra> map(Function<O, Ro> oneMap, Function<A, Ra> anotherMap) {
         if (oneMap == null || anotherMap == null)
             throw new IllegalArgumentException(
-                    "Any of the given map function should present");
+                    "Any of the given map functions should present");
         return two(oneMap.apply(one), anotherMap.apply(another));
+    }
+
+    /**
+     * Peek
+     *
+     * @param onePeek     Consumer to map {@link #one}
+     * @param anotherPeek Consumer to map {@link #another}
+     */
+    public Two<O, A> peek(Consumer<O> onePeek, Consumer<A> anotherPeek) {
+        if (onePeek == null || anotherPeek == null)
+            throw new IllegalArgumentException(
+                    "Any of the given peek consumers should present");
+        onePeek.accept(one);
+        anotherPeek.accept(another);
+        return this;
     }
 
     /**
