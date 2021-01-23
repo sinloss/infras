@@ -15,7 +15,6 @@ import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -907,13 +906,10 @@ public class Filia {
 
         private final Parts parts;
 
-        private final AtomicInteger size;
-
         private Sequence(Filia root, Parts parts, NavigableSet<Integer> seq) {
             this.root = new Member(0, Objects.requireNonNull(root));
             this.parts = parts;
             this.seq = Objects.requireNonNull(seq);
-            this.size = new AtomicInteger(seq.size());
         }
 
         private Sequence(Filia root, Parts parts, int... seq) {
@@ -1001,7 +997,7 @@ public class Filia {
          * Get the size of this sequence
          */
         public int size() {
-            return size.get();
+            return seq.size();
         }
 
         /**
