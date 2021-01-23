@@ -1,5 +1,7 @@
 package com.sinlo.core.common.util;
 
+import com.sinlo.core.common.functional.TriConsumer;
+
 import java.util.function.*;
 
 /**
@@ -62,13 +64,49 @@ public class Funny {
     /**
      * Opposite to the {@link #voided(Consumer)}, this will convert the given
      * {@link Consumer} to a valid {@link Function} that returns the given
-     * {@code next}
+     * {@code next} which might be the caller in case of method referencing
      */
     public static <T, A> Function<A, T> cascade(Consumer<A> voided, T next) {
         return a -> {
             voided.accept(a);
             return next;
         };
+    }
+
+    /**
+     * Similar to {@link #cascade(Consumer, Object)}, but binds an argument, and return
+     * a identity function that can return what it applied on which might be the caller
+     * in case of method referencing
+     */
+    public static <T, A> Function<T, T> cascade(BiConsumer<T, A> voided, A arg) {
+        return t -> {
+            voided.accept(t, arg);
+            return t;
+        };
+    }
+
+    /**
+     * Binds an argument to the given {@link BiConsumer} and produce a simple {@link Consumer}
+     * that only accepts the first argument which might be the caller in case of method referencing
+     */
+    public static <T, A> Consumer<T> bind(BiConsumer<T, A> bi, A arg) {
+        return t -> bi.accept(t, arg);
+    }
+
+    /**
+     * Binds 2 arguments to the given {@link TriConsumer} and produce a simple {@link Consumer}
+     * that only accepts the first argument which might be the caller in case of method referencing
+     */
+    public static <T, A, B> Consumer<T> bind(TriConsumer<T, A, B> tri, A a, B b) {
+        return t -> tri.accept(t, a, b);
+    }
+
+    /**
+     * Binds an argument to the given {@link BiFunction} and produce a simple {@link Function}
+     * that only accepts the first argument which might be the caller in case of method referencing
+     */
+    public static <T, A, R> Function<T, R> bind(BiFunction<T, A, R> bi, A arg) {
+        return t -> bi.apply(t, arg);
     }
 
     /**
