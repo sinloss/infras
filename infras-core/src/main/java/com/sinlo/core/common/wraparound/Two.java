@@ -1,5 +1,6 @@
 package com.sinlo.core.common.wraparound;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -80,12 +81,32 @@ public class Two<O, A> {
         }
     }
 
+    /**
+     * Get the {@code one} optionally
+     */
     public Optional<O> one() {
         return Optional.ofNullable(one);
     }
 
+    /**
+     * Get the {@code another} optionally
+     */
     public Optional<A> another() {
         return Optional.ofNullable(another);
+    }
+
+    /**
+     * Get the {@code one} or a {@link NullPointerException}
+     */
+    public O sureOne() {
+        return Objects.requireNonNull(one);
+    }
+
+    /**
+     * Get the {@code another} or a {@link NullPointerException}
+     */
+    public A sureAnother() {
+        return Objects.requireNonNull(another);
     }
 
     public enum Case {
