@@ -186,6 +186,14 @@ public class Two<O, A> {
         return Objects.requireNonNull(another);
     }
 
+    public O getOne() {
+        return one;
+    }
+
+    public A getAnother() {
+        return another;
+    }
+
     public enum Case {
         ONE, ANOTHER, BOTH, NONE
     }
