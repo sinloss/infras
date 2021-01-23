@@ -80,7 +80,7 @@ public class Two<O, A> {
     }
 
     /**
-     * Apply a {@link BiFunction} on one and another then return what the function returns
+     * Consume one and another with a {@link BiConsumer}
      */
     public void consume(BiConsumer<O, A> consumer) {
         consumer.accept(one, another);
