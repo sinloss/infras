@@ -1,10 +1,7 @@
 package com.sinlo.core.http;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.sinlo.core.common.util.Arria;
-import com.sinlo.core.common.util.Funny;
-import com.sinlo.core.common.util.Jason;
-import com.sinlo.core.common.util.Strine;
+import com.sinlo.core.common.util.*;
 import com.sinlo.core.common.wraparound.Ordered;
 import com.sinlo.core.http.spec.*;
 import com.sinlo.core.http.util.CredulousTrustManager;
@@ -281,21 +278,28 @@ public class Fetcha<T> {
      */
     public CompletableFuture<Response> build() {
         CompletableFuture<Response> future = new CompletableFuture<>();
+        HttpURLConnection prepared;
+        try {
+            prepared = precept(Stage.OPEN, (HttpURLConnection)
+                    (course.proxy == null ? url.openConnection() : url.openConnection(course.proxy)));
+            prepared.setRequestMethod(method.toString());
+            prepared.setInstanceFollowRedirects(followRedirects);
+            // set timeout if any
+            if (timeout != null) timeout.set(prepared);
+            headers.forEach(prepared::setRequestProperty);
+            // take the cookies
+            carryCookies(prepared);
+            if (credulous && prepared instanceof HttpsURLConnection) {
+                CredulousTrustManager.trust((HttpsURLConnection) prepared);
+            }
+            prepared = precept(Stage.ABOUT_TO_CONNECT, prepared);
+        } catch (Exception e) {
+            return Try.toss(e);
+        }
+        // do the connecting
+        final HttpURLConnection conn = prepared;
         CompletableFuture.runAsync(() -> {
             try {
-                HttpURLConnection conn = precept(Stage.OPEN, (HttpURLConnection)
-                        (course.proxy == null ? url.openConnection() : url.openConnection(course.proxy)));
-                conn.setRequestMethod(method.toString());
-                conn.setInstanceFollowRedirects(followRedirects);
-                // set timeout if any
-                if (timeout != null) timeout.set(conn);
-                headers.forEach(conn::setRequestProperty);
-                // take the cookies
-                carryCookies(conn);
-                if (credulous && conn instanceof HttpsURLConnection) {
-                    CredulousTrustManager.trust((HttpsURLConnection) conn);
-                }
-                conn = precept(Stage.ABOUT_TO_CONNECT, conn);
                 if (bodyWriter == null) {
                     // connect without body
                     conn.connect();
@@ -311,7 +315,6 @@ public class Fetcha<T> {
                     // ignore the illegal state as the connecting and writing is allowed to happen
                     // in preceptors
                 }
-                conn = precept(Stage.CONNECTED, conn);
                 Response response = Next.RETRY.equals(intercept(conn))
                         // retry by build another conn and wait for its response
                         ? this.build().join()
@@ -485,21 +488,20 @@ public class Fetcha<T> {
     }
 
     /**
-     * The preceptor stages
+     * The preceptor stages, all these stages should happen in the main thread, not yet in an asynchronous
+     * thread yet
      */
     public enum Stage {
         /**
-         * The {@link HttpURLConnection} has been open
+         * The {@link HttpURLConnection} has been open. In this stage, the connection has just been open
+         * nothing else has taken any place yet
          */
         OPEN,
         /**
-         * The {@link HttpURLConnection} is about to connect
+         * The {@link HttpURLConnection} is about to connect. In this stage, all the assignments in the
+         * {@link Fetcha} has already been properly set in the open connection
          */
         ABOUT_TO_CONNECT,
-        /**
-         * The {@link HttpURLConnection} has connected, meaning the underlying request has been sent
-         */
-        CONNECTED
     }
 
     /**
