@@ -37,7 +37,14 @@ public class It<T, Sidecar> {
      * @param selfMutation the mutate function
      */
     public It<T, Sidecar> mutate(Function<T, T> selfMutation) {
-        this.t = Objects.requireNonNull(selfMutation.apply(this.t));
+        return mutate(selfMutation.apply(this.t));
+    }
+
+    /**
+     * Mutate the item with a direct value
+     */
+    public It<T, Sidecar> mutate(T direct) {
+        this.t = Objects.requireNonNull(direct);
         return this;
     }
 
@@ -48,6 +55,14 @@ public class It<T, Sidecar> {
      */
     public It<T, Sidecar> sidecarMutate(Function<Sidecar, Sidecar> sidecarMutation) {
         this.sidecar = sidecarMutation.apply(sidecar);
+        return this;
+    }
+
+    /**
+     * Mutate the sidecar with a direct value
+     */
+    public It<T, Sidecar> sidecarMutate(Sidecar direct) {
+        this.sidecar = direct;
         return this;
     }
 
