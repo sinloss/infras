@@ -2,6 +2,8 @@ package com.sinlo.core.common.wraparound;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -68,6 +70,20 @@ public class Two<O, A> {
      */
     public <Ra> Two<O, Ra> mapAnother(Function<A, Ra> anotherMap) {
         return two(one, anotherMap.apply(another));
+    }
+
+    /**
+     * Apply a {@link BiFunction} on one and another then return what the function returns
+     */
+    public <R> R apply(BiFunction<O, A, R> applier) {
+        return applier.apply(one, another);
+    }
+
+    /**
+     * Apply a {@link BiFunction} on one and another then return what the function returns
+     */
+    public void consume(BiConsumer<O, A> consumer) {
+        consumer.accept(one, another);
     }
 
     /**
