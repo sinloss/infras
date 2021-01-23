@@ -51,6 +51,13 @@ public class Response {
     }
 
     /**
+     * Get the underlying {@link HttpURLConnection}
+     */
+    public HttpURLConnection connection() {
+        return conn;
+    }
+
+    /**
      * With the given {@link Charset}
      */
     public Response with(Charset charset) {
@@ -213,7 +220,9 @@ public class Response {
 
         private UnresolvableStatusException(Response response) {
             super(String.format(
-                    "Got an unresolvable status code %s", response.status.get()));
+                    "Got an unresolvable status code %s with message %s",
+                    response.status.get(),
+                    new String(Filia.drain(Try.tolerate(response.conn::getInputStream)))));
         }
 
         public static boolean toss(Response response) {
