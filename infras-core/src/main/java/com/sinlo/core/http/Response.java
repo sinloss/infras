@@ -213,7 +213,7 @@ public class Response {
 
         private UnresolvableStatusException(Response response) {
             super(String.format(
-                    "Got an unresolvable status code %s", response.status));
+                    "Got an unresolvable status code %s", response.status.get()));
         }
 
         public static boolean toss(Response response) {
