@@ -27,10 +27,13 @@
 
     <distributionManagement>
         <repository>
-            <id>github</id>
-            <name>GitHub sinloss Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/sinloss/infras</url>
+            <id>rm</id>
+            <url>http://192.168.9.45:9000/releases</url>
         </repository>
+        <snapshotRepository>
+            <id>rm</id>
+            <url>http://192.168.9.45:9000/snapshots</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <dependencyManagement>
