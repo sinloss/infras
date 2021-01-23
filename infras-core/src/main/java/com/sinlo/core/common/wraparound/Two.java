@@ -57,6 +57,61 @@ public class Two<O, A> {
     }
 
     /**
+     * Only map the {@code one}
+     */
+    public <Ro> Two<Ro, A> mapOne(Function<O, Ro> oneMap) {
+        return two(oneMap.apply(one), another);
+    }
+
+    /**
+     * Only map the {@code another}
+     */
+    public <Ra> Two<O, Ra> mapAnother(Function<A, Ra> anotherMap) {
+        return two(one, anotherMap.apply(another));
+    }
+
+    /**
+     * Apply the two functions according to the condition
+     *
+     * @param ifOne       apply this function on the {@link #one} if the it presents
+     * @param elseAnother apply this function on the {@link #another} if the {@link #one} does not
+     *                    present and the {@link #another} presents
+     * @param <R>         the return type of given functions
+     * @return {@link R}
+     * @throws NeitherException if neither of {@link #one} nor {@link #another} presents
+     */
+    public <R> R either(Function<O, R> ifOne, Function<A, R> elseAnother) throws NeitherException {
+        switch (c) {
+            case ONE:
+            case BOTH:
+                return Objects.requireNonNull(ifOne).apply(one);
+            case ANOTHER:
+                return Objects.requireNonNull(elseAnother).apply(another);
+            case NONE:
+            default:
+                throw new NeitherException();
+        }
+    }
+
+    /**
+     * Similar to {@link #either(Function, Function)} but consumes
+     *
+     * @see #either(Function, Function)
+     */
+    public void either(Consumer<O> ifOne, Consumer<A> elseAnother) throws NeitherException {
+        switch (c) {
+            case ONE:
+            case BOTH:
+                Objects.requireNonNull(ifOne).accept(one);
+            case ANOTHER:
+                Objects.requireNonNull(elseAnother).accept(another);
+            case NONE:
+            default:
+                throw new NeitherException();
+        }
+    }
+
+    /**
      * Peek
      *
      * @param onePeek     Consumer to map {@link #one}
@@ -72,29 +127,19 @@ public class Two<O, A> {
     }
 
     /**
-     * Apply the two functions according to the condition
-     *
-     * @param ifOne       apply this function on the {@link #one} if the it presents
-     * @param elseAnother apply this function on the {@link #another} if the {@link #one} does not
-     *                    present and the {@link #another} presents
-     * @param <R>         the return type of given functions
-     * @return {@link R}
-     * @throws NeitherException if neither of {@link #one} nor {@link #another} presents
+     * Only peek the {@code one}
      */
-    public <R> R either(Function<O, R> ifOne, Function<A, R> elseAnother) throws NeitherException {
-        if (ifOne == null || elseAnother == null)
-            throw new IllegalArgumentException(
-                    "Any of the given map function should present");
-        switch (c) {
-            case ONE:
-            case BOTH:
-                return ifOne.apply(one);
-            case ANOTHER:
-                return elseAnother.apply(another);
-            case NONE:
-            default:
-                throw new NeitherException();
-        }
+    public Two<O, A> peekOne(Consumer<O> onePeek) {
+        Objects.requireNonNull(onePeek).accept(one);
+        return this;
+    }
+
+    /**
+     * Only peek the {@code another}
+     */
+    public Two<O, A> peekAnother(Consumer<A> anotherPeek) {
+        Objects.requireNonNull(anotherPeek).accept(another);
+        return this;
     }
 
     /**
