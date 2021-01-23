@@ -1,9 +1,13 @@
 package com.sinlo.core.common.util;
 
+import com.sinlo.core.common.wraparound.Two;
+import com.sinlo.sponte.util.Pool;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.LocalTime;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
@@ -16,29 +20,20 @@ import java.util.TimeZone;
  */
 public class Daty {
 
-    public static final String DF_PATTERN = "yyyy-MM-dd HH:mm:ss";
-    public static final Daty DEFAULT = of(DF_PATTERN).build();
+    private static final Pool.Simple<DateFormat> formats = new Pool.Simple<>();
+    public static final Daty DEFAULT = of(TimeZone.getDefault());
 
     public final TimeZone timeZone;
-    public final DateFormat df;
 
-    private Daty(TimeZone timeZone, DateFormat df) {
+    private Daty(TimeZone timeZone) {
         this.timeZone = timeZone;
-        this.df = df;
     }
 
     /**
-     * A builder starting from {@link Builder#timeZone(TimeZone)}
+     * Create a new Daty of the given {@code timeZone}
      */
-    public static Builder of(TimeZone timeZone) {
-        return new Builder().timeZone(timeZone);
-    }
-
-    /**
-     * A builder starting from {@link Builder#sdf(String)}
-     */
-    public static Builder of(String pattern) {
-        return new Builder().sdf(pattern);
+    public static Daty of(TimeZone timeZone) {
+        return new Daty(timeZone);
     }
 
     /**
@@ -130,6 +125,31 @@ public class Daty {
     }
 
     /**
+     * Just during today
+     *
+     * @see #during(LocalDateTime)
+     */
+    public <T> Two<LocalDateTime, LocalDateTime> duringToday() {
+        return during(new Date());
+    }
+
+    /**
+     * During the given {@link Date}
+     */
+    public <T> Two<LocalDateTime, LocalDateTime> during(Date date) {
+        return during(toLocal(date));
+    }
+
+    /**
+     * Split a given {@link LocalDateTime} to a date time of the midnight of that day <b>00:00</b>
+     * and a date time just before tomorrow's midnight <b>23:59:59.999999999</b>
+     */
+    public Two<LocalDateTime, LocalDateTime> during(LocalDateTime date) {
+        LocalDate local = date.toLocalDate();
+        return Two.two(local.atStartOfDay(), local.atTime(LocalTime.MAX));
+    }
+
+    /**
      * @see Daty#calendar(Date, TimeZone)
      */
     public Calendar calendar(Date date) {
@@ -146,6 +166,13 @@ public class Daty {
     }
 
     /**
+     * Get a corresponding {@link DateFormat}
+     */
+    public static DateFormat formatter(String pattern) {
+        return formats.get(pattern, () -> new SimpleDateFormat(pattern));
+    }
+
+    /**
      * {@link Date} to {@link LocalDateTime}
      */
     public LocalDateTime toLocal(Date date) {
@@ -159,51 +186,4 @@ public class Daty {
         return Date.from(local.atZone(timeZone.toZoneId()).toInstant());
     }
 
-    /**
-     * The builder of {@link Daty}
-     */
-    public static class Builder {
-        private DateFormat df;
-        private TimeZone timeZone;
-
-        public Builder df(DateFormat df) {
-            this.df = df;
-            return this;
-        }
-
-        /**
-         * @see SimpleDateFormat#SimpleDateFormat(String)
-         */
-        public Builder sdf(String pattern) {
-            this.df = new SimpleDateFormat(pattern);
-            return this;
-        }
-
-        public Builder timeZone(TimeZone timeZone) {
-            this.timeZone = timeZone;
-            return this;
-        }
-
-        /**
-         * @see TimeZone#getTimeZone(String)
-         */
-        public Builder timeZone(String timeZone) {
-            this.timeZone = TimeZone.getTimeZone(timeZone);
-            return this;
-        }
-
-        /**
-         * @see TimeZone#getTimeZone(ZoneId)
-         */
-        public Builder timeZone(ZoneId zoneId) {
-            this.timeZone = TimeZone.getTimeZone(zoneId);
-            return this;
-        }
-
-        public Daty build() {
-            if (timeZone == null) timeZone(TimeZone.getDefault());
-            if (df == null) sdf(DF_PATTERN);
-            return new Daty(timeZone, df);
-        }
-    }
 }
