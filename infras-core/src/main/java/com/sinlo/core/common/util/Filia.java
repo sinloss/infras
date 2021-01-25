@@ -690,7 +690,7 @@ public class Filia {
      * Panic if the given {@link Path} is not a directory
      */
     public static void mustDirectory(Path path) {
-        IllegalPathException.check(Files::isDirectory, path, "directory");
+        IllegalPathException.check(Files::isDirectory, path, "a directory");
     }
 
     /**
@@ -1272,7 +1272,7 @@ public class Filia {
 
         public IllegalPathException(Path path, String expected) {
             super(path.toString(), String.format(
-                    "The path %s is not a %s", path, expected));
+                    "The path %s is not %s", path, expected));
         }
 
         public static void check(Predicate<Path> predicate, Path path, String expected) {
