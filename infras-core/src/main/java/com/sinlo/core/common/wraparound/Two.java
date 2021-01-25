@@ -42,6 +42,10 @@ public class Two<O, A> {
         return new Two<>(null, another, Case.ANOTHER);
     }
 
+    public static <O, A> Two<O, A> none() {
+        return new Two<>(null, null, Case.NONE);
+    }
+
     /**
      * Map
      *
