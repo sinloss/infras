@@ -252,4 +252,48 @@ public class Try<R, E extends Throwable> {
         return () -> panic(runnable);
     }
 
+    /**
+     * Leniently get supplies from the supplier that throws exceptions, meaning suppress the
+     * underlying exceptions
+     *
+     * @see ImpatientSupplier#get()
+     */
+    public static <T, E extends Throwable> Throwable capture(ImpatientSupplier<T, E> supplier) {
+        try {
+            supplier.supply();
+            return null;
+        } catch (Throwable e) {
+            return e;
+        }
+    }
+
+    /**
+     * Leniently run the runnable that throws exceptions, meaning suppress the underlying
+     * exceptions
+     *
+     * @see ImpatientSupplier#get()
+     */
+    public static <E extends Throwable> Throwable capture(ImpatientRunnable<E> runnable) {
+        return capture(() -> {
+            runnable.runs();
+            return null;
+        });
+    }
+
+    /**
+     * Similar to {@link #tolerate(ImpatientSupplier)} but returns a {@link Supplier}
+     * instead of getting a supply from it
+     */
+    public static <T, E extends Throwable> Supplier<Throwable> captured(ImpatientSupplier<T, E> supplier) {
+        return () -> capture(supplier);
+    }
+
+    /**
+     * Similar to {@link #tolerate(ImpatientRunnable)} but returns a {@link Runnable}
+     * instead of running it
+     */
+    public static <E extends Throwable> Supplier<Throwable> captured(ImpatientRunnable<E> runnable) {
+        return () -> capture(runnable);
+    }
+
 }
