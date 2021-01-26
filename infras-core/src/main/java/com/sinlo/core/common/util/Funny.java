@@ -1,6 +1,6 @@
 package com.sinlo.core.common.util;
 
-import com.sinlo.core.common.functional.TriConsumer;
+import com.sinlo.core.common.functional.*;
 
 import java.util.function.*;
 
@@ -89,8 +89,22 @@ public class Funny {
      * Binds an argument to the given {@link BiConsumer} and produce a simple {@link Consumer}
      * that only accepts the first argument which might be the caller in case of method referencing
      */
-    public static <T, A> Consumer<T> bind(BiConsumer<T, A> bi, A arg) {
-        return t -> bi.accept(t, arg);
+    public static <T, A> Consumer<T> bind(BiConsumer<T, A> bi, A a) {
+        return t -> bi.accept(t, a);
+    }
+
+    /**
+     * Binds an argument to the given {@link Consumer} and produce a simple {@link Runnable}
+     */
+    public static <T> Runnable bind(Consumer<T> cons, T t) {
+        return () -> cons.accept(t);
+    }
+
+    /**
+     * Similar to {@link #bind(BiConsumer, Object)} but binds all arguments
+     */
+    public static <T, A> Runnable bind(BiConsumer<T, A> bi, T t, A a) {
+        return () -> bi.accept(t, a);
     }
 
     /**
@@ -102,12 +116,93 @@ public class Funny {
     }
 
     /**
+     * Similar to {@link #bind(TriConsumer, Object, Object)} but binds all arguments
+     */
+    public static <T, A, B> Runnable bind(TriConsumer<T, A, B> tri, T t, A a, B b) {
+        return () -> tri.accept(t, a, b);
+    }
+
+    /**
      * Binds an argument to the given {@link BiFunction} and produce a simple {@link Function}
      * that only accepts the first argument which might be the caller in case of method referencing
      */
-    public static <T, A, R> Function<T, R> bind(BiFunction<T, A, R> bi, A arg) {
-        return t -> bi.apply(t, arg);
+    public static <T, A, R> Function<T, R> bind(BiFunction<T, A, R> bi, A a) {
+        return t -> bi.apply(t, a);
     }
+
+    /**
+     * Binds an  argument to the given {@link Function} and produce a simple {@link Supplier}
+     */
+    public static <T, R> Supplier<R> bind(Function<T, R> func, T t) {
+        return () -> func.apply(t);
+    }
+
+    /**
+     * Similar to {@link #bind(BiFunction, Object)} but binds all arguments
+     */
+    public static <T, A, R> Supplier<R> bind(BiFunction<T, A, R> bi, T t, A a) {
+        return () -> bi.apply(t, a);
+    }
+
+    /**
+     * Binds an argument to the given {@link ImpatientBiConsumer} and produce a simple {@link ImpatientConsumer}
+     * that only accepts the first argument which might be the caller in case of method referencing
+     */
+    public static <T, A, E extends Throwable> ImpatientConsumer<T, E> bind(ImpatientBiConsumer<T, A, E> bi, A a) {
+        return t -> bi.consume(t, a);
+    }
+
+    /**
+     * Binds an argument to the given {@link ImpatientConsumer} and produce a simple {@link ImpatientRunnable}
+     */
+    public static <T, E extends Throwable> ImpatientRunnable<E> bind(ImpatientConsumer<T, E> cons, T t) {
+        return () -> cons.consume(t);
+    }
+
+    /**
+     * Similar to {@link #bind(ImpatientBiConsumer, Object)} but binds all arguments
+     */
+    public static <T, A, E extends Throwable> ImpatientRunnable<E> bind(ImpatientBiConsumer<T, A, E> bi, T t, A a) {
+        return () -> bi.consume(t, a);
+    }
+
+    /**
+     * Binds 2 arguments to the given {@link ImpatientTriConsumer} and produce a simple {@link ImpatientConsumer}
+     * that only accepts the first argument which might be the caller in case of method referencing
+     */
+    public static <T, A, B, E extends Throwable> ImpatientConsumer<T, E> bind(ImpatientTriConsumer<T, A, B, E> tri, A a, B b) {
+        return t -> tri.consume(t, a, b);
+    }
+
+    /**
+     * Similar to {@link #bind(ImpatientTriConsumer, Object, Object)} but binds all arguments
+     */
+    public static <T, A, B, E extends Throwable> ImpatientRunnable<E> bind(ImpatientTriConsumer<T, A, B, E> tri, T t, A a, B b) {
+        return () -> tri.consume(t, a, b);
+    }
+
+    /**
+     * Binds an argument to the given {@link BiFunction} and produce a simple {@link Function}
+     * that only accepts the first argument which might be the caller in case of method referencing
+     */
+    public static <T, A, R, E extends Throwable> ImpatientFunction<T, R, E> bind(ImpatientBiFunction<T, A, R, E> bi, A a) {
+        return t -> bi.employ(t, a);
+    }
+
+    /**
+     * Binds an  argument to the given {@link Function} and produce a simple {@link Supplier}
+     */
+    public static <T, R, E extends Throwable> ImpatientSupplier<R, E> bind(ImpatientFunction<T, R, E> func, T t) {
+        return () -> func.employ(t);
+    }
+
+    /**
+     * Similar to {@link #bind(BiFunction, Object)} but binds all arguments
+     */
+    public static <T, A, R, E extends Throwable> ImpatientSupplier<R, E> bind(ImpatientBiFunction<T, A, R, E> bi, T t, A a) {
+        return () -> bi.employ(t, a);
+    }
+
 
     /**
      * An equivalent of the nvl function in Oracle/PLSQL
