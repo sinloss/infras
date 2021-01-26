@@ -12,9 +12,7 @@
         <module>infras-core</module>
         <module>infras-security</module>
         <module>infras-spring-binding</module>
-        <module>infras-datadict</module>
         <module>infras-sponte</module>
-        <module>infras-event-bus</module>
     </modules>
 
     <properties>
