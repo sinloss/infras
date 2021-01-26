@@ -101,6 +101,18 @@ public class Daty {
     }
 
     /**
+     * get the first day of week
+     *
+     * @param offset offset the given date
+     */
+    public Date dayOneOfWeek(Date date, int offset) {
+        Calendar cal = calendar(date);
+        cal.add(Calendar.WEEK_OF_YEAR, offset);
+        cal.add(Calendar.DAY_OF_WEEK, cal.getActualMinimum(Calendar.DAY_OF_WEEK));
+        return cal.getTime();
+    }
+
+    /**
      * get the first day of month
      *
      * @param offset offset the given date
