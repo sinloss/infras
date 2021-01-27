@@ -50,6 +50,40 @@ public class Funny {
     }
 
     /**
+     * Reference to the function that casts to a specific type
+     *
+     * @param as   the {@link Class} of the specific type
+     * @param <T>  the original type
+     * @param <AS> the specific type
+     */
+    public static <T, AS> Function<T, AS> cast(Class<AS> as) {
+        return Funny::cast;
+    }
+
+    /**
+     * Cast to a specific type
+     *
+     * @param t    the original object
+     * @param <T>  the original type
+     * @param <AS> the specific type
+     */
+    public static <T, AS> AS cast(T t, Class<AS> as) {
+        return cast(t);
+    }
+
+    /**
+     * Cast to a left side implied type
+     *
+     * @param t    the original object
+     * @param <T>  the original type
+     * @param <AS> the left side implied type
+     */
+    @SuppressWarnings("unchecked")
+    public static <T, AS> AS cast(T t) {
+        return (AS) t;
+    }
+
+    /**
      * Convert the given {@link Consumer} to a valid {@link Function} having no
      * return value. It is mainly used to meet the requirements of some methods
      * which only accepts {@link Function}s
