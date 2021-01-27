@@ -29,13 +29,18 @@ public class Pools {
         private final boolean fixed;
         private static final ThreadLocal<Long> withed = new ThreadLocal<>();
 
-        private Expiring(Consumer<V> onExpired, long delay, boolean fixed) {
+        private Expiring(Consumer<V> onExpired, long delay, boolean fixed, long tick) {
             super(null);
             this.onExpired = onExpired;
             this.delay = delay;
             this.fixed = fixed;
             this.underlying = new Pool<>();
-            (this.chan = new Chan.Defer<>(this::expiring)).polling();
+            this.chan = new Chan.Defer<>(this::expiring, tick);
+        }
+
+        public Expiring<K, V> start() {
+            this.chan.polling();
+            return this;
         }
 
         private long delay() {
@@ -51,6 +56,15 @@ public class Pools {
         }
 
         /**
+         * <pre>{@code quiet(delay, fixed, 1L)}</pre>
+         *
+         * @see #quiet(long, boolean, long)
+         */
+        public static <K, V> Expiring<K, V> quiet(long delay, boolean fixed) {
+            return quiet(delay, fixed, 1L);
+        }
+
+        /**
          * Create a quiet {@link Expiring} that expiring the items in the pool without
          * notifying others
          *
@@ -58,20 +72,31 @@ public class Pools {
          * @param fixed if the delay is fixed which means the item has no chance of postpone
          *              its expiring. If it is not fixed, on the other hand, it will refresh
          *              the delay every time it is being replaced
+         * @param tick  how long does it take to tick once
          */
-        public static <K, V> Expiring<K, V> quiet(long delay, boolean fixed) {
-            return new Expiring<>(null, delay, fixed);
+        public static <K, V> Expiring<K, V> quiet(long delay, boolean fixed, long tick) {
+            return new Expiring<>(null, delay, fixed, tick);
+        }
+
+        /**
+         * <pre>{@code perceptible(delay, fixed, onExpired, 1L)}</pre>
+         *
+         * @see #perceptible(long, boolean, Consumer, long)
+         */
+        public static <K, V> Expiring<K, V> perceptible(long delay, boolean fixed,
+                                                        Consumer<V> onExpired) {
+            return new Expiring<>(Objects.requireNonNull(onExpired), delay, fixed, 1L);
         }
 
         /**
          * Create a perceptible {@link Expiring} that expiring the items in the pool
          * and notify the provided {@link #onExpired}
          *
-         * @param delay the default delay
+         * @see #quiet(long, boolean, long)
          */
         public static <K, V> Expiring<K, V> perceptible(long delay, boolean fixed,
-                                                        Consumer<V> onExpired) {
-            return new Expiring<>(Objects.requireNonNull(onExpired), delay, fixed);
+                                                        Consumer<V> onExpired, long tick) {
+            return new Expiring<>(Objects.requireNonNull(onExpired), delay, fixed, tick);
         }
 
         @Override
