@@ -7,7 +7,7 @@
     <groupId>com.sinlo</groupId>
     <artifactId>infras</artifactId>
     <packaging>pom</packaging>
-    <version>0.618.3</version>
+    <version>0.618.5</version>
     <modules>
         <module>infras-core</module>
         <module>infras-security</module>
