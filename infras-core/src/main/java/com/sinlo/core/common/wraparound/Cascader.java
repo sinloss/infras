@@ -1,6 +1,7 @@
 package com.sinlo.core.common.wraparound;
 
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -32,10 +33,25 @@ public class Cascader<T> {
     }
 
     /**
-     * Cascade the given {@code oper} operation with a given argument {@code a}
+     * An alias of {@link #apply(BiConsumer, Object)}
      */
     public <A> Cascader<T> cscd(BiConsumer<T, A> oper, A a) {
+        return apply(oper, a);
+    }
+
+    /**
+     * Cascade the given {@code oper} operation with a given argument {@code a}
+     */
+    public <A> Cascader<T> apply(BiConsumer<T, A> oper, A a) {
         oper.accept(t, a);
+        return this;
+    }
+
+    /**
+     * Peek the underlying object
+     */
+    public Cascader<T> peek(Consumer<T> onlooker) {
+        onlooker.accept(t);
         return this;
     }
 
