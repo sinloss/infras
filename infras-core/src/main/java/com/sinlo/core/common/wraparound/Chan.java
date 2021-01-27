@@ -1,5 +1,6 @@
 package com.sinlo.core.common.wraparound;
 
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -47,7 +48,8 @@ public abstract class Chan<T, R> {
 
     public Chan(Consumer<T> consumer, long interval) {
         this.q = create();
-        this.consumer = consumer;
+        this.consumer = Objects.requireNonNull(
+                consumer, "The consumer must not be null");
         this.interval = interval <= 0 ? 1 : interval;
     }
 
@@ -79,6 +81,7 @@ public abstract class Chan<T, R> {
         T item = this.q.poll();
         if (item == null) {
             ifNone();
+            return;
         }
         try {
             consumer.accept(item);
@@ -165,7 +168,8 @@ public abstract class Chan<T, R> {
          * @param tick     the polling ratio
          */
         public Defer(Consumer<T> consumer, long tick) {
-            super(d -> d.accomplish(consumer), tick);
+            super(d -> d.accomplish(Objects.requireNonNull(
+                    consumer, "The consumer must not be null")), tick);
         }
 
         /**
