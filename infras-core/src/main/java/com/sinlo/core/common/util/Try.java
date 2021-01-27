@@ -31,10 +31,20 @@ public class Try<R, E extends Throwable> {
     }
 
     /**
-     * Create a {@link Try} of the given closure
+     * Create a {@link Try} of the given {@link ImpatientSupplier} closure
      */
     public static <R, E extends Throwable> Try<R, E> of(ImpatientSupplier<R, E> closure) {
         return new Try<>(closure);
+    }
+
+    /**
+     * Create a {@link Try} of the given {@link ImpatientRunnable} closure
+     */
+    public static <E extends Throwable> Try<Void, E> of(ImpatientRunnable<E> closure) {
+        return new Try<>(() -> {
+            closure.runs();
+            return null;
+        });
     }
 
     /**
@@ -71,6 +81,15 @@ public class Try<R, E extends Throwable> {
      */
     public Try<R, E> otherwiseThrow() {
         return otherwise(Try::toss);
+    }
+
+    /**
+     * Otherwise map the {@link Throwable} to a new one, and then throw it
+     *
+     * @see #toss(Throwable)
+     */
+    public Try<R, E> otherwiseThrow(Function<Throwable, Throwable> mapper) {
+        return otherwise(e -> Try.toss(mapper.apply(e)));
     }
 
     /**
@@ -137,6 +156,15 @@ public class Try<R, E extends Throwable> {
          */
         public Try<R, E> thenThrow() {
             return then(Try::toss);
+        }
+
+        /**
+         * Map the caught {@link Throwable} to a new one, and then throw it
+         *
+         * @see #toss(Throwable)
+         */
+        public Try<R, E> thenThrow(Function<Throwable, Throwable> mapper) {
+            return then(e -> Try.toss(mapper.apply(e)));
         }
 
         /**
