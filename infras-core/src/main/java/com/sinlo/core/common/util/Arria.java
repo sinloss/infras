@@ -33,6 +33,20 @@ public class Arria {
     }
 
     /**
+     * Check if the given {@link Collection} is not empty
+     */
+    public static boolean nonEmpty(Collection<?> collection) {
+        return !isEmpty(collection);
+    }
+
+    /**
+     * Check if the given {@code array} is not empty
+     */
+    public static <T> boolean nonEmpty(T[] array) {
+        return !isEmpty(array);
+    }
+
+    /**
      * Concat several arrays together
      */
     @SafeVarargs
