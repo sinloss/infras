@@ -1,9 +1,11 @@
 package com.sinlo.security.tkn.knowledges;
 
+import com.nimbusds.jwt.SignedJWT;
 import com.sinlo.security.jwt.Jwter;
+import com.sinlo.security.jwt.nimbus.NimbusScheme;
+import com.sinlo.security.jwt.spec.Jwt;
 import com.sinlo.security.tkn.spec.Knowledge;
 import com.sinlo.security.tkn.spec.State;
-import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -16,8 +18,8 @@ import java.util.function.Function;
  */
 public class JwtKnowledge<A> implements Knowledge<String, A> {
 
-    public final Jwter jwter;
-    private final Jwter.Issuer<A> issuer;
+    public final Jwter<SignedJWT> jwter;
+    private final Jwter<SignedJWT>.Issuer<A> issuer;
     private final Function<String, A> des;
 
     public JwtKnowledge(String pri, String pub,
@@ -25,7 +27,7 @@ public class JwtKnowledge<A> implements Knowledge<String, A> {
                         Function<A, String> ser,
                         Function<String, A> des,
                         int leeway) {
-        this.jwter = new Jwter(pri, pub);
+        this.jwter = new Jwter<>(NimbusScheme.Simple, pri, pub);
         this.des = des;
         this.issuer = jwter.issuer(issuer, ser, leeway);
     }
@@ -33,8 +35,8 @@ public class JwtKnowledge<A> implements Knowledge<String, A> {
     @Override
     public State<String, A> stat(String token) {
         Jwt jwt = jwter.decode(token);
-        Instant exp = jwt.getExpiresAt();
-        return State.of(des.apply(jwt.getSubject()),
+        Instant exp = jwt.expiresAt();
+        return State.of(des.apply(jwt.subject()),
                 exp == null ? Long.MAX_VALUE : exp.toEpochMilli());
     }
 

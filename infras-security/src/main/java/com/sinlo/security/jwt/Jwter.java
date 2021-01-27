@@ -1,14 +1,12 @@
 package com.sinlo.security.jwt;
 
-import com.nimbusds.jose.*;
-import com.nimbusds.jose.crypto.RSASSASigner;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
-import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2TokenValidator;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import com.sinlo.core.common.functional.ImpatientFunction;
+import com.sinlo.core.common.util.Arria;
+import com.sinlo.core.common.util.Funny;
+import com.sinlo.core.common.util.Try;
+import com.sinlo.security.jwt.spec.exception.JwtException;
+import com.sinlo.security.jwt.spec.Jwt;
+import com.sinlo.security.jwt.spec.exception.ValidationFailedException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -58,19 +56,23 @@ import java.util.function.Function;
  *
  * @author sinlo
  */
-public class Jwter {
+public class Jwter<J> {
 
     public static final String DEFAULT_PRI = "key";
     public static final String DEFAULT_PUB = "key.pub";
 
-    private final RSASSASigner enc;
-    private final JwtDecoder dec;
+    private final Scheme<J> scheme;
 
-    public Jwter() {
-        this(DEFAULT_PRI, DEFAULT_PUB);
+    private final Jwt.Signer<J> enc;
+    private final Jwt.Dec dec;
+    private final List<ImpatientFunction<Jwt, Boolean, JwtException>> validators = new LinkedList<>();
+
+    public Jwter(Scheme<J> scheme) {
+        this(scheme, DEFAULT_PRI, DEFAULT_PUB);
     }
 
-    public Jwter(String pri, String pub) {
+    public Jwter(Scheme<J> scheme, String pri, String pub) {
+        this.scheme = scheme;
         this.enc = enc(pri);
         this.dec = dec(pub);
     }
@@ -98,37 +100,41 @@ public class Jwter {
 
     public Jwt decode(String jwt) {
         if (dec == null) throw new UnsupportedOperationException("Decode is not supported");
-        return dec.decode(jwt);
+        Jwt j = dec.decode(jwt);
+        Set<Throwable> errs = j.validate(this.validators);
+        if (!Arria.isEmpty(errs))
+            throw new ValidationFailedException(errs);
+        return j;
     }
 
-    public SignedJWT encode(SignedJWT jwt) {
+    public J encode(J jwt) {
         if (enc == null) throw new UnsupportedOperationException("Encode is not supported");
         try {
-            jwt.sign(enc);
-        } catch (JOSEException e) {
+            return enc.sign(jwt);
+        } catch (JwtException e) {
             e.printStackTrace();
         }
         return jwt;
     }
 
     /**
-     * Set validators for the {@link NimbusJwtDecoder}
+     * Add validators
+     *
+     * @see Jwt#validate(List)
      */
     @SafeVarargs
-    public final Jwter ensure(OAuth2TokenValidator<Jwt>... validators) {
-        if (validators != null) {
-            NimbusJwtDecoder nimbus = (NimbusJwtDecoder) dec;
-            switch (validators.length) {
-                case 0:
-                    break;
-                case 1:
-                    nimbus.setJwtValidator(validators[0]);
-                    break;
-                default:
-                    nimbus.setJwtValidator(new DelegatingOAuth2TokenValidator<>(Arrays.asList(validators)));
-                    break;
-            }
-        }
+    public final Jwter<J> ensure(ImpatientFunction<Jwt, Boolean, JwtException>... validators) {
+        Collections.addAll(this.validators, validators);
+        return this;
+    }
+
+    /**
+     * Add validators
+     *
+     * @see Jwt#validate(List)
+     */
+    public final Jwter<J> ensure(List<ImpatientFunction<Jwt, Boolean, JwtException>> validators) {
+        this.validators.addAll(validators);
         return this;
     }
 
@@ -137,12 +143,15 @@ public class Jwter {
      *
      * @param pub the public key file path
      */
-    public static JwtDecoder dec(String pub) {
-        RSAPublicKey key = load(pub, Jwter::pub);
-        if (key != null) {
-            return NimbusJwtDecoder.withPublicKey(key).build();
+    public Jwt.Dec dec(String pub) {
+        if (scheme.pub()) {
+            RSAPublicKey key = load(pub, Jwter::pub);
+            if (key != null) {
+                return scheme.dec(key);
+            }
+            return null;
         }
-        return null;
+        return scheme.dec(null);
     }
 
     /**
@@ -150,12 +159,15 @@ public class Jwter {
      *
      * @param pri the private key file path
      */
-    public static RSASSASigner enc(String pri) {
-        PrivateKey key = load(pri, Jwter::pri);
-        if (key != null) {
-            return new RSASSASigner(key);
+    public Jwt.Signer<J> enc(String pri) {
+        if (scheme.pri()) {
+            PrivateKey key = load(pri, Jwter::pri);
+            if (key != null) {
+                return scheme.signer(key);
+            }
+            return null;
         }
-        return null;
+        return scheme.signer(null);
     }
 
     /**
@@ -210,7 +222,7 @@ public class Jwter {
     public static <K extends Key> K load(String name, Function<byte[], K> loader) {
         try (InputStream is = Files.exists(Paths.get(name))
                 ? new FileInputStream(name)
-                : singleResource(name).map(Jwter::open).orElse(null);
+                : singleResource(name).map(url -> Try.tolerate(url::openStream)).orElse(null);
              ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             // the 'is' might be null
             if (is == null) return null;
@@ -226,14 +238,54 @@ public class Jwter {
     }
 
     /**
-     * Leniently call {@link URL#openStream()}
+     * The scheme of a specific jwt typed token implementation
+     *
+     * @param <J> the jwt token type of the implementation
      */
-    public static InputStream open(URL url) {
-        try {
-            return url.openStream();
-        } catch (IOException e) {
-            return null;
+    public interface Scheme<J> {
+
+        /**
+         * Indicating if the loading of the public key is required or not
+         */
+        default boolean pub() {
+            return true;
         }
+
+        /**
+         * Indicating if the loading of the private key is required or not
+         */
+        default boolean pri() {
+            return true;
+        }
+
+        /**
+         * To create a {@link Jwt.Dec}
+         *
+         * @param key a {@link RSAPublicKey} which will be null in case of
+         *            not {@link #pub()}
+         */
+        Jwt.Dec dec(RSAPublicKey key);
+
+        /**
+         * To create a {@link Jwt.Signer}
+         *
+         * @param key a {@link PrivateKey} which will be null in case of
+         *            not {@link #pri()}
+         */
+        Jwt.Signer<J> signer(PrivateKey key);
+
+        /**
+         * Issue a {@link J} typed jwt token
+         *
+         * @param iss {@link Jwt.Claim#ISS}
+         * @param sub {@link Jwt.Claim#SUB}
+         * @param jti {@link Jwt.Claim#JTI}
+         * @param iat {@link Jwt.Claim#IAT}
+         * @param nbf {@link Jwt.Claim#NBF}
+         * @param exp {@link Jwt.Claim#EXP}
+         * @param aud {@link Jwt.Claim#AUD}
+         */
+        J issue(String iss, String sub, String jti, Date iat, Date nbf, Date exp, List<String> aud);
     }
 
     /**
@@ -274,7 +326,7 @@ public class Jwter {
         /**
          * @see Issuer#issue(String, Object, long, List)
          */
-        public SignedJWT issue(String jti, T sub, long lifespan) {
+        public J issue(String jti, T sub, long lifespan) {
             return issue(jti, sub, lifespan, null);
         }
 
@@ -287,21 +339,15 @@ public class Jwter {
          * @param audiences {@link com.nimbusds.jwt.JWTClaimsSet.Builder#audience(List)}
          */
         @SuppressWarnings("SpellCheckingInspection")
-        public SignedJWT issue(String jti, T sub, long lifespan, List<String> audiences) {
-            JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
-                    .issuer(iss)
-                    .subject(converter.apply(sub))
-                    .jwtID(jti)
-                    .issueTime(new Date())
-                    .notBeforeTime(new Date(System.currentTimeMillis() - leeway))
-                    .expirationTime(new Date(System.currentTimeMillis() + lifespan));
-            if (audiences != null && !audiences.isEmpty()) {
-                builder.audience(audiences);
-            }
-            return Jwter.this.encode(new SignedJWT(
-                    new JWSHeader.Builder(JWSAlgorithm.RS256)
-                            .keyID(Jwter.this.toString()).build(),
-                    builder.build()));
+        public J issue(String jti, T sub, long lifespan, List<String> audiences) {
+            return Jwter.this.encode(scheme.issue(
+                    iss,
+                    converter.apply(sub),
+                    jti,
+                    new Date(),
+                    new Date(System.currentTimeMillis() - leeway),
+                    new Date(System.currentTimeMillis() + lifespan),
+                    Funny.nvl(audiences, Collections.emptyList())));
         }
 
     }
@@ -314,4 +360,5 @@ public class Jwter {
                     name, Jwter.class.getPackage().getName()));
         }
     }
+
 }
