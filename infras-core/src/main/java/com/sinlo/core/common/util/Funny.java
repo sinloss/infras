@@ -84,25 +84,23 @@ public class Funny {
     }
 
     /**
-     * Convert the given {@link Consumer} to a valid {@link Function} having no
-     * return value. It is mainly used to meet the requirements of some methods
-     * which only accepts {@link Function}s
-     */
-    public static <T> Function<T, Void> voided(Consumer<T> proc) {
-        return (t) -> {
-            proc.accept(t);
-            return null;
-        };
-    }
-
-    /**
-     * Opposite to the {@link #voided(Consumer)}, this will convert the given
-     * {@link Consumer} to a valid {@link Function} that returns the given
-     * {@code next} which might be the caller in case of method referencing
+     * Convert the given {@link Consumer} to a valid {@link Function} that
+     * returns the given {@code next} which might be the caller in case of method referencing
      */
     public static <T, A> Function<A, T> cascade(Consumer<A> voided, T next) {
         return a -> {
             voided.accept(a);
+            return next;
+        };
+    }
+
+    /**
+     * Similar to {@link #cascade(Consumer, Object)}, but turns a {@link Runnable}
+     * to a {@link Supplier}
+     */
+    public static <T> Supplier<T> cascade(Runnable voided, T next) {
+        return () -> {
+            voided.run();
             return next;
         };
     }
@@ -113,6 +111,26 @@ public class Funny {
      * in case of method referencing
      */
     public static <T, A> Function<T, T> cascade(BiConsumer<T, A> voided, A arg) {
+        return t -> {
+            voided.accept(t, arg);
+            return t;
+        };
+    }
+
+    /**
+     * Similar to {@link #cascade(Runnable, Object)} but for impatient functional interfaces
+     */
+    public static <T, E extends Throwable> ImpatientSupplier<T, E> cascade(ImpatientRunnable<E> voided, T next) {
+        return () -> {
+            voided.run();
+            return next;
+        };
+    }
+
+    /**
+     * Similar to {@link #cascade(BiConsumer, Object)} but for impatient functional interfaces
+     */
+    public static <T, A, E extends Throwable> ImpatientFunction<T, T, E> cascade(ImpatientBiConsumer<T, A, E> voided, A arg) {
         return t -> {
             voided.accept(t, arg);
             return t;
