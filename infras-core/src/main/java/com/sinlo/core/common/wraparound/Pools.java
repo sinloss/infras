@@ -22,19 +22,20 @@ public class Pools {
     public static class Expiring<K, V> extends Pool<K, V> {
 
         private final Pool<K, It<V, Chan.Deferred<K>>> underlying;
+        private final Chan.Defer<K> chan;
 
-        private final Chan.Defer<K> chan = new Chan.Defer<>(this::expiring);
         private final Consumer<V> onExpired;
         private final long delay;
-        private static final ThreadLocal<Long> withed = new ThreadLocal<>();
         private final boolean fixed;
+        private static final ThreadLocal<Long> withed = new ThreadLocal<>();
 
         private Expiring(Consumer<V> onExpired, long delay, boolean fixed) {
             super(null);
             this.onExpired = onExpired;
             this.delay = delay;
             this.fixed = fixed;
-            underlying = new Pool<>();
+            this.underlying = new Pool<>();
+            (this.chan = new Chan.Defer<>(this::expiring)).polling();
         }
 
         private long delay() {
