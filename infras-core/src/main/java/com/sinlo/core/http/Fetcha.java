@@ -554,6 +554,20 @@ public class Fetcha<T> {
             return new Course<>(root, transformer);
         }
 
+        /**
+         * A shortcut of {@link #simple(String)}("")
+         */
+        public static Course<String> simple() {
+            return simple("");
+        }
+
+        /**
+         * A simple course that transforms 2xx successful response to plain string, and
+         * throws default exception otherwise (not 2xx successful)
+         */
+        public static Course<String> simple(String root) {
+            return of(root, r -> r.otherwiseThrow().text().orElse(""));
+        }
 
         /**
          * A shortcut of {@link #identity(String)}("")
