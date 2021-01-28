@@ -1,5 +1,6 @@
 package com.sinlo.core.common.util;
 
+import com.sinlo.core.common.functional.ImpatientFunction;
 import com.sinlo.core.common.functional.ImpatientRunnable;
 import com.sinlo.core.common.functional.ImpatientSupplier;
 
@@ -235,6 +236,13 @@ public class Try<R, E extends Throwable> {
     }
 
     /**
+     * Similar to {@link #tolerated(ImpatientSupplier)} but converts {@link Function}s
+     */
+    public static <T, R, E extends Throwable> Function<T, R> tolerated(ImpatientFunction<T, R, E> function) {
+        return function;
+    }
+
+    /**
      * Similar to {@link #tolerate(ImpatientRunnable)} but returns a {@link Runnable}
      * instead of running it
      */
@@ -271,6 +279,13 @@ public class Try<R, E extends Throwable> {
      */
     public static <T, E extends Throwable> Supplier<T> panicked(ImpatientSupplier<T, E> supplier) {
         return () -> panic(supplier);
+    }
+
+    /**
+     * Similar to {@link #panicked(ImpatientSupplier)} but converts {@link Function}s
+     */
+    public static <T, R, E extends Throwable> Function<T, R> panicked(ImpatientFunction<T, R, E> function) {
+        return t -> panic(Funny.bind(function, t));
     }
 
     /**
