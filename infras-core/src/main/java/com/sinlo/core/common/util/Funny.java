@@ -50,6 +50,13 @@ public class Funny {
     }
 
     /**
+     * Just supply the given {@code t}
+     */
+    public static <T> Supplier<T> just(T t) {
+        return () -> t;
+    }
+
+    /**
      * Reference to the function that casts to a specific type
      *
      * @param as   the {@link Class} of the specific type
