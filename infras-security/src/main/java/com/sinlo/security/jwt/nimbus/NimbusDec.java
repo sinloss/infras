@@ -19,23 +19,28 @@ import java.security.interfaces.RSAPublicKey;
 import java.text.ParseException;
 import java.util.LinkedHashMap;
 
-public class Decoder implements Jwt.Dec {
+/**
+ * The {@link Jwt.Dec} implementation of nimbus
+ *
+ * @author sinlo
+ */
+public class NimbusDec implements Jwt.Dec {
 
     private final JWTProcessor<SecurityContext> processor;
 
-    private Decoder(JWTProcessor<SecurityContext> processor) {
+    private NimbusDec(JWTProcessor<SecurityContext> processor) {
         this.processor = processor;
     }
 
-    public static Decoder of(ProcessorBuilder builder) {
-        return new Decoder(builder.processor());
+    public static NimbusDec of(ProcessorBuilder builder) {
+        return new NimbusDec(builder.processor());
     }
 
-    public static Decoder of(RSAPublicKey key, JWSAlgorithm alg) {
+    public static NimbusDec of(RSAPublicKey key, JWSAlgorithm alg) {
         return of(new ProcessorBuilder.SingleKey<>(key).alg(alg));
     }
 
-    public static Decoder of(PrivateKey key, JWSAlgorithm alg) {
+    public static NimbusDec of(PrivateKey key, JWSAlgorithm alg) {
         return of(new ProcessorBuilder.SingleKey<>(key).alg(alg));
     }
 

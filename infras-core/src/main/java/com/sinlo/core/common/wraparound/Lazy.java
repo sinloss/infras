@@ -51,6 +51,20 @@ public class Lazy<T> {
     }
 
     /**
+     * Simple way to create a {@link Lazy<T>.Default}
+     */
+    public static <T> Lazy<T>.Default justDefault(Supplier<T> initializer) {
+        return of(initializer).asDefault();
+    }
+
+    /**
+     * Simple way to create a {@link Lazy<T>.Default}
+     */
+    public static <T, E extends Throwable> Lazy<T>.Default justDefault(ImpatientSupplier<T, E> initializer) {
+        return of(initializer).asDefault();
+    }
+
+    /**
      * Make the current {@link Lazy} as a {@link Default} which could mutate the
      * underlying item
      */
