@@ -1,8 +1,6 @@
 package com.sinlo.security.tkn.knowledges;
 
-import com.nimbusds.jwt.SignedJWT;
 import com.sinlo.security.jwt.Jwter;
-import com.sinlo.security.jwt.nimbus.NimbusScheme;
 import com.sinlo.security.jwt.spec.Jwt;
 import com.sinlo.security.tkn.spec.Knowledge;
 import com.sinlo.security.tkn.spec.State;
@@ -16,20 +14,19 @@ import java.util.function.Function;
  *
  * @author sinlo
  */
-public class JwtKnowledge<A> implements Knowledge<String, A> {
+public class JwtKnowledge<A, J> implements Knowledge<String, A> {
 
-    public final Jwter<SignedJWT> jwter;
-    private final Jwter<SignedJWT>.Issuer<A> issuer;
+    public final Jwter<J> jwter;
+    private final Jwter<J>.Issuer<A> issuer;
     private final Function<String, A> des;
 
-    public JwtKnowledge(String pri, String pub,
-                        String issuer,
+    public JwtKnowledge(Jwter<J> jwter, String issuer,
                         Function<A, String> ser,
                         Function<String, A> des,
                         int leeway) {
-        this.jwter = new Jwter<>(NimbusScheme.Simple, pri, pub);
+        this.jwter = jwter;
         this.des = des;
-        this.issuer = jwter.issuer(issuer, ser, leeway);
+        this.issuer = this.jwter.issuer(issuer, ser, leeway);
     }
 
     @Override

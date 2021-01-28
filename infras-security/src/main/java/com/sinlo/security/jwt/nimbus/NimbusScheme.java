@@ -9,6 +9,7 @@ import com.sinlo.core.common.util.Arria;
 import com.sinlo.core.common.util.Funny;
 import com.sinlo.core.common.util.Try;
 import com.sinlo.security.jwt.Jwter;
+import com.sinlo.security.jwt.nimbus.spec.ProcessorBuilder;
 import com.sinlo.security.jwt.spec.Jwt;
 import com.sinlo.security.jwt.spec.exception.SigningFailedException;
 
@@ -17,14 +18,41 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * The {@link Jwter.Scheme} of nimbus
+ *
+ * @author sinlo
+ */
 public interface NimbusScheme extends Jwter.Scheme<SignedJWT> {
 
-    NimbusScheme Simple = new NimbusScheme() {
-    };
+    /**
+     * An instance of a simplest {@link NimbusScheme} which uses {@link JWSAlgorithm#RS256}
+     * as its {@link #alg()}
+     */
+    NimbusScheme Simple = of(JWSAlgorithm.RS256);
+
+    /**
+     * Instantiate a simple {@link NimbusScheme} using the given {@link JWSAlgorithm}
+     *
+     * @param alg the {@link JWSAlgorithm} to be returned by {@link #alg()}
+     */
+    static NimbusScheme of(JWSAlgorithm alg) {
+        return () -> alg;
+    }
+
+    static NimbusScheme dec(ProcessorBuilder pb) {
+        return new JustDec(NimbusDec.of(pb));
+    }
+
+    /**
+     * Provide the basic {@link JWSAlgorithm} for both {@link #issue(String, String, String, Date, Date, Date, List)}
+     * and {@link #dec(RSAPublicKey)}
+     */
+    JWSAlgorithm alg();
 
     @Override
     default Jwt.Dec dec(RSAPublicKey key) {
-        return Decoder.of(key, JWSAlgorithm.RS256);
+        return NimbusDec.of(key, alg());
     }
 
     @Override
@@ -43,9 +71,45 @@ public interface NimbusScheme extends Jwter.Scheme<SignedJWT> {
             builder.audience(aud);
         }
         return new SignedJWT(
-                new JWSHeader.Builder(JWSAlgorithm.RS256)
+                new JWSHeader.Builder(alg())
                         .keyID(NimbusScheme.class.toString()).build(),
                 builder.build());
     }
 
+    @Override
+    default String serialize(SignedJWT jwt) {
+        return jwt.serialize();
+    }
+
+    /**
+     * A implementation of decode-only {@link NimbusScheme}
+     */
+    class JustDec implements NimbusScheme {
+
+        private final NimbusDec dec;
+
+        private JustDec(NimbusDec dec) {
+            this.dec = dec;
+        }
+
+        @Override
+        public Jwt.Dec dec(RSAPublicKey key) {
+            return dec;
+        }
+
+        @Override
+        public boolean pub() {
+            return false;
+        }
+
+        @Override
+        public boolean pri() {
+            return false;
+        }
+
+        @Override
+        public JWSAlgorithm alg() {
+            return null;
+        }
+    }
 }

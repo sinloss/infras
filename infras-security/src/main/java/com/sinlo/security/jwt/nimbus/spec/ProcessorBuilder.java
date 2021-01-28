@@ -31,6 +31,20 @@ public abstract class ProcessorBuilder {
 
     public abstract JWSKeySelector<SecurityContext> selector();
 
+    /**
+     * Create a {@link ProcessorBuilder.SingleKey} using the given {@link Key}
+     */
+    public static <K extends Key> ProcessorBuilder.SingleKey<K> key(K key) {
+        return new SingleKey<>(key);
+    }
+
+    /**
+     * Create a {@link ProcessorBuilder.JwkSet} using the given {@code uri}
+     */
+    public static ProcessorBuilder.JwkSet uri(String uri) {
+        return new JwkSet(uri);
+    }
+
     public JWTProcessor<SecurityContext> processor() {
         return Cascader.of(DefaultJWTProcessor::new)
                 .apply(DefaultJWTProcessor::setJWSKeySelector, selector())
@@ -98,6 +112,9 @@ public abstract class ProcessorBuilder {
         }
     }
 
+    /**
+     * The jwk set processor builder
+     */
     public static class JwkSet extends ProcessorBuilder {
 
         private final String uri;
@@ -114,6 +131,7 @@ public abstract class ProcessorBuilder {
 
         @Override
         public JWSKeySelector<SecurityContext> selector() {
+            if (course == null) course = Fetcha.Course.simple();
             RemoteJWKSet<SecurityContext> source = new RemoteJWKSet<>(Try.of(() -> new URL(uri))
                     .otherwiseThrow().exert(), new RemoteRetriever(course));
             if (this.algorithms.size() <= 1) {

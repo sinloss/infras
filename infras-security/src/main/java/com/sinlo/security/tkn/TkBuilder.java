@@ -1,6 +1,9 @@
 package com.sinlo.security.tkn;
 
+import com.sinlo.core.common.util.Funny;
+import com.sinlo.core.common.wraparound.Lazy;
 import com.sinlo.security.jwt.Jwter;
+import com.sinlo.security.jwt.nimbus.NimbusScheme;
 import com.sinlo.security.tkn.knowledges.JwtKnowledge;
 import com.sinlo.security.tkn.spec.Knowledge;
 import com.sinlo.security.tkn.spec.Tkn;
@@ -117,18 +120,26 @@ public class TkBuilder<T, A> {
      * An implementation of the {@link KnowledgeBuilder} that builds {@link JwtKnowledge}
      */
     public class JwtBuilder extends FinalBuilderProducer implements KnowledgeBuilder<T, A> {
-        private String pri;
-        private String pub;
-        private String issuer;
-        private Function<A, String> ser;
+        private final Lazy<String>.Default
+                pri = Lazy.justDefault(Funny.just(Jwter.DEFAULT_PRI));
+        private final Lazy<String>.Default
+                pub = Lazy.justDefault(Funny.just(Jwter.DEFAULT_PUB));
+        private final Lazy<String>.Default
+                issuer = Lazy.justDefault(TkBuilder.class::getCanonicalName);
+        private final Lazy<Integer>.Default
+                leeway = Lazy.justDefault(Funny.just(30000));
+        private final Lazy<Function<A, String>>.Default
+                ser = Lazy.justDefault(Funny.just(Object::toString));
+        private final Lazy<Jwter.Scheme<?>>.Default
+                scheme = Lazy.justDefault(() -> NimbusScheme.Simple);
+
         private Function<String, A> des;
-        private Integer leeway;
 
         /**
          * The {@link JwtKnowledge#jwter#pri}
          */
         public JwtBuilder pri(String pri) {
-            this.pri = pri;
+            this.pri.provide(pri);
             return this;
         }
 
@@ -136,7 +147,7 @@ public class TkBuilder<T, A> {
          * The {@link JwtKnowledge#jwter#pub}
          */
         public JwtBuilder pub(String pub) {
-            this.pub = pub;
+            this.pub.provide(pub);
             return this;
         }
 
@@ -144,7 +155,7 @@ public class TkBuilder<T, A> {
          * The {@link com.sinlo.security.jwt.Jwter.Issuer#iss}
          */
         public JwtBuilder issuer(String issuer) {
-            this.issuer = issuer;
+            this.issuer.provide(issuer);
             return this;
         }
 
@@ -152,7 +163,7 @@ public class TkBuilder<T, A> {
          * The serializer that serializes a given subject of type {@link A} to a string
          */
         public JwtBuilder ser(Function<A, String> ser) {
-            this.ser = ser;
+            this.ser.provide(ser);
             return this;
         }
 
@@ -168,7 +179,15 @@ public class TkBuilder<T, A> {
          * The {@link com.sinlo.security.jwt.Jwter.Issuer#leeway}
          */
         public JwtBuilder leeway(int leeway) {
-            this.leeway = leeway;
+            this.leeway.provide(leeway);
+            return this;
+        }
+
+        /**
+         * The {@link com.sinlo.security.jwt.Jwter.Scheme} instance
+         */
+        public <J> JwtBuilder scheme(Jwter.Scheme<J> scheme) {
+            this.scheme.provide(scheme);
             return this;
         }
 
@@ -183,12 +202,9 @@ public class TkBuilder<T, A> {
         public Knowledge<T, A> knowledge() {
             if (des == null)
                 throw new IllegalArgumentException("Must provide a deserializer");
-            if (pri == null) pri = Jwter.DEFAULT_PRI;
-            if (pub == null) pub = Jwter.DEFAULT_PUB;
-            if (issuer == null) issuer = TkBuilder.class.getCanonicalName();
-            if (leeway == null) leeway = 30000;
-            if (ser == null) ser = Object::toString;
-            return new JwtKnowledge(pri, pub, issuer, ser, des, leeway);
+            return new JwtKnowledge(
+                    new Jwter(scheme.get(), pri.get(), pub.get()),
+                    issuer.get(), ser.get(), des, leeway.get());
         }
     }
 }

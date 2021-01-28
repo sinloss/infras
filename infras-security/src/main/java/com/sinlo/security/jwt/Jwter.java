@@ -286,6 +286,11 @@ public class Jwter<J> {
          * @param aud {@link Jwt.Claim#AUD}
          */
         J issue(String iss, String sub, String jti, Date iat, Date nbf, Date exp, List<String> aud);
+
+        /**
+         * Serialize the token to string
+         */
+        String serialize(J jwt);
     }
 
     /**
@@ -326,7 +331,7 @@ public class Jwter<J> {
         /**
          * @see Issuer#issue(String, Object, long, List)
          */
-        public J issue(String jti, T sub, long lifespan) {
+        public Issued issue(String jti, T sub, long lifespan) {
             return issue(jti, sub, lifespan, null);
         }
 
@@ -339,17 +344,43 @@ public class Jwter<J> {
          * @param audiences {@link com.nimbusds.jwt.JWTClaimsSet.Builder#audience(List)}
          */
         @SuppressWarnings("SpellCheckingInspection")
-        public J issue(String jti, T sub, long lifespan, List<String> audiences) {
-            return Jwter.this.encode(scheme.issue(
+        public Issued issue(String jti, T sub, long lifespan, List<String> audiences) {
+            return new Issued(Jwter.this.encode(scheme.issue(
                     iss,
                     converter.apply(sub),
                     jti,
                     new Date(),
                     new Date(System.currentTimeMillis() - leeway),
                     new Date(System.currentTimeMillis() + lifespan),
-                    Funny.nvl(audiences, Collections.emptyList())));
+                    Funny.nvl(audiences, Collections.emptyList()))));
         }
 
+    }
+
+    /**
+     * The issued jwt
+     */
+    public class Issued {
+
+        private final J jwt;
+
+        public Issued(J jwt) {
+            this.jwt = jwt;
+        }
+
+        /**
+         * Get the underlying jwt token
+         */
+        public J get() {
+            return jwt;
+        }
+
+        /**
+         * Get the serialized jwt token
+         */
+        public String serialize() {
+            return scheme.serialize(jwt);
+        }
     }
 
     public static class TooManyKeyFilesException extends RuntimeException {
