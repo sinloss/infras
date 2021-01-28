@@ -1,13 +1,19 @@
 package com.sinlo.security.tkn;
 
+import com.sinlo.core.common.functional.ImpatientFunction;
 import com.sinlo.core.common.util.Funny;
 import com.sinlo.core.common.wraparound.Lazy;
 import com.sinlo.security.jwt.Jwter;
 import com.sinlo.security.jwt.nimbus.NimbusScheme;
+import com.sinlo.security.jwt.spec.Jwt;
+import com.sinlo.security.jwt.spec.exception.JwtException;
 import com.sinlo.security.tkn.knowledges.JwtKnowledge;
 import com.sinlo.security.tkn.spec.Knowledge;
 import com.sinlo.security.tkn.spec.Tkn;
 
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Function;
 
 /**
@@ -124,14 +130,16 @@ public class TkBuilder<T, A> {
                 pri = Lazy.justDefault(Funny.just(Jwter.DEFAULT_PRI));
         private final Lazy<String>.Default
                 pub = Lazy.justDefault(Funny.just(Jwter.DEFAULT_PUB));
-        private final Lazy<String>.Default
-                issuer = Lazy.justDefault(TkBuilder.class::getCanonicalName);
+        private final Lazy<String>.Default issuer =
+                Lazy.justDefault(Funny.just(
+                        String.format("https://%s", TkBuilder.class.getCanonicalName())));
         private final Lazy<Integer>.Default
                 leeway = Lazy.justDefault(Funny.just(30000));
         private final Lazy<Function<A, String>>.Default
                 ser = Lazy.justDefault(Funny.just(Object::toString));
         private final Lazy<Jwter.Scheme<?>>.Default
                 scheme = Lazy.justDefault(() -> NimbusScheme.Simple);
+        private final List<ImpatientFunction<Jwt, Boolean, JwtException>> validators = new LinkedList<>();
 
         private Function<String, A> des;
 
@@ -152,7 +160,7 @@ public class TkBuilder<T, A> {
         }
 
         /**
-         * The {@link com.sinlo.security.jwt.Jwter.Issuer#iss}
+         * The {@link Jwter.Issuer#iss}
          */
         public JwtBuilder issuer(String issuer) {
             this.issuer.provide(issuer);
@@ -176,7 +184,7 @@ public class TkBuilder<T, A> {
         }
 
         /**
-         * The {@link com.sinlo.security.jwt.Jwter.Issuer#leeway}
+         * The {@link Jwter.Issuer#leeway}
          */
         public JwtBuilder leeway(int leeway) {
             this.leeway.provide(leeway);
@@ -184,10 +192,29 @@ public class TkBuilder<T, A> {
         }
 
         /**
-         * The {@link com.sinlo.security.jwt.Jwter.Scheme} instance
+         * The {@link Jwter.Scheme} instance
          */
         public <J> JwtBuilder scheme(Jwter.Scheme<J> scheme) {
             this.scheme.provide(scheme);
+            return this;
+        }
+
+        /**
+         * The {@link Jwter#ensure(ImpatientFunction[])}
+         */
+        @SafeVarargs
+        public final JwtBuilder ensure(ImpatientFunction<Jwt, Boolean, JwtException>... validators) {
+            Collections.addAll(this.validators, validators);
+            return this;
+        }
+
+        /**
+         * The {@link Jwter#surefire(String...)}
+         *
+         * @see Jwt#surefire(String...)
+         */
+        public final JwtBuilder surefire(String... iss) {
+            this.validators.addAll(Jwt.surefire(iss));
             return this;
         }
 
@@ -203,7 +230,7 @@ public class TkBuilder<T, A> {
             if (des == null)
                 throw new IllegalArgumentException("Must provide a deserializer");
             return new JwtKnowledge(
-                    new Jwter(scheme.get(), pri.get(), pub.get()),
+                    new Jwter(scheme.get(), pri.get(), pub.get()).ensure(validators),
                     issuer.get(), ser.get(), des, leeway.get());
         }
     }

@@ -11,6 +11,7 @@ class TkBuilderTest extends Specification {
                 .ephemeral(7200000)
                 .longevous(7200000 * 24 * 7)
                 .jwt()
+                .surefire()
                 .des(Subject.&from)
                 .ser({ s -> s.toString() })
                 .ok().build() as TknKeeper<String, Subject>

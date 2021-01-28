@@ -98,15 +98,21 @@ public class Jwter<J> {
                 : this.new Issuer<>(iss, converter, leeway);
     }
 
+    /**
+     * Decode and create a {@link Jwt} out of a given serialized jwt token
+     */
     public Jwt decode(String jwt) {
         if (dec == null) throw new UnsupportedOperationException("Decode is not supported");
         Jwt j = dec.decode(jwt);
-        Set<Throwable> errs = j.validate(this.validators);
+        Set<Throwable> errs = j.sure(this.validators);
         if (!Arria.isEmpty(errs))
             throw new ValidationFailedException(errs);
         return j;
     }
 
+    /**
+     * Sign the given jwt token
+     */
     public J encode(J jwt) {
         if (enc == null) throw new UnsupportedOperationException("Encode is not supported");
         try {
@@ -120,7 +126,7 @@ public class Jwter<J> {
     /**
      * Add validators
      *
-     * @see Jwt#validate(List)
+     * @see Jwt#sure(List)
      */
     @SafeVarargs
     public final Jwter<J> ensure(ImpatientFunction<Jwt, Boolean, JwtException>... validators) {
@@ -131,11 +137,18 @@ public class Jwter<J> {
     /**
      * Add validators
      *
-     * @see Jwt#validate(List)
+     * @see Jwt#sure(List)
      */
-    public final Jwter<J> ensure(List<ImpatientFunction<Jwt, Boolean, JwtException>> validators) {
+    public Jwter<J> ensure(List<ImpatientFunction<Jwt, Boolean, JwtException>> validators) {
         this.validators.addAll(validators);
         return this;
+    }
+
+    /**
+     * Ensures {@link Jwt#surefire(String...)}
+     */
+    public Jwter<J> surefire(String... iss) {
+        return ensure(Jwt.surefire(iss));
     }
 
     /**
@@ -300,7 +313,7 @@ public class Jwter<J> {
      */
     public class Issuer<T> {
 
-        private final String iss;
+        private final URL iss;
         private final Function<T, String> converter;
         private final int leeway;
 
@@ -321,7 +334,7 @@ public class Jwter<J> {
          */
         @SuppressWarnings("SpellCheckingInspection")
         private Issuer(String iss, Function<T, String> converter, int leeway) {
-            this.iss = iss;
+            this.iss = Try.panic(() -> new URL(iss));
             this.converter = converter == null
                     ? (sub -> sub == null ? "" : sub.toString())
                     : converter;
@@ -346,7 +359,7 @@ public class Jwter<J> {
         @SuppressWarnings("SpellCheckingInspection")
         public Issued issue(String jti, T sub, long lifespan, List<String> audiences) {
             return new Issued(Jwter.this.encode(scheme.issue(
-                    iss,
+                    iss.toString(),
                     converter.apply(sub),
                     jti,
                     new Date(),

@@ -1,10 +1,12 @@
 package com.sinlo.security.jwt.spec;
 
-
 import com.sinlo.core.common.functional.ImpatientFunction;
+import com.sinlo.core.common.util.Arria;
 import com.sinlo.core.common.util.Funny;
 import com.sinlo.core.common.util.Try;
 import com.sinlo.security.jwt.spec.exception.JwtException;
+import com.sinlo.security.jwt.spec.sure.ShouldIssuer;
+import com.sinlo.security.jwt.spec.sure.ShouldTime;
 
 import java.net.URL;
 import java.time.Instant;
@@ -49,17 +51,38 @@ public class Jwt {
      * Validate using the given validators
      */
     @SafeVarargs
-    public final Set<Throwable> validate(ImpatientFunction<Jwt, Boolean, JwtException>... validators) {
-        return validate(Arrays.asList(validators));
+    public final Set<Throwable> sure(ImpatientFunction<Jwt, Boolean, JwtException>... validators) {
+        return sure(Arrays.asList(validators));
     }
 
     /**
      * Validate using the given validators
      */
-    public Set<Throwable> validate(List<ImpatientFunction<Jwt, Boolean, JwtException>> validators) {
+    public Set<Throwable> sure(List<ImpatientFunction<Jwt, Boolean, JwtException>> validators) {
         return validators.stream()
                 .map(v -> Funny.bind(v, this))
-                .map(Try::capture).collect(Collectors.toSet());
+                .map(Try::capture)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
+    }
+
+    /**
+     * Surefire! Create a list of {@code validators} containing {@link ShouldTime#afterNbf()} and
+     * {@link ShouldTime#beforeExp()}. Also may add an extra {@link ShouldIssuer} based on the
+     * given {@code iss} strings
+     *
+     * @param iss <ul>
+     *            <li>no {@link ShouldIssuer} when it is null or empty</li>
+     *            <li>an {@link ShouldIssuer#be(String)} when it only has one element</li>
+     *            <li>an {@link ShouldIssuer#in(String...)} when it has more elements</li>
+     *            </ul>
+     */
+    public static List<ImpatientFunction<Jwt, Boolean, JwtException>> surefire(String... iss) {
+        List<ImpatientFunction<Jwt, Boolean, JwtException>> sures = new LinkedList<>();
+        Collections.addAll(sures, ShouldTime.afterNbf(), ShouldTime.beforeExp());
+        if (Arria.nonEmpty(iss))
+            sures.add(iss.length == 1
+                    ? ShouldIssuer.be(iss[0]) : ShouldIssuer.in(iss));
+        return sures;
     }
 
     /**

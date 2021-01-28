@@ -1,5 +1,6 @@
 package com.sinlo.security.jwt.spec.exception;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -15,7 +16,9 @@ public class ValidationFailedException extends BadJwtException {
 
     public ValidationFailedException(Set<Throwable> causes) {
         super(String.format("The validation failed on following causes: %s",
-                causes.stream().map(Throwable::toString).collect(Collectors.joining(", \n"))));
+                causes.stream().filter(Objects::nonNull)
+                        .map(Throwable::toString)
+                        .collect(Collectors.joining(", \n"))));
     }
 
     public Set<Throwable> causes() {
