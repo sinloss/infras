@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
+import java.util.Objects;
 
 /**
  * Jason the json util
@@ -139,20 +140,25 @@ public class Jason {
     }
 
     /**
-     * Get a {@link Thingamabob} the json object builder
+     * Get a {@link Thingama.Bob} the json object builder
      */
-    public static Thingamabob map() {
-        return new Thingamabob();
+    public static Thingama.Bob map() {
+        return new Thingama.Bob();
     }
 
-    @SuppressWarnings("unchecked")
-    private static class Thingama<T extends Thingama<T>> extends HashMap<String, Object> {
+    /**
+     * The abstraction of {@link Thingama.Bob} and {@link Thingama.Jig}
+     *
+     * @param <T> the type of the subtype of {@link Thingama}, always be the type of {@code this}
+     */
+    public static abstract class Thingama<T extends Thingama<T>> extends HashMap<String, Object> {
 
         /**
          * Put an object
          *
          * @see HashMap#put(Object, Object)
          */
+        @SuppressWarnings("unchecked")
         public T val(String key, Object value) {
             this.check(key);
             put(key, value);
@@ -162,6 +168,7 @@ public class Jason {
         /**
          * Put an array of objects
          */
+        @SuppressWarnings("unchecked")
         public T val(String key, Object... values) {
             this.check(key);
             put(key, values);
@@ -173,11 +180,21 @@ public class Jason {
          *
          * @see #val(String, Object)
          */
+        @SuppressWarnings("unchecked")
         public T optional(String key, Object value) {
             this.check(key);
             if (value == null) return (T) this;
             return val(key, value);
         }
+
+        public Val plant(Object val) {
+            return new Val(val);
+        }
+
+        /**
+         * Must provide sub-map creation method
+         */
+        public abstract Thingama<?> map(String key);
 
         @Override
         public String toString() {
@@ -188,65 +205,103 @@ public class Jason {
             if (Strine.isEmpty(key))
                 throw new IllegalArgumentException("Key empty");
         }
-    }
-
-    /**
-     * Thingamabob is a json object builder based on map
-     *
-     * @author sinlo
-     */
-    public static class Thingamabob extends Thingama<Thingamabob> {
 
         /**
-         * Convert a given {@link HashMap} to a {@link Thingamabob}
+         * Thingamabob is a json object builder based on map
+         *
+         * @author sinlo
          */
-        public static Thingamabob from(HashMap<String, Object> map) {
-            Thingamabob thingamabob = new Thingamabob();
-            thingamabob.putAll(map);
-            return thingamabob;
-        }
+        public static class Bob extends Thingama<Bob> {
 
-        /**
-         * Map the key with a new {@link Thingamajig}
-         */
-        public Thingamajig<Thingamabob> map(String key) {
-            Thingamajig<Thingamabob> next = new Thingamajig<>(this);
-            put(key, next);
-            return next;
-        }
+            /**
+             * Convert a given {@link HashMap} to a {@link Bob}
+             */
+            public static Bob from(HashMap<String, Object> map) {
+                Bob bob = new Bob();
+                bob.putAll(map);
+                return bob;
+            }
 
-    }
+            /**
+             * Map the key with a new {@link Jig}
+             */
+            public Jig<Bob> map(String key) {
+                Jig<Bob> next = new Jig<>(this);
+                put(key, next);
+                return next;
+            }
 
-    /**
-     * Thingamajig is a json sub-object builder based on map
-     *
-     * @author sinlo
-     */
-    public static class Thingamajig<T extends Thingama<T>> extends Thingama<Thingamajig<T>> {
-
-        @JsonIgnore
-        private final T thingama;
-
-        private Thingamajig(T thingama) {
-            this.thingama = thingama;
         }
 
         /**
-         * Map the key with a new {@link Thingamajig}
+         * Thingamajig is a json sub-object builder based on map
+         *
+         * @author sinlo
          */
-        public Thingamajig<Thingamajig<T>> map(String key) {
-            Thingamajig<Thingamajig<T>> next = new Thingamajig<>(this);
-            put(key, next);
-            return next;
+        public static class Jig<T extends Thingama<T>> extends Thingama<Jig<T>> {
+
+            @JsonIgnore
+            private final T thingama;
+
+            private Jig(T thingama) {
+                this.thingama = thingama;
+            }
+
+            /**
+             * Map the key with a new {@link Jig}
+             */
+            public Jig<Jig<T>> map(String key) {
+                Jig<Jig<T>> next = new Jig<>(this);
+                put(key, next);
+                return next;
+            }
+
+            /**
+             * Go back to the previous {@link Bob} or {@link Jig}
+             */
+            public T end() {
+                return this.thingama;
+            }
+
         }
 
         /**
-         * Go back to the previous {@link Thingamabob} or {@link Thingamajig}
+         * The {@link #val} carrier
          */
-        public T end() {
-            return this.thingama;
-        }
+        public class Val {
 
+            private final Object val;
+
+            private Val(Object val) {
+                this.val = val;
+            }
+
+            /**
+             * Put the underlying val along the given keys deep into the bottom
+             * and associate it with the last one
+             */
+            @SuppressWarnings("unchecked")
+            public T into(String... keys) {
+                switch (Objects.requireNonNull(keys).length) {
+                    case 0:
+                        break;
+                    case 1:
+                        return Thingama.this.val(keys[0], val);
+                    default:
+                        // the last index
+                        int last = keys.length - 1;
+                        // the initial thingama
+                        Thingama<?> thingma = Thingama.this;
+                        for (int i = 0; i < last; i++) {
+                            // create a map each time on the way deep into the bottom
+                            thingma = thingma.map(keys[i]);
+                        }
+                        // associate the val with the last key
+                        thingma.val(keys[last], val);
+                }
+                return (T) Thingama.this;
+            }
+        }
     }
 
 }
