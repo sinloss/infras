@@ -1,4 +1,4 @@
-package com.sinlo.core.jdbc.spec;
+package com.sinlo.jdbc.spec;
 
 import com.sinlo.core.common.functional.ImpatientTriConsumer;
 

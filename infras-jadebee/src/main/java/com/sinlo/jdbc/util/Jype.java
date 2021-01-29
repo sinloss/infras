@@ -1,9 +1,9 @@
-package com.sinlo.core.jdbc.util;
+package com.sinlo.jdbc.util;
 
 import com.sinlo.core.common.util.Strine;
-import com.sinlo.core.jdbc.spec.ResultSetGetter;
-import com.sinlo.core.jdbc.spec.Shaper;
-import com.sinlo.core.jdbc.spec.StatementSetter;
+import com.sinlo.jdbc.spec.ResultSetGetter;
+import com.sinlo.jdbc.spec.Shaper;
+import com.sinlo.jdbc.spec.StatementSetter;
 import com.sinlo.sponte.util.Typer;
 
 import java.io.InputStream;

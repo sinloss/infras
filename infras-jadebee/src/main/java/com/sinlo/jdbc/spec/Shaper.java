@@ -1,7 +1,7 @@
-package com.sinlo.core.jdbc.spec;
+package com.sinlo.jdbc.spec;
 
 import com.sinlo.core.common.util.Genericia;
-import com.sinlo.core.jdbc.util.Jype;
+import com.sinlo.jdbc.util.Jype;
 
 import java.sql.ResultSet;
 

@@ -1,8 +1,6 @@
 package com.sinlo.spring
 
 
-import com.sinlo.core.jdbc.Jadebee
-import com.sinlo.core.service.Pond
 import com.sinlo.spring.configuration.GeneralConfiguration
 import com.sinlo.spring.service.FooService
 import org.springframework.beans.factory.annotation.Autowired
@@ -21,7 +19,6 @@ class SpringContextTest extends Specification {
 
     def "should proxy method commit"() {
         when:
-        new Jadebee(null)
         fooService.foo()
         def e = fooService.get()
 

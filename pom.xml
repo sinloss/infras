@@ -13,6 +13,7 @@
         <module>infras-security</module>
         <module>infras-spring-binding</module>
         <module>infras-sponte</module>
+        <module>infras-jadebee</module>
     </modules>
 
     <properties>

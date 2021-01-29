@@ -1,8 +1,8 @@
-package com.sinlo.core.jdbc.shapers;
+package com.sinlo.jdbc.shapers;
 
 import com.sinlo.core.common.util.Funny;
-import com.sinlo.core.jdbc.Shape;
-import com.sinlo.core.jdbc.spec.Shaper;
+import com.sinlo.jdbc.Shape;
+import com.sinlo.jdbc.spec.Shaper;
 
 import java.sql.Timestamp;
 import java.util.Date;

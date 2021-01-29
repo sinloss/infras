@@ -1,7 +1,7 @@
-package com.sinlo.core.jdbc;
+package com.sinlo.jdbc;
 
-import com.sinlo.core.jdbc.spec.SqlFunction;
-import com.sinlo.core.jdbc.util.Jype;
+import com.sinlo.jdbc.spec.SqlFunction;
+import com.sinlo.jdbc.util.Jype;
 import com.sinlo.core.prototype.Prototype;
 import com.sinlo.sponte.SponteInitializer;
 

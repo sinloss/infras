@@ -1,7 +1,8 @@
-package com.sinlo.core.jdbc.util;
+package com.sinlo.jdbc.util;
 
-import com.sinlo.core.jdbc.Shape;
-import com.sinlo.core.jdbc.spec.Shaper;
+import com.sinlo.jdbc.Shape;
+import com.sinlo.jdbc.Jadebee;
+import com.sinlo.jdbc.spec.Shaper;
 import com.sinlo.sponte.Sponte;
 import com.sinlo.sponte.spec.Profile;
 import com.sinlo.sponte.spec.SponteAware;
@@ -23,7 +24,7 @@ public class Shapeherder implements SponteAware {
 
     /**
      * Get the instance created in the initialization process of {@link com.sinlo.sponte.SponteInitializer}
-     * which is introduced by its subclass {@link com.sinlo.core.jdbc.Jadebee}
+     * which is introduced by its subclass {@link Jadebee}
      */
     public static Shapeherder get() {
         return (Shapeherder) pri.get(Shapeherder.class);

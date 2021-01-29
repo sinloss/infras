@@ -1,7 +1,7 @@
-package com.sinlo.core.jdbc;
+package com.sinlo.jdbc;
 
-import com.sinlo.core.jdbc.util.Shapeherder;
-import com.sinlo.core.jdbc.spec.Shaper;
+import com.sinlo.jdbc.util.Shapeherder;
+import com.sinlo.jdbc.spec.Shaper;
 import com.sinlo.sponte.Must;
 import com.sinlo.sponte.Sponte;
 
