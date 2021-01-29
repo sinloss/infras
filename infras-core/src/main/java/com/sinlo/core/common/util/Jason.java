@@ -6,11 +6,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sinlo.core.common.wraparound.Cascader;
 
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -187,6 +190,30 @@ public class Jason {
             return val(key, value);
         }
 
+        /**
+         * Merge the value with the existing value. That is when there is an already existing
+         * value then create a {@link ArrayList} to hold both the values, and associate the
+         * list with the key, and if the existing value is an instance of {@link List}, then
+         * add the given value to it.
+         */
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public T merge(String key, Object value) {
+            this.check(key);
+            compute(key, (k, v) -> {
+                if (v == null) return value;
+                return (v instanceof List
+                        ? Cascader.of((List) v)
+                        : Cascader.of(ArrayList::new).apply(List::add, v))
+                        .apply(List::add, value).get();
+            });
+            return (T) this;
+        }
+
+        /**
+         * Prepare to plant the given {@code val}
+         *
+         * @see Val#into(String...)
+         */
         public Val plant(Object val) {
             return new Val(val);
         }
