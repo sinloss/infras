@@ -95,7 +95,7 @@ public class Fetcha<T> {
      * Set a header
      */
     public Fetcha<T> header(String key, String... values) {
-        this.headers.put(key, Arria.join(",", values));
+        this.headers.put(key, Arria.join(values).byComma());
         return this;
     }
 
@@ -103,7 +103,7 @@ public class Fetcha<T> {
      * Set the header if absent
      */
     public Fetcha<T> headerIfAbsent(String key, String... values) {
-        this.headers.putIfAbsent(key, Arria.join(",", values));
+        this.headers.putIfAbsent(key, Arria.join(values).byComma());
         return this;
     }
 
@@ -200,14 +200,14 @@ public class Fetcha<T> {
     }
 
     /**
-     * Set the {@link #bodyWriter} to write the given {@link Jason.Thingamabob} by deserialize it
+     * Set the {@link #bodyWriter} to write the given {@link Jason.Thingama.Bob} by deserialize it
      * as json
      *
      * @see Jason#map()
-     * @see Jason.Thingamabob#from(HashMap)
+     * @see Jason.Thingama.Bob#from(HashMap)
      */
-    public Fetcha<T> json(Jason.Thingamabob thingamabob) {
-        return this.json(thingamabob.toString());
+    public Fetcha<T> json(Jason.Thingama.Bob bob) {
+        return this.json(bob.toString());
     }
 
     /**

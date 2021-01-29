@@ -1,5 +1,6 @@
 package com.sinlo.core.common.util;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -134,20 +135,18 @@ public class Arria {
     }
 
     /**
-     * An overload of {@link #join(String, Function, Object[])}
+     * Prepare joining of elements using the {@link Joiner}
      */
     @SafeVarargs
-    public static <T> String join(String delimiter, T... array) {
-        return join(delimiter, Object::toString, array);
+    public static <T> Joiner<T> join(T... array) {
+        return new Joiner<>(Arrays.asList(array));
     }
 
     /**
-     * Join elements in an array into a string with the specified delimiter using the
-     * given converter
+     * Prepare joining of an iterable using the {@link Joiner}
      */
-    @SafeVarargs
-    public static <T> String join(String delimiter, Function<T, String> converter, T... array) {
-        return join(Arrays.asList(array), delimiter, converter);
+    public static <T> Joiner<T> join(Iterable<T> iterable) {
+        return new Joiner<>(iterable);
     }
 
     /**
@@ -176,4 +175,42 @@ public class Arria {
         return builder.toString();
     }
 
+    /**
+     * The joiner
+     */
+    public static class Joiner<T> {
+        private final Iterable<T> iterable;
+        private Function<T, String> conv;
+
+        private Joiner(Iterable<T> iterable) {
+            this.iterable = iterable;
+        }
+
+        /**
+         * Use the given converter to map the elements to string
+         */
+        public Joiner<T> conv(Function<T, String> conv) {
+            this.conv = conv;
+            return this;
+        }
+
+        /**
+         * By the given delimiter
+         */
+        public String by(String delim) {
+            return join(iterable, delim, conv);
+        }
+
+        public String byComma() {
+            return by(",");
+        }
+
+        public String byPathSeparator() {
+            return by(File.pathSeparator);
+        }
+
+        public String bySpace() {
+            return by(" ");
+        }
+    }
 }
