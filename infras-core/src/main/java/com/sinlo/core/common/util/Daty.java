@@ -185,9 +185,26 @@ public class Daty {
 
     /**
      * During the given {@link Date}
+     *
+     * @see #during(LocalDateTime)
      */
     public <T> Two<LocalDateTime, LocalDateTime> during(Date date) {
         return during(toLocal(date));
+    }
+
+    /**
+     * @see #during(LocalDateTime, LocalDateTime)
+     */
+    public <T> Two<LocalDateTime, LocalDateTime> during(Date from, Date to) {
+        return during(toLocal(from), toLocal(to));
+    }
+
+    /**
+     * Similar to {@link #during(LocalDateTime)}, but between the start of the {@code from} and the
+     * end of the {@code to}
+     */
+    public <T> Two<LocalDateTime, LocalDateTime> during(LocalDateTime from, LocalDateTime to) {
+        return Two.two(from.toLocalDate().atStartOfDay(), to.toLocalDate().atTime(LocalTime.MAX));
     }
 
     /**
