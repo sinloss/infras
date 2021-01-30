@@ -212,10 +212,12 @@ public class Jason {
         /**
          * Prepare to plant the given {@code val}
          *
+         * @param val   the val to be planted
+         * @param merge using {@link #merge(Object, Object)} or not when planting
          * @see Val#into(Object...)
          */
-        public Val plant(Object val) {
-            return new Val(val);
+        public Val plant(Object val, boolean merge) {
+            return new Val(val, merge);
         }
 
         /**
@@ -300,8 +302,11 @@ public class Jason {
 
             private final Object val;
 
-            private Val(Object val) {
+            private final boolean merge;
+
+            private Val(Object val, boolean merge) {
                 this.val = val;
+                this.merge = merge;
             }
 
             /**
@@ -314,7 +319,9 @@ public class Jason {
                     case 0:
                         break;
                     case 1:
-                        return Thingama.this.val(keys[0], val);
+                        return merge
+                                ? Thingama.this.merge(keys[0], val)
+                                : Thingama.this.val(keys[0], val);
                     default:
                         // the last index
                         int last = keys.length - 1;
@@ -325,10 +332,14 @@ public class Jason {
                             thingma = thingma.map(keys[i]);
                         }
                         // associate the val with the last key
-                        thingma.val(keys[last], val);
+                        if (merge)
+                            thingma.merge(keys[last], val);
+                        else
+                            thingma.val(keys[last], val);
                 }
                 return (T) Thingama.this;
             }
+
         }
     }
 
