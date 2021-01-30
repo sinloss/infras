@@ -17,7 +17,7 @@ public interface ImpatientBiConsumer<T, U, E extends Throwable> extends BiConsum
         try {
             consume(t, u);
         } catch (Throwable e) {
-            Try.tolerate(e);
+            Try.toss(e);
         }
     }
 }

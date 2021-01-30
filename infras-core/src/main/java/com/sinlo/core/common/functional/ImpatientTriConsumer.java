@@ -15,7 +15,7 @@ public interface ImpatientTriConsumer<T, U, V, E extends Throwable> extends TriC
         try {
             consume(t, u, v);
         } catch (Throwable e) {
-            Try.tolerate(e);
+            Try.toss(e);
         }
     }
 }

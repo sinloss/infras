@@ -15,6 +15,10 @@ public interface ImpatientSupplier<T, E extends Throwable> extends Supplier<T> {
     T supply() throws E;
 
     default T get() {
-        return Try.tolerate(this);
+        try {
+            return supply();
+        } catch (Throwable e) {
+            return Try.toss(e);
+        }
     }
 }

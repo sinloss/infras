@@ -14,6 +14,10 @@ public interface ImpatientRunnable<E extends Throwable> extends Runnable {
 
     @Override
     default void run() {
-        Try.tolerate(this);
+        try {
+            runs();
+        } catch (Throwable e) {
+            Try.toss(e);
+        }
     }
 }

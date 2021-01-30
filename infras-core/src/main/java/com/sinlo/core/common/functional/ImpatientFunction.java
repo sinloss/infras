@@ -18,7 +18,7 @@ public interface ImpatientFunction<T, R, E extends Throwable> extends Function<T
         try {
             return employ(t);
         } catch (Throwable e) {
-            return Try.tolerate(e);
+            return Try.toss(e);
         }
     }
 }

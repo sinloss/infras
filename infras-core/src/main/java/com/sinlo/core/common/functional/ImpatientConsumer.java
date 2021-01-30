@@ -17,7 +17,7 @@ public interface ImpatientConsumer<T, E extends Throwable> extends Consumer<T> {
         try {
             consume(t);
         } catch (Throwable e) {
-            Try.tolerate(e);
+            Try.toss(e);
         }
     }
 }

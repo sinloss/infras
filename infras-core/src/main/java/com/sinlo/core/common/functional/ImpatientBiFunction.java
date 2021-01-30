@@ -18,7 +18,7 @@ public interface ImpatientBiFunction<T, U, R, E extends Throwable> extends BiFun
         try {
             return employ(t, u);
         } catch (Throwable e) {
-            return Try.tolerate(e);
+            return Try.toss(e);
         }
     }
 
