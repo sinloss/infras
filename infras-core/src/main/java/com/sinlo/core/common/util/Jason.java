@@ -154,7 +154,7 @@ public class Jason {
      *
      * @param <T> the type of the subtype of {@link Thingama}, always be the type of {@code this}
      */
-    public static abstract class Thingama<T extends Thingama<T>> extends HashMap<String, Object> {
+    public static abstract class Thingama<T extends Thingama<T>> extends HashMap<Object, Object> {
 
         /**
          * Put an object
@@ -162,7 +162,7 @@ public class Jason {
          * @see HashMap#put(Object, Object)
          */
         @SuppressWarnings("unchecked")
-        public T val(String key, Object value) {
+        public T val(Object key, Object value) {
             this.check(key);
             put(key, value);
             return (T) this;
@@ -172,7 +172,7 @@ public class Jason {
          * Put an array of objects
          */
         @SuppressWarnings("unchecked")
-        public T val(String key, Object... values) {
+        public T val(Object key, Object... values) {
             this.check(key);
             put(key, values);
             return (T) this;
@@ -181,10 +181,10 @@ public class Jason {
         /**
          * Put the key/value only if the value is not null
          *
-         * @see #val(String, Object)
+         * @see #val(Object, Object)
          */
         @SuppressWarnings("unchecked")
-        public T optional(String key, Object value) {
+        public T optional(Object key, Object value) {
             this.check(key);
             if (value == null) return (T) this;
             return val(key, value);
@@ -197,7 +197,7 @@ public class Jason {
          * add the given value to it.
          */
         @SuppressWarnings({"unchecked", "rawtypes"})
-        public T merge(String key, Object value) {
+        public T merge(Object key, Object value) {
             this.check(key);
             compute(key, (k, v) -> {
                 if (v == null) return value;
@@ -212,7 +212,7 @@ public class Jason {
         /**
          * Prepare to plant the given {@code val}
          *
-         * @see Val#into(String...)
+         * @see Val#into(Object...)
          */
         public Val plant(Object val) {
             return new Val(val);
@@ -221,15 +221,16 @@ public class Jason {
         /**
          * Must provide sub-map creation method
          */
-        public abstract Thingama<?> map(String key);
+        public abstract Thingama<?> map(Object key);
 
         @Override
         public String toString() {
             return stringify(this);
         }
 
-        private void check(String key) {
-            if (Strine.isEmpty(key))
+        private void check(Object key) {
+            if (key == null
+                    || (key instanceof String && ((String) key).isEmpty()))
                 throw new IllegalArgumentException("Key empty");
         }
 
@@ -243,7 +244,7 @@ public class Jason {
             /**
              * Convert a given {@link HashMap} to a {@link Bob}
              */
-            public static Bob from(HashMap<String, Object> map) {
+            public static Bob from(HashMap<Object, Object> map) {
                 Bob bob = new Bob();
                 bob.putAll(map);
                 return bob;
@@ -252,7 +253,7 @@ public class Jason {
             /**
              * Map the key with a new {@link Jig}
              */
-            public Jig<Bob> map(String key) {
+            public Jig<Bob> map(Object key) {
                 Jig<Bob> next = new Jig<>(this);
                 put(key, next);
                 return next;
@@ -277,7 +278,7 @@ public class Jason {
             /**
              * Map the key with a new {@link Jig}
              */
-            public Jig<Jig<T>> map(String key) {
+            public Jig<Jig<T>> map(Object key) {
                 Jig<Jig<T>> next = new Jig<>(this);
                 put(key, next);
                 return next;
@@ -308,7 +309,7 @@ public class Jason {
              * and associate it with the last one
              */
             @SuppressWarnings("unchecked")
-            public T into(String... keys) {
+            public T into(Object... keys) {
                 switch (Objects.requireNonNull(keys).length) {
                     case 0:
                         break;
