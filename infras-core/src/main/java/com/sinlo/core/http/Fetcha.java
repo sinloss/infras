@@ -204,7 +204,6 @@ public class Fetcha<T> {
      * as json
      *
      * @see Jason#map()
-     * @see Jason.Thingama.Bob#from(HashMap)
      */
     public Fetcha<T> json(Jason.Thingama.Bob bob) {
         return this.json(bob.toString());
