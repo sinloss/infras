@@ -167,9 +167,10 @@ public class Pools {
             }
         }
 
-        private void expiring(K k) {
+        private boolean expiring(K k) {
             V expired = this.take(k);
             if (onExpired != null) onExpired.accept(expired);
+            return true;
         }
 
         /**

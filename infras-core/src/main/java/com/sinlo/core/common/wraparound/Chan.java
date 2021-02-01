@@ -5,7 +5,7 @@ import java.util.Queue;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Chan the abstract channel
@@ -23,9 +23,9 @@ public abstract class Chan<T, R> {
      */
     protected final Queue<T> q;
     /**
-     * Consumer that consumes items in the {@link #q}
+     * Handler that handles items in the {@link #q}
      */
-    private final Consumer<T> consumer;
+    private final Function<T, Boolean> handler;
 
     /**
      * The polling interval
@@ -42,14 +42,14 @@ public abstract class Chan<T, R> {
      */
     private final AtomicBoolean polling = new AtomicBoolean(false);
 
-    public Chan(Consumer<T> consumer) {
-        this(consumer, 1);
+    public Chan(Function<T, Boolean> handler) {
+        this(handler, 1);
     }
 
-    public Chan(Consumer<T> consumer, long interval) {
+    public Chan(Function<T, Boolean> handler, long interval) {
         this.q = create();
-        this.consumer = Objects.requireNonNull(
-                consumer, "The consumer must not be null");
+        this.handler = Objects.requireNonNull(
+                handler, "The consumer must not be null");
         this.interval = interval <= 0 ? 1 : interval;
     }
 
@@ -78,13 +78,16 @@ public abstract class Chan<T, R> {
     }
 
     protected void consume() {
-        T item = this.q.poll();
+        T item = this.q.peek();
         if (item == null) {
             ifNone();
             return;
         }
         try {
-            consumer.accept(item);
+            if (handler.apply(item)) {
+                // successfully handled
+                this.q.poll();
+            }
         } catch (Interrupt e) {
             this.halt(true);
         }
@@ -106,7 +109,7 @@ public abstract class Chan<T, R> {
     protected abstract R ret(boolean succeeded, T t);
 
     /**
-     * This specifies how the {@link #consumer} is being executed
+     * This specifies how the {@link #handler} is being executed
      */
     protected Future<?> execute(Runnable command) {
         return EX.scheduleAtFixedRate(command, 0, interval, TimeUnit.MILLISECONDS);
@@ -133,8 +136,8 @@ public abstract class Chan<T, R> {
      */
     public static class Interval<T> extends Chan<T, Boolean> {
 
-        public Interval(Consumer<T> consumer, long interval) {
-            super(consumer, interval);
+        public Interval(Function<T, Boolean> handler, long interval) {
+            super(handler, interval);
         }
 
         @Override
@@ -155,21 +158,21 @@ public abstract class Chan<T, R> {
     public static class Defer<T> extends Chan<Deferred<T>, Deferred<T>> {
 
         /**
-         * @see #Defer(Consumer, long)
+         * @see #Defer(Function, long)
          */
-        public Defer(Consumer<T> consumer) {
-            this(consumer, 1);
+        public Defer(Function<T, Boolean> handler) {
+            this(handler, 1);
         }
 
         /**
          * Constructor
          *
-         * @param consumer the global fallback consumer for all {@link Deferred} items
-         * @param tick     the polling ratio
+         * @param handler the global fallback consumer for all {@link Deferred} items
+         * @param tick    the polling ratio
          */
-        public Defer(Consumer<T> consumer, long tick) {
+        public Defer(Function<T, Boolean> handler, long tick) {
             super(d -> d.accomplish(Objects.requireNonNull(
-                    consumer, "The consumer must not be null")), tick);
+                    handler, "The handler must not be null")), tick);
         }
 
         /**
@@ -209,7 +212,7 @@ public abstract class Chan<T, R> {
         /**
          * The specific task
          */
-        public final Consumer<T> task;
+        public final Function<T, Boolean> task;
         /**
          * The calculated time at which the delay will be over in milliseconds
          */
@@ -220,7 +223,7 @@ public abstract class Chan<T, R> {
          */
         private final AtomicBoolean finished;
 
-        private Deferred(T payload, long delay, Consumer<T> task) {
+        private Deferred(T payload, long delay, Function<T, Boolean> task) {
             this.payload = payload;
             this.task = task;
             this.at = System.currentTimeMillis() + (this.delay = delay);
@@ -236,14 +239,14 @@ public abstract class Chan<T, R> {
          * @param <T>     the type of payload
          * @return a {@link Deferred} instance
          */
-        public static <T> Deferred<T> of(T payload, long delay, Consumer<T> task) {
+        public static <T> Deferred<T> of(T payload, long delay, Function<T, Boolean> task) {
             return new Deferred<>(payload, delay, task);
         }
 
         /**
          * Create an of {@link Deferred} without a task
          *
-         * @see #of(Object, long, Consumer)
+         * @see #of(Object, long, Function)
          */
         public static <T> Deferred<T> just(T payload, long delay) {
             return of(payload, delay, null);
@@ -270,15 +273,15 @@ public abstract class Chan<T, R> {
          *
          * @param fallback if no task is specified, call the fallback
          */
-        public Deferred<T> accomplish(Consumer<T> fallback) {
+        public boolean accomplish(Function<T, Boolean> fallback) {
             if (!this.finished.compareAndSet(false, true))
-                return this;
+                return true;
             if (this.task != null) {
-                task.accept(payload);
+                return task.apply(payload);
             } else if (fallback != null) {
-                fallback.accept(payload);
+                return fallback.apply(payload);
             }
-            return this;
+            return true;
         }
 
         /**
