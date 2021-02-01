@@ -166,7 +166,7 @@ public class Jason {
      *
      * @param <T> the type of the subtype of {@link Thingama}, always be the type of {@code this}
      */
-    public static abstract class Thingama<T extends Thingama<T>> {
+    public static abstract class Thingama<T extends Thingama<T>> implements Map<Object, Object> {
 
         protected final Supplier<Map<Object, Object>> supplier;
 
@@ -278,7 +278,7 @@ public class Jason {
 
         @Override
         public String toString() {
-            return stringify(this.store);
+            return stringify(this);
         }
 
         /**
@@ -393,6 +393,103 @@ public class Jason {
                 return (T) Thingama.this;
             }
 
+        }
+
+
+        /**
+         * @InheritDoc
+         */
+        @Override
+        public int size() {
+            return this.store.size();
+        }
+
+        /**
+         * @InheritDoc
+         */
+        @Override
+        public boolean isEmpty() {
+            return this.store.isEmpty();
+        }
+
+        /**
+         * @InheritDoc
+         */
+        @Override
+        public boolean containsKey(Object key) {
+            return this.store.containsKey(key);
+        }
+
+        /**
+         * @InheritDoc
+         */
+        @Override
+        public boolean containsValue(Object value) {
+            return this.store.containsValue(value);
+        }
+
+        /**
+         * @InheritDoc
+         */
+        @Override
+        public Object get(Object key) {
+            return this.store.get(key);
+        }
+
+        /**
+         * @InheritDoc
+         */
+        @Override
+        public Object put(Object key, Object value) {
+            return this.store.put(key, value);
+        }
+
+        /**
+         * @InheritDoc
+         */
+        @Override
+        public Object remove(Object key) {
+            return this.store.remove(key);
+        }
+
+        /**
+         * @InheritDoc
+         */
+        @Override
+        public void putAll(Map<?, ?> m) {
+            this.store.putAll(m);
+        }
+
+        /**
+         * @InheritDoc
+         */
+        @Override
+        public void clear() {
+            this.store.clear();
+        }
+
+        /**
+         * @InheritDoc
+         */
+        @Override
+        public Set<Object> keySet() {
+            return this.store.keySet();
+        }
+
+        /**
+         * @InheritDoc
+         */
+        @Override
+        public Collection<Object> values() {
+            return this.store.values();
+        }
+
+        /**
+         * @InheritDoc
+         */
+        @Override
+        public Set<Entry<Object, Object>> entrySet() {
+            return this.store.entrySet();
         }
     }
 
