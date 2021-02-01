@@ -168,6 +168,11 @@ public class Jason {
      */
     public static abstract class Thingama<T extends Thingama<T>> implements Map<Object, Object> {
 
+        /**
+         * Array In Map
+         */
+        public static final String A_I_M = "[]";
+
         protected final Supplier<Map<Object, Object>> supplier;
 
         protected final Map<Object, Object> store;
@@ -229,13 +234,42 @@ public class Jason {
         public T merge(Object key, Object value) {
             this.check(key);
             store.compute(key, (k, v) -> {
-                if (v == null) return value;
-                return (v instanceof List
-                        ? Cascader.of((List) v)
-                        : Cascader.of(ArrayList::new).apply(List::add, v))
-                        .apply(List::add, value).get();
+                if (v == null || value == null) return value;
+                // to make sure the input Map object 'value' properly substitutes
+                // the old one, so that the mergeMap could work
+                if (value instanceof Map) return combine((Map) value, v);
+                if (v instanceof Map) return combine((Map) v, value);
+                return combine(v, value);
             });
             return (T) this;
+        }
+
+        /**
+         * Combine a value with a map
+         *
+         * @param vm    the map value
+         * @param value the other value
+         */
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        private Object combine(Map vm, Object value) {
+            if (value instanceof Map) {
+                vm.putAll((Map) value);
+            } else {
+                vm.compute(A_I_M, (k, v) -> combine(v, value));
+            }
+            return vm;
+        }
+
+        /**
+         * Combine two values together
+         */
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        private Object combine(Object v, Object value) {
+            if (v == null) return value;
+            return (v instanceof List
+                    ? Cascader.of((List) v)
+                    : Cascader.of(ArrayList::new).apply(List::add, v))
+                    .apply(List::add, value).get();
         }
 
         /**
