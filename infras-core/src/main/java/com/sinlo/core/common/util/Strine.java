@@ -236,7 +236,9 @@ public class Strine {
          * Produce a stream of split parts delimited by another delimiter
          */
         public Stream<String> delimit(String delim) {
-            return stream().map(s -> s + delim);
+            return Stream.concat(
+                    stream(0, splits.length - 1).map(s -> s + delim),
+                    stream(splits.length - 1));
         }
     }
 
