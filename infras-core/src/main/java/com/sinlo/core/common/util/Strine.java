@@ -1,8 +1,6 @@
 package com.sinlo.core.common.util;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -73,8 +71,32 @@ public class Strine {
         return Character.toUpperCase(word.charAt(0)) + word.substring(1);
     }
 
+    /**
+     * Start the {@link Splitting} against the given raw string
+     */
     public static Splitting split(String raw) {
         return new Splitting(raw);
+    }
+
+    /**
+     * Split all the strings of the given {@code raw} by the given {@code delim}, and build a tree from
+     * it by merging the same parts of all splits
+     */
+    public static Jason.Thingama.Bob tree(String delim, String... raw) {
+        final Jason.Thingama.Bob m = Jason.map(LinkedHashMap::new);
+        Arrays.stream(raw).map(Strine::split).map(s -> s.by(delim))
+                .map(Strine.Splits::raw)
+                .map(s -> s.toArray(String[]::new))
+                .forEach(splits -> {
+                    int last = splits.length - 1;
+                    if (last == 0) {
+                        m.merge(splits[0], "");
+                        return;
+                    }
+                    m.plant(splits[last], true).into(
+                            (Object[]) Arrays.copyOfRange(splits, 0, last));
+                });
+        return m;
     }
 
     /**
