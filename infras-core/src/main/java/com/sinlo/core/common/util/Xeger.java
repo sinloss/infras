@@ -22,7 +22,7 @@ public class Xeger {
      */
     public static Pattern zip(String delim, String... expr) {
         Jason.Thingama.Bob tree = Strine.tree(delim, expr);
-        return Pattern.compile("^" + build(tree) + "$");
+        return Pattern.compile(build(tree).toString());
     }
 
     // zip: build the map

@@ -15,6 +15,6 @@ class XegerTest extends Specification {
 
         expect:
         Xeger.zip("/", *parts).toString() ==
-                "^(?:/(?:user/(?:login/(?:by-password|by-special-code)|co.*)|business/(?:charge|refund))|.*save)\$"
+                "(?:/(?:user/(?:login/(?:by-password|by-special-code)|co.*)|business/(?:charge|refund))|.*save)"
     }
 }
