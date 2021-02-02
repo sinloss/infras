@@ -7,12 +7,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sinlo.core.common.functional.TriConsumer;
+import com.sinlo.core.common.functional.TriFunction;
 import com.sinlo.core.common.wraparound.Cascader;
 
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 /**
@@ -168,11 +170,6 @@ public class Jason {
      */
     public static abstract class Thingama<T extends Thingama<T>> implements Map<Object, Object> {
 
-        /**
-         * Array In Map
-         */
-        public static final String A_I_M = "[]";
-
         protected final Supplier<Map<Object, Object>> supplier;
 
         protected final Map<Object, Object> store;
@@ -191,7 +188,9 @@ public class Jason {
         }
 
         /**
-         * Put an object
+         * Put an object, any array object that is explicitly declared in the type of
+         * {@link Object} will not be converted to an {@link ArrayList} as the method
+         * {@link #val(Object, Object...)} does
          *
          * @see HashMap#put(Object, Object)
          */
@@ -203,13 +202,15 @@ public class Jason {
         }
 
         /**
-         * Put an array of objects
+         * Put an array of objects, the given array of objects will be converted to an
+         * {@link ArrayList} to better fit the {@link #merge(Object, Object)} method
          */
-        @SuppressWarnings("unchecked")
         public T val(Object key, Object... values) {
-            this.check(key);
-            store.put(key, values);
-            return (T) this;
+            // convert the given array to a list
+            ArrayList<Object> list = new ArrayList<>();
+            Collections.addAll(list, values);
+            store.put(key, list);
+            return val(key, list);
         }
 
         /**
@@ -251,11 +252,21 @@ public class Jason {
          * @param value the other value
          */
         @SuppressWarnings({"rawtypes", "unchecked"})
-        private Object combine(Map vm, Object value) {
+        private static Object combine(Map vm, Object value) {
             if (value instanceof Map) {
                 vm.putAll((Map) value);
+            } else if (value instanceof List) {
+                List li = (List) value;
+                // the index 0 is a reserved place for this kind of nested map
+                if (li.get(0) instanceof Map) {
+                    vm.putAll((Map) li.get(0));
+                    li.set(0, vm);
+                } else {
+                    li.add(0, vm);
+                }
+                return li;
             } else {
-                vm.compute(A_I_M, (k, v) -> combine(v, value));
+                return combine((Object) vm, value);
             }
             return vm;
         }
@@ -264,7 +275,7 @@ public class Jason {
          * Combine two values together
          */
         @SuppressWarnings({"rawtypes", "unchecked"})
-        private Object combine(Object v, Object value) {
+        private static Object combine(Object v, Object value) {
             if (v == null) return value;
             return (v instanceof List
                     ? Cascader.of((List) v)
@@ -303,10 +314,10 @@ public class Jason {
          * Merge the given key with a new {@link Thingama}
          *
          * @param key the given key
-         * @return the new {@link Thingama}
+         * @return the new polymer {@link Thingama}
          * @see #merge(Object, Object)
          */
-        public Thingama<?> mergeMap(Object key) {
+        public Thingama<?> polymer(Object key) {
             return map(key, Thingama::merge);
         }
 
@@ -389,11 +400,18 @@ public class Jason {
 
             private final Object val;
 
-            private final boolean merge;
+            private final TriFunction<Thingama<?>, Object, Object, Thingama<?>> valPutter;
+            private final BiFunction<Thingama<?>, Object, Thingama<?>> mapCreator;
 
             private Val(Object val, boolean merge) {
                 this.val = val;
-                this.merge = merge;
+                if (merge) {
+                    this.valPutter = Thingama::merge;
+                    this.mapCreator = Thingama::polymer;
+                } else {
+                    this.valPutter = Thingama::val;
+                    this.mapCreator = Thingama::map;
+                }
             }
 
             /**
@@ -406,9 +424,7 @@ public class Jason {
                     case 0:
                         break;
                     case 1:
-                        return merge
-                                ? Thingama.this.merge(keys[0], val)
-                                : Thingama.this.val(keys[0], val);
+                        return (T) valPutter.apply(Thingama.this, keys[0], val);
                     default:
                         // the last index
                         int last = keys.length - 1;
@@ -416,13 +432,10 @@ public class Jason {
                         Thingama<?> thingma = Thingama.this;
                         for (int i = 0; i < last; i++) {
                             // create a map each time on the way deep into the bottom
-                            thingma = merge ? thingma.mergeMap(keys[i]) : thingma.map(keys[i]);
+                            thingma = mapCreator.apply(thingma, keys[i]);
                         }
                         // associate the val with the last key
-                        if (merge)
-                            thingma.merge(keys[last], val);
-                        else
-                            thingma.val(keys[last], val);
+                        valPutter.apply(thingma, keys[last], val);
                 }
                 return (T) Thingama.this;
             }
