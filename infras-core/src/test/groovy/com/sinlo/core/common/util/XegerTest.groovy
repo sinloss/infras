@@ -6,9 +6,15 @@ class XegerTest extends Specification {
 
     def "should create merged regex"() {
         given:
-        def parts = ["/user/login/by-password", "/user/lo.*", "/user/login/by-special-code", "*.save", "/business/charge", "/business/refund"]
+        def parts = ["/user/login/by-password",
+                     "/user/co.*",
+                     "/user/login/by-special-code",
+                     ".*save",
+                     "/business/charge",
+                     "/business/refund"]
 
         expect:
-        Xeger.zip("/", *parts) != null
+        Xeger.zip("/", *parts).toString() ==
+                "^(?:/(?:user/(?:login/(?:by-password|by-special-code)|co.*)|business/(?:charge|refund))|.*save)\$"
     }
 }
