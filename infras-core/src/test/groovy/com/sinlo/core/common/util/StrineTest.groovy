@@ -6,6 +6,7 @@ import java.util.stream.Collectors
 
 class StrineTest extends Specification {
 
+    @SuppressWarnings('GrUnresolvedAccess')
     def "should splitter properly convert cases"() {
         expect:
         closure(Strine.split(raw)).collect(Collectors.joining())
