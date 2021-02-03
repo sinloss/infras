@@ -3,6 +3,7 @@ package com.sinlo.core.common.util;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -111,4 +112,10 @@ public class Xeger {
                 .append(patterns.collect(Collectors.joining("|"))).append(")");
     }
 
+    /**
+     * Check if the given {@link Matcher} matches partially
+     */
+    public static boolean partiallyMatches(Matcher matcher) {
+        return matcher.matches() || matcher.hitEnd();
+    }
 }
