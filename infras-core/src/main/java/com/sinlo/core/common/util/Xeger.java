@@ -19,9 +19,49 @@ public class Xeger {
      *
      * @param delim split every regex expression into several parts by this delimiter
      *              to merge the same parts of all expressions
+     * @see #zip(Map)
+     * @see #zip(String, Collection)
+     * @see #zip(String, Stream)
      */
-    public static Pattern zip(String delim, String... expr) {
-        Jason.Thingama.Bob tree = Strine.tree(delim, expr);
+    public static Pattern zip(String delim, String... exprs) {
+        return zip(Strine.tree(delim, exprs));
+    }
+
+    /**
+     * Zip all given regex expressions together as an one big regex pattern
+     *
+     * @param delim split every regex expression into several parts by this delimiter
+     *              to merge the same parts of all expressions
+     * @see #zip(Map)
+     * @see #zip(String, String...)
+     * @see #zip(String, Stream)
+     */
+    public static Pattern zip(String delim, Collection<String> exprs) {
+        return zip(Strine.tree(delim, exprs));
+    }
+
+    /**
+     * Zip all given regex expressions together as an one big regex pattern
+     *
+     * @param delim split every regex expression into several parts by this delimiter
+     *              to merge the same parts of all expressions
+     * @see #zip(Map)
+     * @see #zip(String, String...)
+     * @see #zip(String, Collection)
+     */
+    public static Pattern zip(String delim, Stream<String> exprs) {
+        return zip(Strine.tree(delim, exprs));
+    }
+
+    /**
+     * Zip all given regex expressions together as an one big regex pattern
+     *
+     * @param tree the {@link Jason.Thingama.Bob} produced by the {@link Strine#tree(String, Stream)},
+     *             {@link Strine#tree(String, String...)} and {@link Strine#tree(String, Collection)}.
+     *             Or some other kind of {@link Map} having the same structure produced by the said
+     *             methods
+     */
+    public static Pattern zip(Map<?, ?> tree) {
         return Pattern.compile(build(tree).toString());
     }
 

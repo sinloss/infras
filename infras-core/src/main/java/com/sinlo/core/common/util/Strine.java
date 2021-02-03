@@ -79,12 +79,26 @@ public class Strine {
     }
 
     /**
-     * Split all the strings of the given {@code raw} by the given {@code delim}, and build a tree from
-     * it by merging the same parts of all splits
+     * @see #tree(String, Stream)
      */
     public static Jason.Thingama.Bob tree(String delim, String... raw) {
+        return tree(delim, Arrays.stream(raw));
+    }
+
+    /**
+     * @see #tree(String, Stream)
+     */
+    public static Jason.Thingama.Bob tree(String delim, Collection<String> raw) {
+        return tree(delim, raw.stream());
+    }
+
+    /**
+     * Split all the strings of the given {@code raw} stream by the given {@code delim}, and build a tree
+     * from it by merging the same parts of all splits
+     */
+    public static Jason.Thingama.Bob tree(String delim, Stream<String> raw) {
         final Jason.Thingama.Bob m = Jason.map(LinkedHashMap::new);
-        Arrays.stream(raw).map(Strine::split).map(s -> s.by(delim))
+        raw.map(Strine::split).map(s -> s.by(delim))
                 .map(Strine.Splits::raw)
                 .map(s -> s.toArray(String[]::new))
                 .forEach(splits -> {
