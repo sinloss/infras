@@ -7,6 +7,10 @@ package com.sinlo.security.tkn.spec;
  */
 public class TknException extends RuntimeException {
 
+    public TknException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
     public TknException(String message) {
         super(message);
     }

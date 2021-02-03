@@ -5,7 +5,6 @@ import com.sinlo.security.jwt.spec.Jwt;
 import com.sinlo.security.tkn.spec.Knowledge;
 import com.sinlo.security.tkn.spec.State;
 
-import java.time.Instant;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -14,7 +13,7 @@ import java.util.function.Function;
  *
  * @author sinlo
  */
-public class JwtKnowledge<A, J> implements Knowledge<String, A> {
+public class JwtKnowledge<A, J> implements Knowledge<String, Jwt, A> {
 
     public final Jwter<J> jwter;
     private final Jwter<J>.Issuer<A> issuer;
@@ -30,11 +29,9 @@ public class JwtKnowledge<A, J> implements Knowledge<String, A> {
     }
 
     @Override
-    public State<String, A> stat(String token) {
+    public State<String, Jwt, A> stat(String token) {
         Jwt jwt = jwter.decode(token);
-        Instant exp = jwt.expiresAt();
-        return State.of(des.apply(jwt.subject()),
-                exp == null ? Long.MAX_VALUE : exp.toEpochMilli());
+        return State.of(token, jwt, des.apply(jwt.subject()), jwt.expiresAt().toEpochMilli());
     }
 
     @Override

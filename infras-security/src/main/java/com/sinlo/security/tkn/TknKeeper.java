@@ -8,11 +8,12 @@ import com.sinlo.security.tkn.spec.TknException;
 /**
  * Tkn keeper
  *
- * @param <T> the type of the token
+ * @param <T> the type of the raw token
+ * @param <K> the type of the parsed token
  * @param <A> the type of the subject
  * @author sinlo
  */
-public class TknKeeper<T, A> {
+public class TknKeeper<T, K, A> {
 
     /**
      * A lifespan token containing the lifespan data of all tokens kept by
@@ -28,11 +29,11 @@ public class TknKeeper<T, A> {
      * The {@link Knowledge} that can stat the state of a given token, and
      * create a new token base on the given lifespan and subject
      */
-    private final Knowledge<T, A> knowledge;
+    private final Knowledge<T, K, A> knowledge;
 
     TknKeeper(Tkn<Long> lifespan,
               long transition,
-              Knowledge<T, A> knowledge) {
+              Knowledge<T, K, A> knowledge) {
         this.lifespan = lifespan;
         this.transition = transition;
         this.knowledge = knowledge;
@@ -48,7 +49,7 @@ public class TknKeeper<T, A> {
     /**
      * Get state information of the given {@link Tkn}
      */
-    public Tkn<State<T, A>> stat(Tkn<T> tkn) {
+    public Tkn<State<T, K, A>> stat(Tkn<T> tkn) {
         if (tkn == null) throw new TknException.Null();
         return tkn.map(knowledge::stat);
     }
@@ -60,7 +61,7 @@ public class TknKeeper<T, A> {
         if (tkn == null || tkn.longevous == null)
             throw new TknException.Null();
 
-        State<T, A> state = knowledge.stat(tkn.longevous);
+        State<T, K, A> state = knowledge.stat(tkn.longevous);
         if (state == null) throw new TknException.NoState();
 
         // time left before expiring

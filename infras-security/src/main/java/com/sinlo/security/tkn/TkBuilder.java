@@ -39,7 +39,7 @@ public class TkBuilder<T, A> {
      * @param tc the type of the token of the finally built {@link TknKeeper}
      * @param ac the type of the subject of the finally built {@link TknKeeper}
      */
-    public static <T, A> TkBuilder<T, A> of(Class<T> tc, Class<A> ac) {
+    public static <T, K, A> TkBuilder<T, A> of(Class<T> tc, Class<A> ac) {
         return new TkBuilder<>();
     }
 
@@ -81,18 +81,18 @@ public class TkBuilder<T, A> {
     /**
      * The final builder that finally builds the {@link TknKeeper}
      */
-    public class FinalBuilder {
+    public class FinalBuilder<K> {
 
-        private final KnowledgeBuilder<T, A> kb;
+        private final KnowledgeBuilder<T, K, A> kb;
 
-        private FinalBuilder(KnowledgeBuilder<T, A> kb) {
+        private FinalBuilder(KnowledgeBuilder<T, K, A> kb) {
             this.kb = kb;
         }
 
         /**
          * Finally build
          */
-        public TknKeeper<T, A> build() {
+        public TknKeeper<T, K, A> build() {
             if (ephemeral == null) ephemeral = 7_200_000L;
             if (longevous == null) longevous = ephemeral * 84;
             if (transition == null) transition = longevous / 5;
@@ -107,25 +107,25 @@ public class TkBuilder<T, A> {
      * @param <T> {@link T}
      * @param <A> {@link A}
      */
-    public interface KnowledgeBuilder<T, A> {
+    public interface KnowledgeBuilder<T, K, A> {
 
-        Knowledge<T, A> knowledge();
+        Knowledge<T, K, A> knowledge();
     }
 
     /**
      * The producer of thw {@link FinalBuilder}
      */
-    public abstract class FinalBuilderProducer {
+    public abstract class FinalBuilderProducer<K> {
         /**
          * Produces a {@link FinalBuilder}
          */
-        public abstract FinalBuilder ok();
+        public abstract FinalBuilder<K> ok();
     }
 
     /**
      * An implementation of the {@link KnowledgeBuilder} that builds {@link JwtKnowledge}
      */
-    public class JwtBuilder extends FinalBuilderProducer implements KnowledgeBuilder<T, A> {
+    public class JwtBuilder extends FinalBuilderProducer<Jwt> implements KnowledgeBuilder<T, Jwt, A> {
         private final Lazy<String>.Default
                 pri = Lazy.justDefault(Funny.just(Jwter.DEFAULT_PRI));
         private final Lazy<String>.Default
@@ -221,12 +221,12 @@ public class TkBuilder<T, A> {
         /**
          * @see FinalBuilderProducer#ok()
          */
-        public FinalBuilder ok() {
-            return new FinalBuilder(this);
+        public FinalBuilder<Jwt> ok() {
+            return new FinalBuilder<>(this);
         }
 
         @SuppressWarnings({"unchecked", "rawtypes"})
-        public Knowledge<T, A> knowledge() {
+        public Knowledge<T, Jwt, A> knowledge() {
             if (des == null)
                 throw new IllegalArgumentException("Must provide a deserializer");
             return new JwtKnowledge(

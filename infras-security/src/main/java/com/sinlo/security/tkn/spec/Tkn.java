@@ -6,7 +6,7 @@ import java.util.function.Function;
  * The compound token object containing an ephemeral token and a longevous
  * token
  *
- * @param <T> the type of tokens
+ * @param <T> the type of the raw token
  * @author sinlo
  */
 public class Tkn<T> {
