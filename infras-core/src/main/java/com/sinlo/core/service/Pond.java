@@ -94,6 +94,17 @@ public class Pond {
     }
 
     /**
+     * Drop an object into the pond
+     *
+     * @see #modify(Class, Pump)
+     * @see Pump#creator(Pump.Creator)
+     */
+    public Pond drop(Object t) {
+        modify(t.getClass(), Pump.creator(c -> t));
+        return this;
+    }
+
+    /**
      * Modify the object of the given class in the pond
      *
      * @return the new object in the pond

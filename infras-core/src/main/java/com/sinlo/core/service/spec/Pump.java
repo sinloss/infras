@@ -76,8 +76,17 @@ public interface Pump {
      * {@link com.sinlo.core.service.Pond.Keeper#maintain(Class, Object, Function, Pump)}
      * without changing other default behaviours
      */
-    static Default processor(Processor filter) {
-        return new Default(filter);
+    static <T> Default processor(Processor<T> processor) {
+        return new Default(processor);
+    }
+
+    /**
+     * Create a {@link Pump} instance with default behaviours and a specific {@link Creator}
+     * as its {@link #sink(Class)}. It could be used to create an instance for the
+     * {@link com.sinlo.core.service.Pond}
+     */
+    static <T> Default creator(Creator<T> creator) {
+        return new Default(creator);
     }
 
     /**
@@ -96,52 +105,75 @@ public interface Pump {
      * @see #processor(Processor)
      */
     @FunctionalInterface
-    interface Processor {
+    interface Processor<T> {
 
         /**
          * @see Default#sink(Object)
          */
-        <T> T sink(T t);
+        T sink(T t);
+    }
+
+    /**
+     * @see #creator(Creator)
+     */
+    @FunctionalInterface
+    interface Creator<T> {
+
+        /**
+         * @see Default#sink(Class)
+         */
+        T sink(Class<T> type);
     }
 
     /**
      * The default behaviour for the {@link com.sinlo.core.service.Pond.Keeper#maintain(Class, Object, Function, Pump)}
      * to create an instance of the given type in case of {@link Pump}'s absence
      */
+    @SuppressWarnings("rawtypes")
     class Default implements Pump {
 
         private final Filter filter;
         private final Processor processor;
+        private final Creator creator;
+
+        public Default(Filter filter, Processor processor, Creator creator) {
+            this.filter = filter;
+            this.processor = processor;
+            this.creator = creator;
+        }
 
         private Default() {
-            this.filter = null;
-            this.processor = null;
+            this(null, null, Pump::create);
         }
 
         private Default(Filter filter) {
-            this.filter = filter;
-            this.processor = null;
+            this(filter, null, Pump::create);
         }
 
         private Default(Processor processor) {
-            this.filter = null;
-            this.processor = processor;
+            this(null, processor, Pump::create);
+        }
+
+        private Default(Creator creator) {
+            this(null, null, creator);
         }
 
         /**
          * @inheritDoc
          */
+        @SuppressWarnings("unchecked")
         @Override
         public <T> T sink(Class<T> type) {
-            return Pump.create(type);
+            return creator == null ? Pump.create(type) : (T) creator.sink(type);
         }
 
         /**
          * @inheritDoc
          */
+        @SuppressWarnings("unchecked")
         @Override
         public <T> T sink(T t) {
-            return processor == null ? t : processor.sink(t);
+            return processor == null ? t : (T) processor.sink(t);
         }
 
         /**
