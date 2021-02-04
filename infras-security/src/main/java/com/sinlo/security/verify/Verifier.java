@@ -9,8 +9,6 @@ import com.sinlo.security.tkn.spec.Tkn;
 import com.sinlo.security.tkn.spec.TknException;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -24,10 +22,13 @@ import java.util.stream.Stream;
  */
 public class Verifier<T, K, A> {
 
+    public static final String TYPE_ANY = "*";
+
     private final ThreadLocal<Optional<State<T, K, A>>> state = new ThreadLocal<>();
 
-    private final Map<String, Rule> ignored = new HashMap<>();
+    private final Map<String, Rule> rules = new HashMap<>();
     private final TknKeeper<T, K, A> tknKeeper;
+    private boolean fallback;
 
     private Verifier(TknKeeper<T, K, A> tknKeeper) {
         this.tknKeeper = Objects.requireNonNull(
@@ -35,13 +36,23 @@ public class Verifier<T, K, A> {
     }
 
     /**
-     * Get a ignore rules setting up instance of the {@link Verifier} that is about to be create
+     * Get a default policy instance with the "/" as its delim
+     *
+     * @see #of(TknKeeper, String)
+     */
+    public static <T, K, A> Verifier<T, K, A>.Policy of(TknKeeper<T, K, A> tknKeeper) {
+        return of(tknKeeper, "/");
+    }
+
+    /**
+     * Get a policy instance of the {@link Verifier} that is about to be create
      *
      * @param tknKeeper the {@link TknKeeper} which handles token authentication
+     * @param delim     the delimiter of the paths to be handled
      * @see TknKeeper
      */
-    public static <T, K, A> Verifier<T, K, A>.Regarding of(TknKeeper<T, K, A> tknKeeper) {
-        return new Verifier<>(tknKeeper).new Regarding();
+    public static <T, K, A> Verifier<T, K, A>.Policy of(TknKeeper<T, K, A> tknKeeper, String delim) {
+        return new Verifier<>(tknKeeper).new Policy(delim);
     }
 
     /**
@@ -56,11 +67,11 @@ public class Verifier<T, K, A> {
     public Optional<State<T, K, A>> verify(String type, String path, T token) throws VerificationFailure {
         // clear the maybe existing state due to the behaviour of the thread pool
         state.set(Optional.empty());
-        // get the ignore rule for the current verify type
-        Rule ignore = ignored.get(type);
-        if (!Funny.nvl(ignore.apply(path), false)) {
+        // get the rule for the current verify type
+        Rule rule = rules.containsKey(type) ? rules.get(type) : rules.get(TYPE_ANY);
+        if ((fallback && rule == null) || Funny.nvl(rule.should(path), fallback)) {
             try {
-                // verify the token if not ignored
+                // verify the token as per the demand of the chosen rule
                 state.set(Optional.of(tknKeeper.stat(Tkn.ephemeral(token)).ephemeral));
             } catch (TknException e) {
                 throw new VerificationFailure(e);
@@ -79,147 +90,179 @@ public class Verifier<T, K, A> {
     /**
      * The specification of the implementation of rules
      */
-    public interface Rule extends Function<String, Boolean> {
+    public interface Rule {
+
+        /**
+         * Should the given path be verified for tokens
+         */
+        boolean should(String path);
     }
 
     /**
-     * All ignore rule setup processes must be originated from here
+     * The policy originates rules
      */
-    public class Regarding {
+    public class Policy {
 
-        /**
-         * Prepare to setup an ignore rule regarding the given types of requests
-         *
-         * @see #verify(String, String, Object)
-         */
-        public When when(String... types) {
-            // try to get the already setup request types
-            String already = Stream.of(types)
-                    .filter(ignored.keySet()::contains)
-                    .collect(Collectors.joining());
-            if (Strine.nonEmpty(already)) {
-                throw new IllegalStateException(String.format(
-                        "Already setup the ignore rule for request type(s) [ %s ]", already));
-            }
-            return new When(types);
-        }
-    }
+        private final String delim;
 
-    /**
-     * This can setup ignore rules
-     */
-    public class When {
+        private final Map<String, Item> items = new HashMap<>();
 
-        private final List<String> exprs = new LinkedList<>();
-        private final String[] types;
-        private String delim = "/";
-        private Function<Matcher, Boolean> matching = Matcher::matches;
-
-        private When(String[] types) {
-            this.types = types;
-        }
-
-        /**
-         * Any given expressions that...
-         *
-         * @see #matches()
-         * @see #mismatches()
-         */
-        public When any(String... exprs) {
-            Collections.addAll(this.exprs, exprs);
-            return this;
-        }
-
-        /**
-         * Any given expressions that...
-         *
-         * @see #matches()
-         * @see #mismatches()
-         */
-        public When any(Collection<String> exprs) {
-            this.exprs.addAll(exprs);
-            return this;
-        }
-
-        /**
-         * Partially, instead of the default fully matching manner
-         */
-        public When partially() {
-            matching = Xeger::partiallyMatches;
-            return this;
-        }
-
-        /**
-         * Using the given delimiter to split the path of the requests
-         */
-        public When delimiter(String delim) {
+        public Policy(String delim) {
             this.delim = delim;
-            return this;
         }
 
         /**
-         * That matches
+         * Build the policy starting from {@link #TYPE_ANY}
          *
-         * @see #any(String...)
-         * @see #any(Collection)
-         * @see Ignore#ignore()
+         * @return {@link Policy.When}
          */
-        public Ignore matches() {
-            return new Ignore(true);
+        public When whenAny() {
+            return new When(TYPE_ANY);
         }
 
         /**
-         * That mismatch
-         *
-         * @see #any(String...)
-         * @see #any(Collection)
-         * @see Ignore#ignore()
+         * The policy {@link Item}s are configured here
          */
-        public Ignore mismatches() {
-            return new Ignore(false);
-        }
+        public class When {
+            private final String[] types;
+            private final Item item = new Item();
 
-        /**
-         * To finally explicitly set those matches or mismatches as ignored
-         */
-        public class Ignore {
-
-            private final boolean should;
-
-            private Ignore(boolean should) {
-                this.should = should;
+            private When(String... types) {
+                this.types = types;
             }
 
             /**
-             * Just ignore
+             * When path strings of current types match the given {@code exprs}
              */
-            public Next ignore() {
-                final Pattern pattern = Xeger.zip(delim, exprs);
-                Stream.of(types).forEach(t -> Verifier.this.ignored.put(
-                        t, s -> should == matching.apply(pattern.matcher(s))));
-                return new Next();
+            public When match(String... exprs) {
+                Collections.addAll(item.exprs, exprs);
+                return this;
+            }
+
+            /**
+             * Except the given {@code excepts}
+             */
+            public When except(String... excepts) {
+                Collections.addAll(item.excepts, excepts);
+                return this;
+            }
+
+            /**
+             * And... prepare to build another {@link Item}
+             *
+             * @return {@link And}
+             */
+            public And and() {
+                set();
+                return new And();
+            }
+
+            /**
+             * Then...prepare to define what action should be taken when path strings match
+             *
+             * @return {@link Then}
+             */
+            public Then then() {
+                set();
+                return new Then();
+            }
+
+            // set policy items
+            private void set() {
+                Arrays.stream(types).forEach(t -> Policy.this.items.put(t, item));
             }
         }
 
-    }
-
-    /**
-     * The next step after a serial of ignore rules being set up
-     */
-    public class Next {
-
         /**
-         * Prepare to setup another ignore rule
+         * Prepare to build another {@link Item}
          */
-        public Regarding otherwise() {
-            return new Regarding();
+        public class And {
+
+            /**
+             * Prepare to build another {@link Item} regarding the given types of requests
+             *
+             * @see #verify(String, String, Object)
+             */
+            public When when(String... types) {
+                // try to get the already set policy items
+                String already = Stream.of(types)
+                        .filter(rules.keySet()::contains)
+                        .collect(Collectors.joining());
+                if (Strine.nonEmpty(already)) {
+                    throw new IllegalStateException(String.format(
+                            "Already setup the ignore rule for request type(s) [ %s ]", already));
+                }
+                return new When(types);
+            }
         }
 
         /**
-         * No more setting up and create the {@link Verifier} already
+         * Prepare to define what action should be taken when path strings match
          */
-        public Verifier<T, K, A> create() {
-            return Verifier.this;
+        public class Then {
+
+            /**
+             * Should pass the authentication verification when it matches
+             */
+            public Verifier<T, K, A> pass() {
+                set(false);
+                return Verifier.this;
+            }
+
+            /**
+             * Should do the authentication verification when it matches
+             */
+            public Verifier<T, K, A> verify() {
+                set(true);
+                return Verifier.this;
+            }
+
+            // an abstraction of putting the rules into the Verifier.this.rules
+            private void set(boolean should) {
+                Verifier.this.fallback = !should;
+                items.forEach((key, value) -> {
+                    // merge with the rule for TYPE_ANY
+                    if (!TYPE_ANY.equals(key)) {
+                        value.merge(items.get(TYPE_ANY));
+                    }
+                    Verifier.this.rules.put(key, value.rule(should));
+                });
+            }
+        }
+
+        /**
+         * The policy item
+         */
+        private class Item {
+            // the expressions for matching
+            private final List<String> exprs = new LinkedList<>();
+            // the exceptions that results the different result against the exprs
+            private final List<String> excepts = new LinkedList<>();
+
+            /**
+             * Produce a {@link Rule} based on the current policy item
+             */
+            private Rule rule(boolean should) {
+                if (exprs.isEmpty())
+                    // no expressions at all
+                    return s -> should;
+
+                Pattern e = Xeger.zip(delim, exprs);
+                if (excepts.isEmpty())
+                    // no exceptions
+                    return s -> e.matcher(s).matches() == should;
+
+                Pattern x = Xeger.zip(delim, excepts);
+                // with exceptions
+                return s -> (!x.matcher(s).matches() && e.matcher(s).matches()) == should;
+            }
+
+            // merge with another Item
+            private void merge(Item another) {
+                if (another == null) return;
+                this.exprs.addAll(another.exprs);
+                this.excepts.addAll(another.excepts);
+            }
         }
     }
 
