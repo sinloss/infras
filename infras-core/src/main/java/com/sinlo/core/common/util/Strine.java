@@ -72,6 +72,13 @@ public class Strine {
     }
 
     /**
+     * Lowercase the initial letter of the given word
+     */
+    public static String uncapInitial(String word) {
+        return Character.toLowerCase(word.charAt(0)) + word.substring(1);
+    }
+
+    /**
      * Start the {@link Splitting} against the given raw string
      */
     public static Splitting split(String raw) {
