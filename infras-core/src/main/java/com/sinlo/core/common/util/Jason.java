@@ -429,13 +429,13 @@ public class Jason {
                         // the last index
                         int last = keys.length - 1;
                         // the initial thingama
-                        Thingama<?> thingma = Thingama.this;
+                        Thingama<?> thingama = Thingama.this;
                         for (int i = 0; i < last; i++) {
                             // create a map each time on the way deep into the bottom
-                            thingma = mapCreator.apply(thingma, keys[i]);
+                            thingama = mapCreator.apply(thingama, keys[i]);
                         }
                         // associate the val with the last key
-                        valPutter.apply(thingma, keys[last], val);
+                        valPutter.apply(thingama, keys[last], val);
                 }
                 return (T) Thingama.this;
             }
