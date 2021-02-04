@@ -5,9 +5,7 @@ import com.sinlo.spring.BasicProxistor;
 import com.sinlo.spring.infrastructure.FooRepo;
 import com.sinlo.spring.domain.BarEntity;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
-@Service
 public class FooServiceImpl implements FooService {
 
     @Autowired

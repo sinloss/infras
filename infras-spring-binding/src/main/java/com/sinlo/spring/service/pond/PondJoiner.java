@@ -1,4 +1,4 @@
-package com.sinlo.spring.service.core;
+package com.sinlo.spring.service.pond;
 
 import com.sinlo.core.service.Ponded;
 import com.sinlo.sponte.SponteInitializer;
@@ -21,7 +21,7 @@ import java.util.Optional;
 public class PondJoiner implements BeanPostProcessor, ImportAware, PriorityOrdered, ApplicationListener<ContextRefreshedEvent> {
 
     @SuppressWarnings("rawtypes")
-    private final Map<String, Ponded.KeeperValue> keepers = Ponded.Manifest.keeperMap();
+    static final Map<String, Ponded.KeeperValue> keepers = Ponded.Manifest.keeperMap();
 
     @SuppressWarnings({"unchecked"})
     @Override
