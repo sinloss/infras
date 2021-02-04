@@ -24,7 +24,7 @@ public class Verifier<T, K, A> {
 
     public static final String TYPE_ANY = "*";
 
-    private final ThreadLocal<Optional<State<T, K, A>>> state = new ThreadLocal<>();
+    private final ThreadLocal<State<T, K, A>> state = new ThreadLocal<>();
 
     private final Map<String, Rule> rules = new HashMap<>();
     private final TknKeeper<T, K, A> tknKeeper;
@@ -66,25 +66,57 @@ public class Verifier<T, K, A> {
      */
     public Optional<State<T, K, A>> verify(String type, String path, T token) throws VerificationFailure {
         // clear the maybe existing state due to the behaviour of the thread pool
-        state.set(Optional.empty());
+        state.set(null);
         // get the rule for the current verify type
         Rule rule = rules.containsKey(type) ? rules.get(type) : rules.get(TYPE_ANY);
         if ((fallback && rule == null) || Funny.nvl(rule.should(path), fallback)) {
             try {
                 // verify the token as per the demand of the chosen rule
-                state.set(Optional.of(tknKeeper.stat(Tkn.ephemeral(token)).ephemeral));
+                state.set(tknKeeper.stat(Tkn.ephemeral(token)).ephemeral);
             } catch (TknException e) {
                 throw new VerificationFailure(e);
             }
         }
-        return state.get();
+        return Optional.ofNullable(state.get());
     }
 
     /**
      * Get the verified {@link State}
      */
     public Optional<State<T, K, A>> state() {
-        return state.get();
+        return Optional.ofNullable(state.get());
+    }
+
+    /**
+     * The single global context of verifier and state, the global verifier by default would
+     * be the latest created {@link Verifier}, but it can be changed explicitly by using the
+     * {@link Context#set(Verifier)}
+     */
+    public static class Context {
+        private static Verifier<?, ?, ?> v;
+
+        /**
+         * Set the verifier
+         */
+        public static <T, K, A> void set(Verifier<T, K, A> v) {
+            Context.v = v;
+        }
+
+        /**
+         * Get the verifier
+         */
+        @SuppressWarnings("unchecked")
+        public static <T, K, A> Verifier<T, K, A> get() {
+            return (Verifier<T, K, A>) v;
+        }
+
+        /**
+         * Get the verified state if any
+         */
+        public static <T, K, A> Optional<State<T, K, A>> state() {
+            if (v == null) return Optional.empty();
+            return Context.<T, K, A>get().state();
+        }
     }
 
     /**
@@ -205,20 +237,18 @@ public class Verifier<T, K, A> {
              * Should pass the authentication verification when it matches
              */
             public Verifier<T, K, A> pass() {
-                set(false);
-                return Verifier.this;
+                return set(false);
             }
 
             /**
              * Should do the authentication verification when it matches
              */
             public Verifier<T, K, A> verify() {
-                set(true);
-                return Verifier.this;
+                return set(true);
             }
 
             // an abstraction of putting the rules into the Verifier.this.rules
-            private void set(boolean should) {
+            private Verifier<T, K, A> set(boolean should) {
                 Verifier.this.fallback = !should;
                 items.forEach((key, value) -> {
                     // merge with the rule for TYPE_ANY
@@ -227,6 +257,9 @@ public class Verifier<T, K, A> {
                     }
                     Verifier.this.rules.put(key, value.rule(should));
                 });
+                // set as the global verifier
+                Context.set(Verifier.this);
+                return Verifier.this;
             }
         }
 
