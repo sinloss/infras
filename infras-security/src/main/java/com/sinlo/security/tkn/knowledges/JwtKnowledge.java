@@ -4,6 +4,7 @@ import com.sinlo.security.jwt.Jwter;
 import com.sinlo.security.jwt.spec.Jwt;
 import com.sinlo.security.tkn.spec.Knowledge;
 import com.sinlo.security.tkn.spec.State;
+import com.sinlo.security.tkn.spec.Subject;
 
 import java.util.UUID;
 import java.util.function.Function;
@@ -13,7 +14,7 @@ import java.util.function.Function;
  *
  * @author sinlo
  */
-public class JwtKnowledge<A, J> implements Knowledge<String, Jwt, A> {
+public class JwtKnowledge<A extends Subject, J> implements Knowledge<String, Jwt, A> {
 
     public final Jwter<J> jwter;
     private final Jwter<J>.Issuer<A> issuer;

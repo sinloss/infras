@@ -1,16 +1,18 @@
 package com.sinlo.security.verify
 
 import com.sinlo.security.jwt.spec.Jwt
-import com.sinlo.security.tkn.Subject
+import com.sinlo.security.tkn.Client
 import com.sinlo.security.tkn.TkBuilderTest
 import com.sinlo.security.tkn.TknKeeper
+import com.sinlo.security.verify.spec.VerificationFailure
 import spock.lang.Specification
 
 class VerifierTest extends Specification {
 
+    @SuppressWarnings('GrUnresolvedAccess')
     def "should verifier properly verify"() {
         given:
-        TknKeeper<String, Jwt, Subject> tk = TkBuilderTest.tknKeeper()
+        TknKeeper<String, Jwt, Client> tk = TkBuilderTest.tknKeeper()
         def verifier = Verifier.of(tk)
                 .whenAny().match("/user/.*-stat", "/business/get-.*")
                 .except("/user/p-stat")

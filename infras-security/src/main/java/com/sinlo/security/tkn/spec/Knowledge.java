@@ -9,7 +9,7 @@ package com.sinlo.security.tkn.spec;
  * @param <A> the type of the subject
  * @author sinlo
  */
-public interface Knowledge<T, K, A> {
+public interface Knowledge<T, K, A extends Subject> {
 
     /**
      * Get the state of the given token {@code t}

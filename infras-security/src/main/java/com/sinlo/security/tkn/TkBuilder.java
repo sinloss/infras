@@ -9,6 +9,7 @@ import com.sinlo.security.jwt.spec.Jwt;
 import com.sinlo.security.jwt.spec.exception.JwtException;
 import com.sinlo.security.tkn.knowledges.JwtKnowledge;
 import com.sinlo.security.tkn.spec.Knowledge;
+import com.sinlo.security.tkn.spec.Subject;
 import com.sinlo.security.tkn.spec.Tkn;
 
 import java.util.Collections;
@@ -24,7 +25,7 @@ import java.util.function.Function;
  * @author sinlo
  */
 @SuppressWarnings("JavadocReference")
-public class TkBuilder<T, A> {
+public class TkBuilder<T, A extends Subject> {
 
     private Long ephemeral;
     private Long longevous;
@@ -39,7 +40,7 @@ public class TkBuilder<T, A> {
      * @param tc the type of the token of the finally built {@link TknKeeper}
      * @param ac the type of the subject of the finally built {@link TknKeeper}
      */
-    public static <T, K, A> TkBuilder<T, A> of(Class<T> tc, Class<A> ac) {
+    public static <T, K, A extends Subject> TkBuilder<T, A> of(Class<T> tc, Class<A> ac) {
         return new TkBuilder<>();
     }
 
@@ -107,7 +108,7 @@ public class TkBuilder<T, A> {
      * @param <T> {@link T}
      * @param <A> {@link A}
      */
-    public interface KnowledgeBuilder<T, K, A> {
+    public interface KnowledgeBuilder<T, K, A extends Subject> {
 
         Knowledge<T, K, A> knowledge();
     }

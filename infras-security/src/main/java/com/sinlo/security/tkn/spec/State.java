@@ -8,7 +8,7 @@ package com.sinlo.security.tkn.spec;
  * @param <A> the type of the subject
  * @author sinlo
  */
-public class State<T, K, A> {
+public class State<T, K, A extends Subject> {
 
     /**
      * The raw, non-modified token
@@ -37,7 +37,7 @@ public class State<T, K, A> {
         this.expire = expire;
     }
 
-    public static <T, K, A> State<T, K, A> of(T raw, K token, A subject, long expire) {
+    public static <T, K, A extends Subject> State<T, K, A> of(T raw, K token, A subject, long expire) {
         return new State<>(raw, token, subject, expire);
     }
 

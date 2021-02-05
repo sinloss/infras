@@ -1,6 +1,8 @@
 package com.sinlo.security.tkn
 
-class Subject {
+import com.sinlo.security.tkn.spec.Subject
+
+class Client implements Subject {
 
     String id
 
@@ -11,8 +13,8 @@ class Subject {
         return id + ":" + name
     }
 
-    static Subject from(String expr) {
+    static Client from(String expr) {
         def parts = expr.split(":")
-        return new Subject(id: parts[0], name: parts[1])
+        return new Client(id: parts[0], name: parts[1])
     }
 }

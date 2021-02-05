@@ -1,9 +1,7 @@
 package com.sinlo.security.tkn;
 
-import com.sinlo.security.tkn.spec.Knowledge;
-import com.sinlo.security.tkn.spec.State;
-import com.sinlo.security.tkn.spec.Tkn;
-import com.sinlo.security.tkn.spec.TknException;
+import com.sinlo.security.tkn.spec.*;
+
 
 /**
  * Tkn keeper
@@ -13,7 +11,7 @@ import com.sinlo.security.tkn.spec.TknException;
  * @param <A> the type of the subject
  * @author sinlo
  */
-public class TknKeeper<T, K, A> {
+public class TknKeeper<T, K, A extends Subject> {
 
     /**
      * A lifespan token containing the lifespan data of all tokens kept by

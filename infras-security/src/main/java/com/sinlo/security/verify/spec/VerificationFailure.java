@@ -1,4 +1,4 @@
-package com.sinlo.security.verify;
+package com.sinlo.security.verify.spec;
 
 import com.sinlo.security.tkn.spec.TknException;
 
