@@ -1,6 +1,7 @@
 package com.sinlo.core.service;
 
 import com.sinlo.core.common.util.Funny;
+import com.sinlo.core.common.util.Try;
 import com.sinlo.core.prototype.Prototype;
 import com.sinlo.core.service.spec.Pump;
 import com.sinlo.core.service.spec.TooMany;
@@ -173,7 +174,7 @@ public class Pond {
             try {
                 return mission.call(context.args);
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                return Try.toss(e);
             }
         }
     }

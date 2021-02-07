@@ -1,5 +1,6 @@
 package com.sinlo.core.service;
 
+import com.sinlo.core.common.util.Try;
 import com.sinlo.core.domain.persistor.Persistor;
 import com.sinlo.core.domain.persistor.spec.Entity;
 import com.sinlo.core.domain.persistor.spec.Repo;
@@ -66,10 +67,7 @@ public @interface Proxistor {
                     return mission.call(context.args);
                 } catch (Exception e) {
                     stub.cancel();
-                    if (e instanceof RuntimeException) {
-                        throw (RuntimeException) e;
-                    }
-                    throw new RuntimeException(e);
+                    return Try.toss(e);
                 }
             }
         }
