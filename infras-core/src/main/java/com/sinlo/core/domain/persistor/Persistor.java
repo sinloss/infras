@@ -1,6 +1,7 @@
 package com.sinlo.core.domain.persistor;
 
 import com.sinlo.core.common.util.Eveny;
+import com.sinlo.core.common.util.Try;
 import com.sinlo.core.domain.persistor.spec.Entity;
 import com.sinlo.core.domain.persistor.spec.Repo;
 import com.sinlo.core.domain.persistor.spec.Selector;
@@ -246,11 +247,7 @@ public class Persistor<T extends Entity> {
         }
 
         public void finish() {
-            try {
-                this.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            Try.tolerate(this::close);
         }
 
         public void cancel() {

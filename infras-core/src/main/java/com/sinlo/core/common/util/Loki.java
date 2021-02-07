@@ -28,12 +28,7 @@ public class Loki {
         final Object lock = locks.take();
         if (lock == null) {
             // all locks are successfully locked
-            try {
-                return action.call();
-            } catch (Exception e) {
-                e.printStackTrace();
-                return null;
-            }
+            return Try.tolerate(action::call);
         }
         //noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized (lock) {

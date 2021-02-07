@@ -67,6 +67,14 @@ public @interface Agent {
          * Agent on the mission
          */
         <T> T act(Context context, Mission<T> mission);
+
+        /**
+         * Sneaky throw
+         */
+        @SuppressWarnings("unchecked")
+        default <T, E extends Throwable> T toss(Throwable e) throws E {
+            throw (E) e;
+        }
     }
 
     /**
@@ -142,7 +150,7 @@ public @interface Agent {
             try {
                 return act(0, context, mission, context.args);
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                return toss(e);
             }
         }
 

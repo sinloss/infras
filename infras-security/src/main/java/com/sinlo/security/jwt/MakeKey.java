@@ -1,5 +1,6 @@
 package com.sinlo.security.jwt;
 
+import com.sinlo.core.common.util.Try;
 import com.sinlo.security.jwt.spec.Keys;
 import com.sinlo.sponte.Sponte;
 import com.sinlo.sponte.core.Context;
@@ -74,7 +75,7 @@ public @interface MakeKey {
                 try {
                     Files.createDirectories(res);
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    Try.toss(e);
                 }
             }
 
