@@ -31,6 +31,8 @@ public class Verifier<T, K, A extends Subject> extends Policy.Rules {
         this.tknKeeper = Objects.requireNonNull(
                 tknKeeper, String.format("Must provide a proper %s", TknKeeper.class.getName()));
         this.fallback = fallback;
+        // set as the global verifier
+        Context.set(this);
     }
 
     /**
