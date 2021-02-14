@@ -187,7 +187,7 @@ public class Persistor<T extends Entity> {
 
     /**
      * enclose a given procedure using the given repos, the tagged entities will be all
-     * committed after the procedure is called, or depend on the Canceller if the given
+     * committed after the procedure is called, or depend on the {@link Stub} if the given
      * proc is null
      */
     public final Stub enclose(Consumer<Stub> proc, Selector<T> selector) {
