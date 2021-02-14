@@ -213,10 +213,10 @@ public class Policy<T> {
             // try to get the already set policy items
             String already = Stream.of(types)
                     .filter(items.keySet()::contains)
-                    .collect(Collectors.joining());
+                    .collect(Collectors.joining(", "));
             if (Strine.nonEmpty(already)) {
                 throw new IllegalStateException(String.format(
-                        "Already setup the ignore rule for request type(s) [ %s ]", already));
+                        "Already set the rule for the type(s) [ %s ]", already));
             }
             return new When(types);
         }
