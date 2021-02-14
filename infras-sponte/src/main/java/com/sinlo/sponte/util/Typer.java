@@ -270,6 +270,9 @@ public class Typer {
     /**
      * Get assigned values inside of the requested {@link AnnotationMirror} which itself is in
      * a list of {@link AnnotationMirror}s of the given {@link AnnotatedConstruct}
+     *
+     * @return null if the requested annotation is not found, or empty map if found but no values
+     * present, otherwise the expected values map
      */
     public static Map<String, String> values(AnnotatedConstruct e, String requested) {
         AnnotationMirror am = annotated(e, requested);

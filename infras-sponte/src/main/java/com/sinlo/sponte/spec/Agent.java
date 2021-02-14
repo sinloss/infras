@@ -22,25 +22,50 @@ import java.util.stream.Collectors;
 @Documented
 public @interface Agent {
 
+    /**
+     * The {@link Class} of the agent
+     */
     Class<? extends Bond> value();
 
+    /**
+     * The generic parameter values that will be assigned to the generated agent class, the
+     * string must starts with the &lt; and ends with the the &gt;
+     */
     String generify() default "";
 
+    /**
+     * The annotations that is expected to be forwarded to the generated agent class
+     */
     Class<? extends Annotation>[] forward() default {};
 
+    /**
+     * Ignore the annotated method, that is the method will be directly called in the
+     * generated agent class
+     */
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.RUNTIME)
     @Documented
     @interface Ignore {
     }
 
+    /**
+     * To make an extra annotation on the specific place, this is repeatable
+     */
     @Target({ElementType.TYPE, ElementType.METHOD, ElementType.PARAMETER})
     @Retention(RetentionPolicy.RUNTIME)
     @Documented
     @Repeatable(Annotate.All.class)
     @interface Annotate {
+
+        /**
+         * The annotation type
+         */
         Class<? extends Annotation> value();
 
+        /**
+         * The values expression, that is the whole part inside of the parenthesis of the
+         * annotation
+         */
         String values() default "";
 
         @Target({ElementType.TYPE, ElementType.METHOD, ElementType.PARAMETER})
@@ -89,10 +114,25 @@ public @interface Agent {
      * Mission context
      */
     class Context {
+        /**
+         * An reference to the delegated object
+         */
         public final Ext.I self;
+        /**
+         * The name of the method
+         */
         public final String name;
+        /**
+         * The unique method signature
+         */
         public final String signature;
+        /**
+         * A set of all original annotations on the delegated method
+         */
         public final Set<String> annotations;
+        /**
+         * The arguments that are passed into the delegated method
+         */
         public final Object[] args;
 
         public Context(Ext.I self, String name, String signature,
@@ -130,6 +170,9 @@ public @interface Agent {
             }
         }
 
+        /**
+         * Check if the original method has the given annotation
+         */
         public boolean has(Class<? extends Annotation> annotation) {
             return this.annotations.contains(annotation.getCanonicalName());
         }
