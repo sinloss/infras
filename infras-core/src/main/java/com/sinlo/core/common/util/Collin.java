@@ -29,7 +29,7 @@ public class Collin {
     /**
      * The collector for joining with a tally counting the joined elements
      */
-    public static class CountedJoiner implements Collector<CharSequence, StringBuilder, String> {
+    public static class CountingJoiner implements Collector<CharSequence, StringBuilder, String> {
         private int count = 0;
         /**
          * The delimiter used in the joining process
@@ -41,18 +41,18 @@ public class Collin {
          *
          * @param delimiter the delimiter used by the joining
          */
-        public static CountedJoiner joining(CharSequence delimiter) {
-            return new CountedJoiner(delimiter);
+        public static CountingJoiner joining(CharSequence delimiter) {
+            return new CountingJoiner(delimiter);
         }
 
         /**
          * @see #joining(CharSequence)
          */
-        public static CountedJoiner joining() {
-            return new CountedJoiner("");
+        public static CountingJoiner joining() {
+            return new CountingJoiner("");
         }
 
-        private CountedJoiner(CharSequence delimiter) {
+        private CountingJoiner(CharSequence delimiter) {
             this.delimiter = delimiter;
         }
 

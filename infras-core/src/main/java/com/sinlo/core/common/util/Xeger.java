@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -67,49 +66,38 @@ public class Xeger {
     }
 
     // zip: build the map
-    private static StringBuilder build(Map<?, ?> map) {
-        return or(map.entrySet().stream().map(Xeger::build), map.size());
+    private static CharSequence build(Map<?, ?> map) {
+        return or(map.entrySet().stream().map(Xeger::build));
     }
 
     // zip: build the entry
-    private static StringBuilder build(Map.Entry<?, ?> entry) {
+    private static CharSequence build(Map.Entry<?, ?> entry) {
         return new StringBuilder().append(entry.getKey()).append(build(entry.getValue()));
     }
 
     // zip: build the value
-    private static StringBuilder build(Object value) {
+    private static CharSequence build(Object value) {
         if (value instanceof Map)
             return build((Map<?, ?>) value);
         if (value instanceof List) {
             return or(((List<?>) value).stream().flatMap(v -> v instanceof Map
                     ? ((Map<?, ?>) v).entrySet().stream().map(Xeger::build)
-                    : Stream.of(v.toString())), ((List<?>) value).size());
+                    : Stream.of(v.toString())));
         }
         return new StringBuilder().append(value);
     }
 
     /**
-     * Create a regex 'or' expression of the given patterns {@link Collection}
-     */
-    public static StringBuilder or(Collection<CharSequence> patterns) {
-        if (patterns.size() == 0)
-            return new StringBuilder();
-        if (patterns.size() == 1)
-            return new StringBuilder(patterns.iterator().next());
-        return new StringBuilder("(?:")
-                .append(Arria.join(patterns).by("|")).append(")");
-    }
-
-    /**
      * Create a regex 'or' expression of the given patterns {@link Stream}
      */
-    public static StringBuilder or(Stream<CharSequence> patterns, int size) {
-        if (size == 0)
-            return new StringBuilder();
-        if (size == 1)
-            return new StringBuilder(patterns.collect(Collectors.joining()));
-        return new StringBuilder("(?:")
-                .append(patterns.collect(Collectors.joining("|"))).append(")");
+    public static CharSequence or(Stream<CharSequence> patterns) {
+        Collin.CountingJoiner cj = Collin.CountingJoiner.joining("|");
+        // join
+        String inner = patterns.collect(cj);
+        if (cj.count() <= 1) {
+            return inner;
+        }
+        return new StringBuilder("(?:").append(inner).append(")");
     }
 
     /**
