@@ -350,7 +350,7 @@ public class Fetcha<T> {
     }
 
     private void storeCookies(Response response) {
-        // no storing cookies when the cookie manager is system wide
+        // no storing cookies when there is no cookie manager assigned
         if (cookieManager == null) return;
         try {
             cookieManager.put(uri, response.headers());
@@ -360,7 +360,7 @@ public class Fetcha<T> {
     }
 
     private void carryCookies(HttpURLConnection conn) {
-        // no carrying cookies when the cookie manager is system wide
+        // no carrying cookies when there is no cookie manager assigned
         if (cookieManager == null) return;
         try {
             cookieManager.get(uri, conn.getRequestProperties()).forEach(
