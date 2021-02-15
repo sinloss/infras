@@ -1,12 +1,10 @@
 package com.sinlo.core.common.util;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.Supplier;
 
 /**
  * Arria the array util
@@ -135,11 +133,23 @@ public class Arria {
     }
 
     /**
+     * Collect all the given elements to a collection supplied by the given {@code supplier}
+     */
+    @SafeVarargs
+    public static <E, T extends Collection<E>> T collect(Supplier<T> supplier, E... elements) {
+        T c = supplier.get();
+        if (nonEmpty(elements)) {
+            Collections.addAll(c, elements);
+        }
+        return c;
+    }
+
+    /**
      * Prepare joining of elements using the {@link Joiner}
      */
     @SafeVarargs
-    public static <T> Joiner<T> join(T... array) {
-        return new Joiner<>(Arrays.asList(array));
+    public static <T> Joiner<T> join(T... elements) {
+        return new Joiner<>(Arrays.asList(elements));
     }
 
     /**
