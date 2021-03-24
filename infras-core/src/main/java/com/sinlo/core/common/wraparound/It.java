@@ -1,5 +1,8 @@
 package com.sinlo.core.common.wraparound;
 
+import com.sinlo.core.common.util.Jason;
+
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -29,6 +32,27 @@ public class It<T, Sidecar> {
      */
     public Optional<Sidecar> sidecar() {
         return Optional.ofNullable(sidecar);
+    }
+
+    /**
+     * Get an immutable view of it
+     */
+    public View<T, Sidecar> view() {
+        return new View<>(t, sidecar);
+    }
+
+    /**
+     * Get a map representation of it with the given aliases of itself and
+     * its sidecar
+     *
+     * @param nameIt      to name {@link T itself}
+     * @param nameSidecar to name the {@link Sidecar sidecar}
+     * @return a map with aliases
+     */
+    public Map<?, ?> alias(String nameIt, String nameSidecar) {
+        return Jason.map()
+                .val(nameIt, t)
+                .val(nameSidecar, sidecar);
     }
 
     /**
@@ -110,6 +134,29 @@ public class It<T, Sidecar> {
          */
         public It<T, Void> without() {
             return new It<>(t, null);
+        }
+    }
+
+    /**
+     * An immutable view of {@link It}
+     */
+    public static class View<T, S> {
+
+        public final T it;
+
+        public final S sidecar;
+
+        public View(T it, S sidecar) {
+            this.it = it;
+            this.sidecar = sidecar;
+        }
+
+        public T getIt() {
+            return it;
+        }
+
+        public S getSidecar() {
+            return sidecar;
         }
     }
 }
