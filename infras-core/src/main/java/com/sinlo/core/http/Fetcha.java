@@ -716,7 +716,7 @@ public class Fetcha<T> {
         }
 
         /**
-         * Add an preceptor to the {@link #preceptors}
+         * Add a preceptor to the {@link #preceptors}
          */
         public Course<T> precept(Stage stage, BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection> preceptor) {
             Ordered.last(forStage(stage), preceptor);
@@ -724,7 +724,7 @@ public class Fetcha<T> {
         }
 
         /**
-         * Add an preceptor to the {@link #preceptors} ordered by the given order
+         * Add a preceptor to the {@link #preceptors} ordered by the given order
          */
         public Course<T> precept(Stage stage, BiFunction<HttpURLConnection, Fetcha<T>, HttpURLConnection> preceptor, int order) {
             Ordered.add(forStage(stage), preceptor, order);

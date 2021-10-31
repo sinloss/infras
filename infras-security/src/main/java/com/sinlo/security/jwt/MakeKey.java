@@ -33,7 +33,7 @@ import java.util.Base64;
 public @interface MakeKey {
 
     /**
-     * The resources folder's location relative to the folder where the {@code classes}
+     * The resources' folder's location relative to the folder where the {@code classes}
      * folder resides
      */
     String value() default "../src/main/resources";

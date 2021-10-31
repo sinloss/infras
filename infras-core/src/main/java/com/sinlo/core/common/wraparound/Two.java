@@ -93,7 +93,7 @@ public class Two<O, A> {
     /**
      * Apply the two functions according to the condition
      *
-     * @param ifOne       apply this function on the {@link #one} if the it presents
+     * @param ifOne       apply this function on the {@link #one} if it presents
      * @param elseAnother apply this function on the {@link #another} if the {@link #one} does not
      *                    present and the {@link #another} presents
      * @param <R>         the return type of given functions

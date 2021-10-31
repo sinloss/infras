@@ -10,7 +10,7 @@ import com.sinlo.core.http.Fetcha;
 public enum BodyType {
 
     /**
-     * Will no body be presented
+     * Will no body-type be presented
      */
     NONE("") {
         /**

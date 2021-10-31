@@ -10,7 +10,7 @@ import java.util.Objects;
 
 /**
  * The signature of a {@link ExecutableElement} or a {@link Method}, they share the same
- * format to maintain the consistency between the compile time elements and the runtime
+ * format to maintain the consistency between the compile-time elements and the runtime
  * reflect objects
  *
  * @author sinlo

@@ -68,7 +68,7 @@ public class SponteExplorer<T> {
     }
 
     /**
-     * Do the explore on every profile
+     * Do the exploring on every profile
      *
      * @see #explore(Profile, Object)
      */

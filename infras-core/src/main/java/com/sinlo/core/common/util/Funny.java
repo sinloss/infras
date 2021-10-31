@@ -114,7 +114,7 @@ public class Funny {
 
     /**
      * Similar to {@link #cascade(Consumer, Object)}, but binds an argument, and return
-     * a identity function that can return what it applied on which might be the caller
+     * an identity function that can return what it applied on which might be the caller
      * in case of method referencing
      */
     public static <T, A> Function<T, T> cascade(BiConsumer<T, A> voided, A arg) {

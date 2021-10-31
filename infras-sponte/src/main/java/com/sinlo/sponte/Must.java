@@ -16,7 +16,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
- * The compile time constraint for annotations, mainly {@link Sponte} annotated
+ * The compile-time constraint for annotations, mainly {@link Sponte} annotated
  *
  * @author sinlo
  */
@@ -137,7 +137,7 @@ public @interface Must {
                     }
                     break;
             }
-            cs.error(String.format(message, cs.ctx.qname, ref.toString()));
+            cs.error(String.format(message, cs.ctx.qname, ref));
         }
 
         /**
@@ -168,7 +168,7 @@ public @interface Must {
                 if ((value instanceof TypeMirror &&
                         cs.ctx.types.isAssignable((TypeMirror) value, clz)) != spec.negative()) return;
                 cs.error(String.format("The property [ %s ] must%s extend class %s",
-                        spec.value(), spec.negative() ? " not" : "", clz.toString()));
+                        spec.value(), spec.negative() ? " not" : "", clz));
             }
             // a mandatory check does not strictly need the val() nor the clz()
             if (!spec.mandatory()) {

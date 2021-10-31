@@ -29,7 +29,7 @@ public @interface Agent {
 
     /**
      * The generic parameter values that will be assigned to the generated agent class, the
-     * string must starts with the &lt; and ends with the the &gt;
+     * string must starts with the &lt; and ends with the &gt;
      */
     String generify() default "";
 
@@ -63,7 +63,7 @@ public @interface Agent {
         Class<? extends Annotation> value();
 
         /**
-         * The values expression, that is the whole part inside of the parenthesis of the
+         * The values' expression, that is the whole part inside the parenthesis of the
          * annotation
          */
         String values() default "";
@@ -115,7 +115,7 @@ public @interface Agent {
      */
     class Context {
         /**
-         * An reference to the delegated object
+         * A reference to the delegated object
          */
         public final Ext.I self;
         /**

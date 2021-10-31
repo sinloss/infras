@@ -70,7 +70,7 @@ public class Filia {
     }
 
     /**
-     * Resolve a given path relative to the {@link #p}, the path can target at a sub
+     * Resolve a given path relative to the {@link #p}, the path can target at a sub-
      * directory or a file
      *
      * @see Path#resolve(Path)
@@ -765,14 +765,14 @@ public class Filia {
 
     /**
      * Asynchronously write the content supplied by the given {@code supplier} to the file
-     * identified by the given path. The {@code supplier} accepts a Integer parameter with
+     * identified by the given path. The {@code supplier} accepts an Integer parameter with
      * represents the number of wrote bytes of the last writing, and a null represents the
      * first time of writing at which none byte has been written. If the {@code supplier}
      * wants to stop the writing process, it could simply return a null.
      *
      * @param path      the file path
      * @param start     starting from this given position of the file
-     * @param supplier  supplies the byte[] to be wrote
+     * @param supplier  supplies the byte[] to be written
      * @param overwrite should overwrite the existing contents or not
      * @return the final size <b>starting from 0</b>
      */
@@ -799,7 +799,7 @@ public class Filia {
                             future.complete(pos);
                             return;
                         }
-                        // otherwise do the writing
+                        // otherwise, do the writing
                         buffer.put(supplier.apply(result));
                         chan.write(buffer, (pos += result), null, this);
                     }
@@ -851,14 +851,14 @@ public class Filia {
         }
 
         /**
-         * Create from the a given {@link Path}
+         * Create from the given {@link Path}
          */
         public static Parts from(Path path) {
             return from(path.getFileName().toString());
         }
 
         /**
-         * Create from the a given file name
+         * Create from the given file name
          */
         public static Parts from(String fileName) {
             int delim = fileName.lastIndexOf(".");
@@ -938,7 +938,7 @@ public class Filia {
                                     && p.extension.equals(parts.extension))
                             .map(Parts::getBasename)
                             .map(n -> n.substring(parts.basename.length()))
-                            // Non empty, meaning the root file is excluded here as a stream of 0
+                            // Non-empty, meaning the root file is excluded here as a stream of 0
                             // will be prepended at be beginning of the stream. The 0 represents
                             // the root file in the context of sequence
                             .filter(Strine::nonEmpty)
@@ -1019,7 +1019,7 @@ public class Filia {
         /**
          * Create a new member file of this sequence having a greater serial than the last one
          * which must exist, otherwise return the {@link #last()}. If the {@code practical} is
-         * given false, then just produce the a new member no matter what
+         * given false, then just produce the new member no matter what
          */
         public Member next(boolean practical) {
             if (seq.isEmpty()) {

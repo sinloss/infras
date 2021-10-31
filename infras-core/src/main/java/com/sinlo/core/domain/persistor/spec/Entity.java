@@ -16,7 +16,7 @@ public interface Entity {
     String id();
 
     /**
-     * This method could be overrode to provide the expected persistor directly
+     * This method could be overridden to provide the expected persistor directly
      * instead of tracing all the ancestors
      *
      * @return a proper persistor for this entity

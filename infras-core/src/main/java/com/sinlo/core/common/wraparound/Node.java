@@ -84,7 +84,7 @@ public class Node<T extends Node<T>> {
     }
 
     /**
-     * Get a upward {@link Iterational}. The {@link Iterational#iterator()} of this is not
+     * Get an upward {@link Iterational}. The {@link Iterational#iterator()} of this is not
      * thread safe, so please use this single threaded
      */
     public Iterational<T> upward() {
@@ -102,7 +102,7 @@ public class Node<T extends Node<T>> {
     }
 
     /**
-     * A simplest subclass of {@link Node}
+     * The simplest subclass of {@link Node}
      */
     public static class Simple extends Node<Simple> {
     }

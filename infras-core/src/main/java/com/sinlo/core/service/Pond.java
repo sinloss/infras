@@ -46,7 +46,7 @@ public class Pond {
 
     /**
      * Initialize and create with an {@link Pump} which will provide instantiation as well
-     * as post processing of the service object before it is placed in the {@link #p pond}.
+     * as post-processing of the service object before it is placed in the {@link #p pond}.
      * The pond instance is a singleton instance, and the initialization will be called
      * only once
      */
@@ -55,7 +55,7 @@ public class Pond {
         if (i == null) {
             if (instance.compareAndSet(null, i = new Pond())) {
                 // initialize
-                new Initializer(pump);
+                new Initializer(pump).Initialize();
                 return i;
             }
             return instance.get();
@@ -121,7 +121,7 @@ public class Pond {
             // maintain keys of interfaces
             Arrays.stream(c.getInterfaces())
                     .map(Class::getName)
-                    // make the many the MANY, and filter them out
+                    // make the many as MANY, and filter them out
                     .filter(n -> Pond.p.on(Pool.Key.present(n),
                             TooMany::really) != TooMany.MANY)
                     .forEach(n -> Pond.p.place(n, v));
@@ -231,7 +231,7 @@ public class Pond {
                     Pond.p.get(pk, () -> pump.sink(type)))
                     : target;
 
-            // check if should do the maintenance
+            // should do the maintenance?
             if (!pump.should(type, service)) return service;
 
             // the pivot annotation on the enclosing type

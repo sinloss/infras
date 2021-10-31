@@ -59,7 +59,7 @@ public class Property<T, V> {
     }
 
     /**
-     * Create a property from the given {@link Field}, and use the fallback setter or getter if could
+     * Create a property from the given {@link Field}, and use the fallback setter or getter if it could
      * not find them of all public methods using the given field
      */
     @SuppressWarnings("unchecked")
@@ -73,7 +73,7 @@ public class Property<T, V> {
     }
 
     /**
-     * Create a property from the given {@link Method setter}, and use the given fallback if could not
+     * Create a property from the given {@link Method setter}, and use the given fallback if it could not
      * find the field in the setter declaring class
      */
     @SuppressWarnings("unchecked")
@@ -88,7 +88,7 @@ public class Property<T, V> {
     }
 
     /**
-     * Create a property from the given {@link Method getter}, and use the given fallback if could not
+     * Create a property from the given {@link Method getter}, and use the given fallback if it could not
      * find the field in the getter declaring class
      */
     @SuppressWarnings("unchecked")
@@ -196,7 +196,7 @@ public class Property<T, V> {
         }
 
         /**
-         * Get a stream of all non null {@link AccessibleObject} of the given {@link Property}
+         * Get a stream of all non-null {@link AccessibleObject} of the given {@link Property}
          */
         public static Stream<Map.Entry<On, AccessibleObject>> stream(Property<?, ?> property) {
             return Arrays.stream(values())

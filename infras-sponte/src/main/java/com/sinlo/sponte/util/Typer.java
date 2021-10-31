@@ -242,7 +242,7 @@ public class Typer {
      * Get the {@link AnnotationValue} from the given {@link AnnotationMirror} that matches
      * the given {@code path}
      *
-     * @throws IllegalAccessException when a intermedia value is expected by the given path
+     * @throws IllegalAccessException when an intermedia value is expected by the given path
      *                                to be an annotation yet not. The message is set to be
      *                                the current value name in the path
      */
@@ -268,7 +268,7 @@ public class Typer {
     }
 
     /**
-     * Get assigned values inside of the requested {@link AnnotationMirror} which itself is in
+     * Get assigned values inside the requested {@link AnnotationMirror} which itself is in
      * a list of {@link AnnotationMirror}s of the given {@link AnnotatedConstruct}
      *
      * @return null if the requested annotation is not found, or empty map if found but no values

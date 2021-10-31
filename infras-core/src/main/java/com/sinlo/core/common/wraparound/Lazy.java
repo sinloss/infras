@@ -30,7 +30,7 @@ public class Lazy<T> {
     }
 
     /**
-     * Accept an initializer that may throws exceptions
+     * Accept an initializer that may throw exceptions
      */
     public static <T, E extends Throwable> Lazy<T> of(ImpatientSupplier<T, E> initializer) {
         return new Lazy<>(initializer);

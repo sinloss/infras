@@ -85,8 +85,7 @@ public interface Procedure {
                 for (ElementType type : target.value()) {
                     if (Perch.support(type)) continue;
                     cs.error(String.format(
-                            "Sponte does not support ElementType %s",
-                            type.toString()));
+                            "Sponte does not support ElementType %s", type));
                 }
             }
         }
@@ -297,7 +296,7 @@ public interface Procedure {
                                     "\"%s\",\"%s\",new String[]{%s}%s),%s)",
                             voided ? "" : "return ",
                             name,
-                            Signature.of(method).toString(),
+                            Signature.of(method),
                             method.getAnnotationMirrors().stream()
                                     .map(AnnotationMirror::getAnnotationType)
                                     .map(Object::toString)

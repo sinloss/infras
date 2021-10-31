@@ -157,7 +157,7 @@ public class Pool<K, T> {
         }
 
         /**
-         * Schrodinger cat state of the given key's present or absent
+         * Schrödinger's cat state of the given key's present or absent
          */
         public static <K> Key<K> catstate(K k) {
             return new Key<>(k, 2);

@@ -10,7 +10,7 @@ import java.util.function.Supplier;
 
 /**
  * Private pool for {@link CompileAware} and {@link SponteAware} with its method
- * {@link #get(Class, String, Supplier)} access limited inside of the same package
+ * {@link #get(Class, String, Supplier)} access limited inside the same package
  *
  * @author sinlo
  */

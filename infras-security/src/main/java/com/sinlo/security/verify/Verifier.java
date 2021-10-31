@@ -45,7 +45,7 @@ public class Verifier<T, K, A extends Subject> extends Policy.Rules {
     }
 
     /**
-     * Get a policy instance of the {@link Verifier} that is about to be create
+     * Get a policy instance of the {@link Verifier} that is about to be created
      *
      * @param tknKeeper the {@link TknKeeper} which handles token authentication
      * @param delim     the delimiter of the paths to be handled
@@ -67,7 +67,7 @@ public class Verifier<T, K, A extends Subject> extends Policy.Rules {
     public Optional<State<T, K, A>> verify(String type, String path, T token) throws VerificationFailure, NotAllowed {
         // clear the maybe existing state due to the behaviour of the thread pool
         state.set(null);
-        // check if should verify
+        // check if it should verify
         if (Try.of(() -> check(type, path))
                 .caught(NoRule.class).then(fallback)
                 .exert()) {

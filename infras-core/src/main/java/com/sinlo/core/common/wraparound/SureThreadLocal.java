@@ -25,7 +25,7 @@ public class SureThreadLocal<T> {
     }
 
     /**
-     * Accept an initializer that may throws exceptions
+     * Accept an initializer that may throw exceptions
      */
     public static <T, E extends Throwable> SureThreadLocal<T> of(ImpatientSupplier<T, E> supplier) {
         return new SureThreadLocal<>(supplier);

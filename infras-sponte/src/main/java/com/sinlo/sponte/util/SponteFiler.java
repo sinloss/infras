@@ -29,7 +29,7 @@ public class SponteFiler {
     public static Path ensure(String dir) {
         if (!VISITABLE) return null;
         try {
-            Path f = Paths.get(Sponte.class.getResource("/").toURI())
+            Path f = Paths.get(Objects.requireNonNull(Sponte.class.getResource("/")).toURI())
                     .resolve(dir);
             if (!Files.exists(f)) {
                 Files.createDirectories(f);
@@ -44,7 +44,7 @@ public class SponteFiler {
 
     private static boolean visitable() {
         try {
-            Paths.get(Sponte.class.getResource("/").toURI());
+            Paths.get(Objects.requireNonNull(Sponte.class.getResource("/")).toURI());
         } catch (FileSystemNotFoundException fse) {
             return false;
         } catch (URISyntaxException e) {

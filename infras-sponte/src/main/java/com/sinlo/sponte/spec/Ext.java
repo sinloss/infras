@@ -385,7 +385,7 @@ abstract class WithAnnotations<T extends WithAnnotations<T>> {
     }
 
     /**
-     * On every annotation expression inside of the {@link #fa} list do the
+     * On every annotation expression inside the {@link #fa} list do the
      * given action
      */
     public void everyAnnotation(Consumer<String> action) {

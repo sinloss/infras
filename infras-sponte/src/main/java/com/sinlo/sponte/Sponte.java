@@ -70,7 +70,7 @@ public @interface Sponte {
      * Skip the {@link Sponte#compiling()} on and only on the target annotated by this
      * annotation. It is very useful when the assigned {@link CompileAware} class is in the
      * same code base with the {@link Sponte} annotated target as the {@link CompileAware} is
-     * not really compiled in the annotation processing process
+     * not really compiled in the annotation process
      */
     @Retention(RetentionPolicy.RUNTIME)
     @Documented

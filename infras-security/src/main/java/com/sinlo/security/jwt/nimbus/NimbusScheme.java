@@ -26,7 +26,7 @@ import java.util.List;
 public interface NimbusScheme extends Jwter.Scheme<SignedJWT> {
 
     /**
-     * An instance of a simplest {@link NimbusScheme} which uses {@link JWSAlgorithm#RS256}
+     * An instance of the simplest {@link NimbusScheme} which uses {@link JWSAlgorithm#RS256}
      * as its {@link #alg()}
      */
     NimbusScheme Simple = of(JWSAlgorithm.RS256);
@@ -82,7 +82,7 @@ public interface NimbusScheme extends Jwter.Scheme<SignedJWT> {
     }
 
     /**
-     * A implementation of decode-only {@link NimbusScheme}
+     * An implementation of decode-only {@link NimbusScheme}
      */
     class JustDec implements NimbusScheme {
 

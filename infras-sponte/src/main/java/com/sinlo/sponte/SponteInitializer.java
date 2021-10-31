@@ -32,6 +32,10 @@ public abstract class SponteInitializer implements Predicate<Profile> {
     }
 
     public SponteInitializer() {
+        Initialize();
+    }
+
+    public void Initialize() {
         final AtomicInteger state = state();
         if (state.get() == DECLINING) return;
         // spin when initializing
@@ -48,7 +52,7 @@ public abstract class SponteInitializer implements Predicate<Profile> {
             }
         }
         Class<? extends Annotation>[] subjects = subjects();
-        // INITIALIZING is the only state that can reach here and needs to be alter
+        // INITIALIZING is the only state that can reach here and needs to be altered
         state.compareAndSet(INITIALIZING, DECLINING);
 
         // the real initializing process does not really care about threads

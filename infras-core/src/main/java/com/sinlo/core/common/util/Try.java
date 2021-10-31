@@ -58,7 +58,7 @@ public class Try<R, E extends Throwable> {
 
     /**
      * Apply the given {@code otherwise} if none of the assigned type of throwable was caught.
-     * It will sneaky throw the throwable by default
+     * It will be sneaky throw the throwable by default
      */
     public Try<R, E> otherwise(Function<Throwable, R> fallback) {
         this.otherwise = Objects.requireNonNull(fallback);

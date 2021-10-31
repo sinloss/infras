@@ -27,7 +27,7 @@ public class Response {
     private final Lazy<Status> status;
 
     /**
-     * Whens holds handlers for some specific http statuses. Any handler can abort the
+     * When holds handlers for some specific http statuses. Any handler can abort the
      * following handling processes by returning {@code false}
      */
     private final Map<Status, Function<Response, Boolean>> whens = new HashMap<>();

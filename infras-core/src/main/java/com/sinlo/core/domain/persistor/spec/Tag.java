@@ -40,7 +40,7 @@ public class Tag<T extends Entity> {
             super("Cannot tag the current object [ "
                     .concat(key)
                     .concat(" ], because it has already been tagged ")
-                    .concat(channel == null ? "" : "as " + channel.toString()));
+                    .concat(channel == null ? "" : "as " + channel));
         }
     }
 }

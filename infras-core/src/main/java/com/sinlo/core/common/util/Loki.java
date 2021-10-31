@@ -22,7 +22,7 @@ public class Loki {
 
     /**
      * Sequentially lock all locks in the given {@link Group locks}, and then do the
-     * given {@link Callable action}. This is mainly used to avoid dead lock
+     * given {@link Callable action}. This is mainly used to avoid deadlock
      */
     public static <T> T sequentially(Callable<T> action, Group locks) {
         final Object lock = locks.take();

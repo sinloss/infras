@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 public class Xeger {
 
     /**
-     * Zip all given regex expressions together as an one big regex pattern
+     * Zip all given regex expressions together as a one big regex pattern
      *
      * @param delim split every regex expression into several parts by this delimiter
      *              to merge the same parts of all expressions
@@ -28,7 +28,7 @@ public class Xeger {
     }
 
     /**
-     * Zip all given regex expressions together as an one big regex pattern
+     * Zip all given regex expressions together as a one big regex pattern
      *
      * @param delim split every regex expression into several parts by this delimiter
      *              to merge the same parts of all expressions
@@ -41,7 +41,7 @@ public class Xeger {
     }
 
     /**
-     * Zip all given regex expressions together as an one big regex pattern
+     * Zip all given regex expressions together as a one big regex pattern
      *
      * @param delim split every regex expression into several parts by this delimiter
      *              to merge the same parts of all expressions
@@ -54,7 +54,7 @@ public class Xeger {
     }
 
     /**
-     * Zip all given regex expressions together as an one big regex pattern
+     * Zip all given regex expressions together as a one big regex pattern
      *
      * @param tree the {@link Jason.Thingama.Bob} produced by the {@link Strine#tree(String, Stream)},
      *             {@link Strine#tree(String, String...)} and {@link Strine#tree(String, Collection)}.

@@ -28,7 +28,7 @@ public interface SponteAware {
     }
 
     /**
-     * By default this filters out {@link Profile profiles} of the subject
+     * By default, this filters out {@link Profile profiles} of the subject
      * {@link Sponte}, which means normally the filtered profiles is what
      * we just need
      */

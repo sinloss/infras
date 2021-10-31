@@ -67,7 +67,7 @@ public class Jwt {
 
     /**
      * Surefire! Create a list of {@code validators} containing {@link ShouldTime#afterNbf()} and
-     * {@link ShouldTime#beforeExp()}. Also may add an extra {@link ShouldIssuer} based on the
+     * {@link ShouldTime#beforeExp()}. Also, may add an extra {@link ShouldIssuer} based on the
      * given {@code iss} strings
      *
      * @param iss <ul>
